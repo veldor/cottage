@@ -1,0 +1,500 @@
+@media print
+{
+    body{
+        font-size: 8px;
+    }
+    .no-print, .no-print *
+    {
+        display: none !important;
+    }
+    div.container{
+        padding: 0;
+        width: 100%;
+    }
+    .little-text{
+        font-size: 10px;
+    }
+}
+html, body {
+    height: 100%;
+    font-size: 18px;
+}
+
+.wrap {
+    min-height: 100%;
+    height: auto;
+    margin: 0 auto -60px;
+    padding: 0 0 60px;
+}
+
+.wrap > .container {
+    padding: 70px 15px 20px;
+}
+
+.footer {
+    height: 60px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+    padding-bottom: 20px;
+}
+
+.row_block {
+    border: solid #b6c371 1px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background-color: #fefee6;
+}
+
+.expansion {
+    height: auto;
+    margin: 8px;
+    margin-left: 20px;
+    border: solid green 1px;
+    border-radius: 10px;
+    padding: 8px;
+    background-color: #fffed2;
+}
+
+.textareaDop {
+    margin: 5px 0 0 10px;
+}
+
+#top-panel-nav {
+    margin-bottom: 70px;
+}
+
+button > span.glyphicon-plus {
+    display: none;
+}
+
+button.collapsed > span.glyphicon-plus {
+    display: inline;
+}
+
+button.collapsed > span.glyphicon-minus {
+    display: none;
+}
+
+button.btn-bottom {
+    margin-bottom: 10px;
+}
+
+div.controlButton li {
+    cursor: pointer;
+}
+
+.nav li > form > button.logout {
+    padding: 15px;
+    border: none;
+}
+
+div.field-name, div.field-value {
+    margin-top: 15px;
+}
+
+div.field-value > input, div.field-value > div.input-group {
+    margin-bottom: 5px;
+}
+
+div.field-name > label {
+    font-weight: normal;
+}
+
+div.row_block div.form-group {
+    margin: 10px;
+    border-top: solid 1px #c8d994;
+}
+
+div.row_block div.form-group:first-child {
+    border: none;
+}
+
+div.option-container > label {
+    font-weight: normal;
+    margin-left: 5px;
+}
+
+span.legendValue {
+    margin-left: 10px;
+}
+
+/* ========= */
+button.btn-remove-dependence, button.btn-add-dependence {
+    margin-left: 8px;
+}
+
+div.dropdown ul.dropdown-menu > li {
+    margin: 7px;
+}
+
+div.dependent-fieldset {
+    padding: 0;
+}
+
+div.dependent-fieldset div.dependent-fieldset div.form-group, div.dependent-fieldset fieldset.dependent-fieldset div.form-group {
+    margin: 10px 0;
+}
+
+div.spoiler > div.form-group > div.controlElementsDiv {
+    padding-right: 5px;
+}
+
+div.spoiler > div.form-group > div.controlElementsDiv > div.controlButton {
+    margin-top: 10px;
+}
+
+div.spoiler > div.form-group:first-child {
+    margin-top: 0;
+}
+
+div.margened {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+div#alertsContentDiv {
+    width: 300px;
+    margin-top: 50px;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 1051;
+}
+
+div.alert-wrapper {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+}
+
+div.alert-wrapper > div.alert {
+    padding: 0 0 0 0;
+    margin-bottom: 5px;
+}
+
+div.alert-wrapper > div.alert div.panel-heading {
+    position: relative;
+    padding-right: 30px;
+}
+
+div.alert-wrapper > div.alert div.panel-heading button.close {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+}
+
+div.alert-wrapper > div.alert div.panel {
+    margin-bottom: 0;
+}
+
+div.alert-wrapper div.progress {
+    margin-top: 20px;
+    margin-bottom: 0;
+}
+
+.new-element {
+    background-color: #d9edf7;
+}
+
+div.move-buttons {
+    position: absolute;
+    left: 50%;
+}
+
+.inline {
+    display: inline-block;
+}
+
+table.table-in-output {
+    margin-bottom: 0;
+}
+
+.wrap > .container {
+    padding: 70px 15px 20px;
+}
+
+ul#searchedPatientsList {
+    position: absolute;
+    cursor: pointer;
+    z-index: 1;
+}
+
+ul#searchedPatientsList li:hover {
+    background-color: #7ecff4;
+}
+
+.show-grid [class^=col-] {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: rgba(86, 61, 124, .15);
+    border: 1px solid rgba(86, 61, 124, .2);
+}
+
+.hoverable:hover {
+    cursor: pointer;
+    background-color: #4CFF00;
+}
+
+.choosed {
+    background-color: #4CFF00;
+}
+
+.selected {
+    background-color: #2aabd2;
+}
+
+.payment-float-summ {
+    position: fixed;
+    top: 50%;
+    background-color: aliceblue;
+}
+
+div.right-input {
+    width: 150px;
+    float: right;
+}
+
+div.limited-input {
+    width: 200px;
+    display: inline-block;
+    position: absolute;
+    right: 50px;
+}
+
+div.flyingSumm {
+    position: fixed;
+    top: 50%;
+    z-index: 1050;
+    background-color: #46f5ebdb;
+    padding: 5px;
+    border-radius: 10px;
+    left: 5px;
+}
+
+div.shader {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 5000;
+}
+
+.blured {
+    filter: blur(5px);
+}
+
+.color-salad, .color-salad legend {
+    background-color: #00ff001c !important;
+}
+
+.color-orange, .color-orange legend {
+    background-color: #ffd70024 !important;
+}
+
+.color-pinky, .color-pinky legend {
+    background-color: #fa807229 !important;
+}
+
+.color-sea {
+    background-color: #0064352e !important;
+    border-radius: 30px;
+    margin-top: 8px;
+}
+
+.color-yellow, .color-yellow legend {
+    background-color: #ffff002e !important;
+}
+
+a {
+    white-space: nowrap;
+}
+
+.cottage-button {
+    width: 75px;
+}
+
+div.modal-content.test-transparent div.modal-header {
+    text-align: center;
+    text-transform: uppercase;
+    font-size: large;
+    font-style: italic;
+}
+
+div.modal-content.test-transparent fieldset legend {
+    text-align: center;
+    text-transform: uppercase;
+    font-size: large;
+    font-style: italic;
+    padding: 10px 0;
+    position: relative;
+    top: -23px;
+    border-bottom: none;
+    border-radius: 30px 30px 0 0;
+}
+
+div.modal-content.test-transparent fieldset {
+    margin-top: 30px;
+    border-radius: 0 0 30px 30px;
+}
+
+div.modal-content.test-transparent div.form-group {
+    padding: 0 25px;
+}
+
+div.modal-content.test-transparent fieldset div.col-lg-4 {
+    text-align: center;
+}
+
+div.modal-content.test-transparent button#addSubmit {
+    margin-top: 15px;
+}
+
+div.cottage-card {
+    height: 95px;
+}
+
+th.vertical-top {
+    vertical-align: top !important;
+}
+
+.social-button {
+    width: 25px;
+}
+
+label.with-signal::before {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 10px;
+    background-color: white;
+    content: '';
+}
+
+label.with-signal.active::before {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 10px;
+    background-color: red;
+    content: '';
+}
+
+div.help-block, div.hint-block {
+    font-size: 12px;
+}
+
+.small-text {
+    font-size: 12px;
+}
+
+input.compact {
+    margin-top: -15px;
+}
+
+button.close-clone {
+    position: absolute;
+}
+
+input[type=radio] {
+    vertical-align: text-bottom;
+}
+
+div.navbar-header a{
+    font-size: 17px;
+}
+
+div.form-group{
+    margin-bottom: 0;
+}
+
+div.left-float-window{
+    position: fixed;
+    top: 50%;
+    left: 10px;
+    background-color: #245580;
+    color: whitesmoke;
+    border-radius: 5px;
+    padding: 10px;
+    z-index: 5000;
+}
+
+form#complexPayment table{
+    margin-bottom: 0;
+}
+form#complexPayment table tr td{
+    vertical-align: middle;
+}
+
+div.membership-group{
+    position: relative;
+    margin-bottom: 40px;
+}
+
+button.copy-data{
+    position: absolute;
+    margin-top: 40px;
+    left: 50%;
+}
+
+tr.tr-selected{
+    cursor: pointer;
+}
+
+img.logo-img{
+    width: 50%;
+    margin-left: 25%;
+}
+.text-default{
+    color: #FFFFFF !important;
+}
+.yandex-connect{
+    font-size: 30px;
+    color: #FF0000;
+    font-weight: 600;
+}
+img.loading_img{
+    width: 30px;
+    display: inline-block;
+}
+/*
+@media (max-width: 1210px) {
+    .navbar-header {
+        float: none;
+    }
+    .navbar-left,.navbar-right {
+        float: none !important;
+    }
+    .navbar-toggle {
+        display: block;
+    }
+    .navbar-collapse {
+        border-top: 1px solid transparent;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    .navbar-fixed-top {
+        top: 0;
+        border-width: 0 0 1px;
+    }
+    .navbar-collapse.collapse {
+        display: none!important;
+    }
+    .navbar-nav {
+        float: none!important;
+        margin-top: 7.5px;
+    }
+    .navbar-nav>li {
+        float: none;
+    }
+    .navbar-nav>li>a {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .collapse.in{
+        display:block !important;
+    }
+    .container-fluid>.navbar-collapse, .container-fluid>.navbar-header, .container>.navbar-collapse, .container>.navbar-header {
+        margin-right: -15px;
+        margin-left: -15px;
+    }
+}*/

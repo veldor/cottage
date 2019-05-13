@@ -1,0 +1,33 @@
+div#invoiceWrapper{
+     width: 180mm;
+     margin: auto;
+     font-size: 10px;
+ }
+td.leftSide{
+    text-align: center;
+    width: 65mm;
+    border-right: 1px solid black;
+}
+img.qr-img{
+    width: 80%;
+}
+.bottom-bordered{
+    border-bottom: 1px solid black;
+}
+.description{
+    font-size: 8px;
+}
+
+.text-underline{
+}
+.margened{
+    margin-bottom: 10px;
+}
+.sign-span{
+    width: 20mm;
+    display: inline-block;
+}
+img.logo-img{
+    width: 30%;
+    float: right;
+}
