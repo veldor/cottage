@@ -19,7 +19,18 @@ use yii\web\View;
 $payInfo = $info['billInfo']['billInfo'];
 $paymentContent = $info['billInfo']['paymentContent'];
 $bankInfo = $info['bankInfo'];
-$smoothSumm = CashHandler::toSmoothRubles($payInfo->totalSumm);
+$fromDeposit = CashHandler::toRubles($payInfo->depositUsed);
+$discount = CashHandler::toRubles($payInfo->discount);
+$realSumm = CashHandler::rublesMath(CashHandler::toRubles($payInfo->totalSumm) - $fromDeposit - $discount);
+$smoothSumm = CashHandler::toSmoothRubles($realSumm);
+$depositText = '';
+if(!empty($fromDeposit)){
+    $depositText = '<br/>Оплачено с депозита: ' . CashHandler::toSmoothRubles($fromDeposit);
+}
+$discountText = '';
+if(!empty($discount)){
+    $discountText = '<br/>Скидка: ' . CashHandler::toSmoothRubles($discount);
+}
 
 $powerText = '';
 $memText = '';
@@ -270,6 +281,8 @@ $text = "
         <div class="col-xs-12">
             <?=$singleText?>
         </div>
+        <?=$depositText?>
+        <?=$discountText?>
     </div>
 </div>
 </body>

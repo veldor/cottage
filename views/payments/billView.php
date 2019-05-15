@@ -7,6 +7,7 @@
  * Time: 12:31
  */
 
+use app\models\Table_payment_bills;
 use app\models\TimeHandler;
 use app\models\CashHandler;
 use app\widgets\PaymentDetailsWidget;
@@ -28,10 +29,17 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
 
     <div class='col-lg-12'>
         <?php
+        /** @var Table_payment_bills $info['billInfo'] */
         if ($info['billInfo']->isPayed === 1) {
             // если платёж закрыт- посчитаю, оплачен ли он, если оплачен- то частично или полностью
-            $payedSumm = $info['billInfo']->payedSumm ? $info['billInfo']->payedSumm : 0;
-            if($payedSumm === 0){
+            if(!empty($info['billInfo']->payedSumm)){
+                $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->payedSumm) + CashHandler::toRubles($info['billInfo']->depositUsed) + CashHandler::toRubles($info['billInfo']->discount));
+            }
+            else{
+                $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->depositUsed) + CashHandler::toRubles($info['billInfo']->discount));
+
+            }
+            if($payedSumm === 0 || ($payedSumm < $info['billInfo']->totalSumm && !$info['billInfo']->isPartialPayed)){
                 echo "<h3>Статус: <b class='text-warning'>Закрыт. Не оплачен.</b></h3>";
             }
             elseif($payedSumm >= $info['billInfo']->totalSumm){

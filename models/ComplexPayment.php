@@ -57,7 +57,8 @@ class ComplexPayment extends Model
         $purposeText = substr($purposeText, 0, strlen($purposeText) - 1) . ' по сч. № ' . $info['billInfo']->id . ($double ? '-a' : '');
 
         $bankDetails = new BankDetails();
-        $dividedSumm = CashHandler::dividedSumm($info['billInfo']->totalSumm);
+        $realSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->totalSumm) - CashHandler::toRubles($info['billInfo']->depositUsed) - CashHandler::toRubles($info['billInfo']->discount));
+        $dividedSumm = CashHandler::dividedSumm($realSumm);
         $bankDetails->lastName = GrammarHandler::getPersonInitials($info['cottageInfo']->cottageOwnerPersonals);
         $bankDetails->purpose = $purposeText;
         $bankDetails->summ = $dividedSumm['rubles'] . $dividedSumm['cents'];
@@ -298,11 +299,15 @@ class ComplexPayment extends Model
                     $pt = '';
                 }
                 if (!empty($item->payedSumm)) {
-                    $payedSumm = CashHandler::toRubles($item->payedSumm);
-                } else {
+                    $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($item->payedSumm) + CashHandler::toRubles($item->depositUsed) + CashHandler::toRubles($item->discount));
+                }
+                elseif(!empty($item->depositUsed) || !empty($item->discount)){
+                    $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($item->depositUsed) + CashHandler::toRubles($item->discount));
+                }
+                else {
                     $payedSumm = '';
                 }
-                $paymentsInfo[] = ['id' => $item->id, 'isPartialPayed' => $item->isPartialPayed, 'isPayed' => $item->isPayed, 'creationTime' => TimeHandler::getDatetimeFromTimestamp($item->creationTime), 'paymentTime' => $pt, 'summ' => CashHandler::toRubles($item->totalSumm), 'payed-summ' => $payedSumm];
+                $paymentsInfo[] = ['id' => $item->id, 'isPartialPayed' => $item->isPartialPayed, 'isPayed' => $item->isPayed, 'creationTime' => TimeHandler::getDatetimeFromTimestamp($item->creationTime), 'paymentTime' => $pt, 'summ' => CashHandler::toRubles($item->totalSumm), 'payed-summ' => $payedSumm, 'from-deposit' => $item->depositUsed, 'discount' => $item->discount];
             }
             return $paymentsInfo;
         }

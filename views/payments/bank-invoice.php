@@ -8,19 +8,32 @@
  */
 
 use app\assets\BankInvoiceAsset;
+use app\models\BankDetails;
 use app\models\CashHandler;
 use app\models\TimeHandler;
 use yii\helpers\Html;
+use yii\web\View;
 
-/* @var $this \yii\web\View */
+/* @var $this View */
 /* @var $info */
 
-/** @var \app\models\BankDetails $bankInfo */
+/** @var BankDetails $bankInfo */
 
 $payInfo = $info['billInfo']['billInfo'];
 $paymentContent = $info['billInfo']['paymentContent'];
 $bankInfo = $info['bankInfo'];
-$smoothSumm = CashHandler::toSmoothRubles($payInfo->totalSumm);
+$fromDeposit = CashHandler::toRubles($payInfo->depositUsed);
+$discount = CashHandler::toRubles($payInfo->discount);
+$realSumm = CashHandler::rublesMath(CashHandler::toRubles($payInfo->totalSumm) - $fromDeposit - $discount);
+$smoothSumm = CashHandler::toSmoothRubles($realSumm);
+$depositText = '';
+if(!empty($fromDeposit)){
+    $depositText = '<br/>Оплачено с депозита: ' . CashHandler::toSmoothRubles($fromDeposit);
+}
+$discountText = '';
+if(!empty($discount)){
+    $discountText = '<br/>Скидка: ' . CashHandler::toSmoothRubles($discount);
+}
 
 $powerText = '';
 $memText = '';
@@ -156,6 +169,8 @@ BankInvoiceAsset::register($this);
         <?=$memText?>
         <?=$tarText?>
         <?=$singleText?>
+        <?=$depositText?>
+        <?=$discountText?>
     </div>
 </div>
 <?php $this->endBody() ?>

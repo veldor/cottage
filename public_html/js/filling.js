@@ -84,8 +84,11 @@ function handleMailing() {
     let sendMailingActivator = $('#createMailingActivator');
     sendMailingActivator.on('click.send', function (e) {
         e.preventDefault();
-        let mailData = CKEDITOR.instances.w0.getData();
-        console.log(mailData);
+        let mailData;
+        for(var i in CKEDITOR.instances){
+            mailData = CKEDITOR.instances[i].getData();
+            break;
+        }
         let subjectData = $('#mailingSubject').val();
         if (!mailData) {
             makeInformer('warning', 'Ошибка', 'Не стоит отправлять пустое письмо');

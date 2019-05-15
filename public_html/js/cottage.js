@@ -1340,7 +1340,19 @@ function basementFunctional() {
                     let simple = answer['data'][i];
                     let payed = simple['isPartialPayed'] ? '<button class="btn btn-info">Частично оплачен</button>' : (simple['isPayed'] ? '<button class="btn btn-success">Завершен</button>' : '<button class="btn btn-warning">В ожидании оплаты</button>');
                     if (simple['isPayed'] || simple['isPartialPayed']) {
-                        let summ = simple['payed-summ'] ? ' Оплачено ' + simple['payed-summ'] + ' из ' + simple['summ'] : '<b class="text-warning">' + simple['summ'] + ' &#8381;</b> Не оплачен. ';
+                        let summ;
+                        if(simple['isPartialPayed']){
+                            summ = ' Оплачено ' + simple['payed-summ'] + ' из ' + simple['summ'] + ' ';
+                        }
+                        else{
+                            if(simple['payed-summ'] >= simple['summ']){
+                                summ = '<b class="text-success">' + simple['summ'] + ' &#8381;</b> Оплачено полностью ';
+                            }
+                            else{
+                                summ = '<b class="text-danger">' + simple['summ'] + ' &#8381;</b> Не оплачено ';
+                            }
+                        }
+                        /*let summ = simple['payed-summ'] ? ' Оплачено ' + simple['payed-summ'] + ' из ' + simple['summ'] : '<b class="text-warning">' + simple['summ'] + ' &#8381;</b> Не оплачен. ';*/
                         modalBody.append('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: ' + summ + payed + ' ' + simple['paymentTime'] + '</p>');
                     } else {
                         modalBody.append('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: <b class="text-warning">' + simple['summ'] + ' &#8381;</b>. ' + payed + ' ' + simple['paymentTime'] + '</p>');
