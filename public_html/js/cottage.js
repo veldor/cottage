@@ -1957,6 +1957,10 @@ function additionalFunctions() {
             if(data['status'] === 2){
                 makeInformer('danger', 'Не получится', 'Данные за месяц уже внесены');
             }
+            else if (data['status'] === 3){
+                makeInformer('info', 'Не заполнен тариф', 'Сначала заполните тарифные ставки на текущий месяц');
+                makeNewWindow('/fill/power/' + data['month'], tariffsFillWindow, function(){});
+            }
         }
     }
     // заполнение данных электроэнергии за предыдущий месяц
@@ -2029,6 +2033,7 @@ function additionalFunctions() {
     let thisMonthEnergyBtn = $('#fillCurrentPowerMonth');
     thisMonthEnergyBtn.on('click.fill', function (e) {
         e.preventDefault();
+        console.log('click');
         sendAjax('get', '/fill/power/current/' + cottageNumber, fillPowerCallback);
     });
 

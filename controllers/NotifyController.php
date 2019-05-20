@@ -11,6 +11,7 @@ namespace app\controllers;
 use app\models\Cottage;
 use app\models\ErrorsHandler;
 use app\models\GrammarHandler;
+use app\models\LogHandler;
 use app\models\Notifier;
 use app\models\SerialInvoices;
 use Exception;
@@ -125,7 +126,7 @@ class NotifyController extends Controller
             Yii::$app->response->format = Response::FORMAT_JSON;
             // обработаю текст письма на наличие лексем
             // получу сведения об участке
-            $cottageInfo = Cottage::getCottageInfoForMail($own, $type, $cottageNumber);
+            $cottageInfo = Cottage::getCottageInfoForMail($own, $cottageNumber);
             $text = GrammarHandler::handleMailText($_POST['text'], $cottageInfo, $type);
             // получу шаблон письма
             $template = $this->renderPartial('/mail/simple_template', ['text' => $text]);
@@ -134,6 +135,8 @@ class NotifyController extends Controller
                 return ['status' => 1];
             }
             catch (Exception $e){
+                // запишу информацию в лог ошибок отправки
+                LogHandler::writeToLog(LogHandler::MAIL_ERRORS_LOG, $e->getMessage());
                 return ['status' => 2];
             }
         }

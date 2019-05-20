@@ -198,7 +198,7 @@ class Cottage extends Model
         return self::getCottageInfo($match[1], true);
     }
 
-    public static function getCottageInfoForMail($own, $type, $cottageNumber)
+    public static function getCottageInfoForMail($own, $cottageNumber)
     {
 
         // получу сведения о участке

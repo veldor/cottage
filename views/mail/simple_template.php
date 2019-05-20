@@ -48,9 +48,14 @@
             <hr/>
             <h3 class="text-center">Контактная информация</h3>
             <p>
+                И.о. председателя: <b><?=Info::CHAIRMAN_NAME_FULL?></b><br/>
+                Телефон: <a href="tel:<?=Info::CHAIRMAN_PHONE?>"><b><?=Info::CHAIRMAN_SMOOTH_PHONE?></b></a>
+                <a href="viber://chat?number=<?=Info::CHAIRMAN_PHONE?>"><img width="30px" height="30px" class="social-icon" src="https://i.ibb.co/d4rbkvW/viber-micro.png" alt="viber"></a>
+            </p>
+            <p>
                 Бухгалтер: <b><?=Info::BOOKER_NAME_FULL?></b><br/>
                 Телефон: <a href="tel:<?=Info::BOOKER_PHONE?>"><b><?=Info::BOOKER_SMOOTH_PHONE?></b></a>
-                <a href="viber://chat?number=<?=Info::BOOKER_PHONE?>">"><img width="30px" height="30px" class="social-icon" src="https://i.ibb.co/d4rbkvW/viber-micro.png" alt="viber"></a>
+                <a href="viber://chat?number=<?=Info::BOOKER_PHONE?>"><img width="30px" height="30px" class="social-icon" src="https://i.ibb.co/d4rbkvW/viber-micro.png" alt="viber"></a>
             </p>
             <p>
                 Техподдержка: <b><?=Info::TECH_NAME?></b><br/>
