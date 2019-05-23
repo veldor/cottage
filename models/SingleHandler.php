@@ -219,7 +219,7 @@ class SingleHandler extends Model
         $xpath = DOMHandler::getXpath($dom);
         // зарегистрирую платежи
         foreach ($payments['values'] as $payment) {
-            $summ = CashHandler::toRubles($payment['payed']);
+            $summ = CashHandler::toRubles($payment['summ']);
             /** @var DOMElement $pay */
             $pay = $xpath->query("/singlePayments/singlePayment[@time='{$payment['timestamp']}']")->item(0);
             $attrs = DOMHandler::getElemAttributes($pay);

@@ -11,6 +11,7 @@ namespace app\controllers;
 use app\models\Cottage;
 use app\models\ErrorsHandler;
 use app\models\GrammarHandler;
+use app\models\LogHandler;
 use app\models\Notifier;
 use app\models\SerialInvoices;
 use Exception;
@@ -134,6 +135,8 @@ class NotifyController extends Controller
                 return ['status' => 1];
             }
             catch (Exception $e){
+                // запишу информацию в лог ошибок отправки
+                LogHandler::writeToLog(LogHandler::MAIL_ERRORS_LOG, $e->getMessage());
                 return ['status' => 2];
             }
         }

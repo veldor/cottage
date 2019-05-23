@@ -10,6 +10,7 @@ namespace app\models;
 
 
 use DateTime;
+use DOMElement;
 use InvalidArgumentException;
 use yii\base\Model;
 
@@ -223,34 +224,105 @@ class Search extends Model
 		$content = [];
 		if (!empty($trs)) {
 			foreach ($trs as $item) {
+                /** @var Table_fulltransactioninfo $item */
+                // членские взносы
+                $memList = '--';
+                $memSumm = '--';
+                $payedSumm = 0;
+                $partial = $item->partialPayed;
 				$date = TimeHandler::getDateFromTimestamp($item->transactionDate);
 				$type = $item->transactionType === 'cash' ? 'Нал' : 'Безнал';
 				$dom = new DOMHandler($item->bill_content);
-				// членские взносы
-				$memList = '--';
-				$memSumm = '--';
 				$mem = $dom->query('/payment/membership');
 				if ($mem->length === 1) {
-					$memSumm = CashHandler::toRubles($mem->item(0)->getAttribute('cost'));
+                    /** @var DOMElement $memItem */
+                    $memItem = $mem->item(0);
+                    if($partial){
+                        $payedSumm = $memItem->getAttribute('payed');
+                        if($payedSumm > 0){
+                            $memSumm = $payedSumm;
+                        }
+                        else{
+                            $memSumm = 0;
+                        }
+                    }
+                    else{
+                        $memSumm = CashHandler::toRubles($memItem->getAttribute('cost'));
+                    }
 					$quarters = $dom->query('/payment/membership/quarter');
-					$memList = '';
+					if($memList === '--'){
+                        $memList = '';
+                    }
 					foreach ($quarters as $quarter) {
                         /** @var \DOMElement $quarter */
 					    $summ = CashHandler::toRubles($quarter->getAttribute('summ'));
 					    $totalSumm += $summ;
+                        if($partial){
+                            // если оплата частичная- сверю сумму с полной оплатой раздела.
+                            if($payedSumm > 0){
+                                if($summ > $payedSumm){
+                                    $payedSumm -= $summ;
+                                }
+                                else{
+                                    $summ = $payedSumm;
+                                    $payedSumm = 0;
+                                }
+                            }
+                            else{
+                                $summ = 0;
+                            }
+                        }
 						$memList .= $quarter->getAttribute('date') . ' - ' . $summ . '<br>';
 					}
 				}
 				$memAdd = $dom->query('/payment/additional_membership');
 				if ($memAdd->length === 1) {
-					$memSumm = CashHandler::toRubles($memAdd->item(0)->getAttribute('cost'));
+				    $payedSumm = 0;
+				    $additionalSumm = 0;
+				    $memItem = $memAdd->item(0);
+                    if($partial){
+                        $payedSumm = $memItem->getAttribute('payed');
+                        if($payedSumm > 0){
+                            $additionalSumm = $payedSumm;
+                        }
+                        else{
+                            $additionalSumm = 0;
+                        }
+                    }
+
+				    if($memSumm === '--')
+                    {
+                        $memSumm = $additionalSumm;
+                    }
+				    else{
+                        $memSumm += $additionalSumm;
+                    }
 					$quarters = $dom->query('/payment/additional_membership/quarter');
-					$memList = '';
+                    if($memList === '--'){
+                        $memList = '';
+                    }
 					foreach ($quarters as $quarter) {
 						/** @var \DOMElement $quarter */
 						$summ = CashHandler::toRubles($quarter->getAttribute('summ'));
                         $totalSumm += $summ;
-						$memList .= $quarter->getAttribute('date') . ' - ' . $summ . '<br>';
+
+                        if($partial){
+                            // если оплата частичная- сверю сумму с полной оплатой раздела.
+                            if($payedSumm > 0){
+                                if($summ > $payedSumm){
+                                    $payedSumm -= $summ;
+                                }
+                                else{
+                                    $summ = $payedSumm;
+                                    $payedSumm = 0;
+                                }
+                            }
+                            else{
+                                $summ = 0;
+                            }
+                        }
+
+						$memList .= $quarter->getAttribute('date') . '(д) - ' . $summ . '<br>';
 					}
 				}
 				// электричество
@@ -259,9 +331,23 @@ class Search extends Model
 				$powSumm = '--';
 				$power = $dom->query('/payment/power');
 				if ($power->length === 1) {
-					$summ =  CashHandler::toRubles($power->item(0)->getAttribute('cost'));
-                    $totalSumm += $summ;
-                    $powSumm =  $summ;
+				    $payedSumm = 0;
+                    /** @var DOMElement $powerItem */
+                    $powerItem = $power->item(0);
+                    if($partial){
+                        $payedSumm = $powerItem->getAttribute('payed');
+                        if($payedSumm > 0){
+                            $powSumm = $payedSumm;
+                        }
+                        else{
+                            $powSumm = 0;
+                        }
+                    }
+                    else{
+                        $powSumm = CashHandler::toRubles($powerItem->getAttribute('cost'));
+                    }
+
+                    $totalSumm += $powSumm;
 					$months = $dom->query('/payment/power/month');
 					$powCounterValue = '';
 					$powUsed = '';
@@ -295,12 +381,43 @@ class Search extends Model
 				$tarSumm = '--';
 				$tar = $dom->query('/payment/target/pay');
 				if ($tar->length > 0) {
+                    /** @var DOMElement $targetItem */
+                    $targetItem = $tar->item(0);
+				    $payedSumm = 0;
 					$tarList = '';
-					$tarSumm = CashHandler::toRubles($tar->item(0)->parentNode->getAttribute('cost'));
+                    if($partial){
+                        $payedSumm = $targetItem->parentNode->getAttribute('payed');
+                        if($payedSumm > 0){
+                            $tarSumm = $payedSumm;
+                        }
+                        else{
+                            $tarSumm = 0;
+                        }
+                    }
+                    else{
+                        $tarSumm = CashHandler::toRubles($targetItem->parentNode->getAttribute('cost'));
+                    }
 					$totalSumm += $tarSumm;
 					foreach ($tar as $value) {
 						/** @var \DOMElement $value */
-						$tarList .= $value->getAttribute('year') . ' - ' . CashHandler::toRubles($value->getAttribute('summ')) . '<br/>';
+                        $summ = CashHandler::toRubles($value->getAttribute('summ'));
+                        if($partial){
+                            // если оплата частичная- сверю сумму с полной оплатой раздела.
+                            if($payedSumm > 0){
+                                if($summ > $payedSumm){
+                                    $payedSumm -= $summ;
+                                }
+                                else{
+                                    $summ = $payedSumm;
+                                    $payedSumm = 0;
+                                }
+                            }
+                            else{
+                                $summ = 0;
+                            }
+                        }
+
+						$tarList .= $value->getAttribute('year') . ' - ' . $summ . '<br/>';
 					}
 				}
 				$additionalTar = $dom->query('/payment/additional_target/pay');
