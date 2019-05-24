@@ -70,10 +70,10 @@ if (!empty($tab)) {
 
         <div class="row margened">
             <?php $form = ActiveForm::begin(['options' => ['enctype' => 'multipart/form-data']]);
-            echo $form->field($model, 'file', ['template' =>
+            echo $form->field($model, 'file[]', ['template' =>
                 '<div class="col-sm-6 text-center">{label}{input}
 									{error}{hint}</div><div class="col-sm-6"><button class="btn btn-success">Обработать</button></div>'])
-                ->fileInput(['class' => 'hidden'])
+                ->fileInput(['class' => 'hidden','multiple' => true, 'accept' => 'text/plain'])
                 ->label('Выберите файл регистра.', ['class' => 'btn btn-info']);
             ActiveForm::end();
             if(!empty($errorMessage)){

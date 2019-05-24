@@ -48,7 +48,8 @@ class FillingController extends Controller
         if(Yii::$app->request->isPost){
             $errorMessage = null;
             $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
-            $registryModel->file = UploadedFile::getInstance($registryModel, 'file');
+            $registryModel->file = UploadedFile::getInstances($registryModel, 'file');
+            $details = null;
             try{
                 $details = $registryModel->handleRegistry();
             }

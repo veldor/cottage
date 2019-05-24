@@ -126,7 +126,7 @@ class NotifyController extends Controller
             Yii::$app->response->format = Response::FORMAT_JSON;
             // обработаю текст письма на наличие лексем
             // получу сведения об участке
-            $cottageInfo = Cottage::getCottageInfoForMail($own, $type, $cottageNumber);
+            $cottageInfo = Cottage::getCottageInfoForMail($own, $cottageNumber);
             $text = GrammarHandler::handleMailText($_POST['text'], $cottageInfo, $type);
             // получу шаблон письма
             $template = $this->renderPartial('/mail/simple_template', ['text' => $text]);

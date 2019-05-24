@@ -11,6 +11,7 @@ use app\validators\CheckPhoneNumberValidator;
 use app\validators\CheckQuarterValidator;
 use app\validators\CheckTargetValidator;
 use Exception;
+use \Throwable;
 use Yii;
 use yii\base\Model;
 
@@ -41,6 +42,7 @@ class AddCottage extends Model
     public $cottageContacterPhone; // контактный телефон владельца участка.
     public $cottageContacterEmail; // адрес почты владельца участка.
     public $targetFilled = true;
+    public $cottageRegisterData = false;
 
     public $passportData;
     public $cottageRightsData;
@@ -48,10 +50,10 @@ class AddCottage extends Model
     public $existentTargets;
     public $fullChangable = false;
 
-	/**
-	 * @var Table_cottages
-	 */
-	public $currentCondition; // сохранённая копия данных об участке
+    /**
+     * @var Table_cottages
+     */
+    public $currentCondition; // сохранённая копия данных об участке
     private static $changedAttributes = ['cottageNumber', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'cottageOwnerDescription', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'];
     private static $changedFullAttributes = ['cottageNumber', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposit', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetPaysDuty'];
 
@@ -61,7 +63,7 @@ class AddCottage extends Model
     }
 
 
-    public function attributeLabels():array
+    public function attributeLabels(): array
     {
         return [
             'cottageNumber' => 'Номер участка',
@@ -71,6 +73,7 @@ class AddCottage extends Model
             'cottageContacterPhone' => 'Номер телефона контактного лица',
             'cottageOwnerEmail' => 'Адрес электронной почты владельца',
             'haveRights' => 'Справка в наличии',
+            'cottageRegisterData' => 'Наличие данных для реестра',
             'hasContacter' => 'Добавить контакт ',
             'cottageSquare' => 'Площадь участка',
             'currentPowerData' => 'Текущие показания счётчика электроэнергии',
@@ -83,16 +86,16 @@ class AddCottage extends Model
     const SCENARIO_CHANGE = 'change';
     const SCENARIO_FULL_CHANGE = 'full-change';
 
-    public function scenarios():array
+    public function scenarios(): array
     {
         return [
             self::SCENARIO_ADD => ['cottageNumber', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled'],
-            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled'],
-            self::SCENARIO_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'],
+            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled', 'cottageRegisterData'],
+            self::SCENARIO_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageRegisterData', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'],
         ];
     }
 
-    public function rules():array
+    public function rules(): array
     {
         return [
             [['cottageNumber', 'cottageOwnerPersonals', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposite', 'targetFilled'], 'required', 'on' => self::SCENARIO_ADD],
@@ -102,7 +105,7 @@ class AddCottage extends Model
                 return $this->hasContacter;
             }, 'whenClient' => "function () {return $('input#addcottage-hascontacter').prop('checked');}"],
             ['cottageNumber', 'integer', 'min' => 1, 'max' => 300],
-            [['haveRights', 'hasContacter'], 'boolean'],
+            [['haveRights', 'hasContacter', 'cottageRegisterData'], 'boolean'],
             [['cottageOwnerPersonals', 'cottageContacterPersonals'], 'match', 'pattern' => '/^[ёа-я- ]*$/iu', 'message' => 'Проверьте правильность данных. Разрешены буквы, тире и пробел!'],
             [['cottageOwnerPhone', 'cottageContacterPhone'], CheckPhoneNumberValidator::class],
             [['cottageOwnerEmail', 'cottageContacterEmail'], 'email'],
@@ -196,6 +199,7 @@ class AddCottage extends Model
 
                 $this->currentCondition->passportData = $this->passportData;
                 $this->currentCondition->cottageRightsData = $this->cottageRightsData;
+                $this->currentCondition->cottageRegisterData = $this->cottageRegisterData;
 
                 $this->currentCondition->cottageOwnerEmail = $this->cottageOwnerEmail;
                 $this->currentCondition->cottageOwnerPhone = $this->cottageOwnerPhone;
@@ -283,7 +287,7 @@ class AddCottage extends Model
             $this->currentCondition->save();
             $transaction->commit();
             return true;
-        }catch (Exception $e){
+        } catch (Exception $e) {
             $transaction->rollBack();
             throw $e;
         }
@@ -293,7 +297,7 @@ class AddCottage extends Model
     {
         $this->fillTargets();
         // заполню форму данными о данном участке
-        $data =Cottage::getCottageInfo($cottageNumber);
+        $data = Cottage::getCottageInfo($cottageNumber);
         if (empty($data->cottageNumber)) {
             return false;
         }
@@ -302,15 +306,14 @@ class AddCottage extends Model
         $this->fullChangable = !Table_payment_bills::find()->where(['cottageNumber' => $data->cottageNumber])->count();
 
         if ($this->fullChangable) {
-	        foreach (self::$changedFullAttributes as $attribute) {
-		        $this->$attribute = $data->$attribute;
-		        $this->lastPayedMonth = $data->powerPayFor;
-	        }
-        }
-        else {
-	        foreach (self::$changedAttributes as $attribute) {
-		        $this->$attribute = $data->$attribute;
-	        }
+            foreach (self::$changedFullAttributes as $attribute) {
+                $this->$attribute = $data->$attribute;
+                $this->lastPayedMonth = $data->powerPayFor;
+            }
+        } else {
+            foreach (self::$changedAttributes as $attribute) {
+                $this->$attribute = $data->$attribute;
+            }
         }
         $this->haveRights = $data->cottageHaveRights;
         $this->ownerAddressTown = $data->cottageOwnerAddress;

@@ -37,6 +37,12 @@ use yii\db\ActiveRecord;
  * @property bool $individualTariff [tinyint(1)]  Индивидуальный тариф
  * @property string $individualTariffRates Индивидуальные расценки
  * @property bool $haveAdditional [tinyint(1)]  Наличие дополнительного участка
+ * @property string $passportData Паспортные данные
+ * @property string $cottageRightsData Данные права собственности
+ * @property string $cottageRegistrationInformation Данные кадастрового учёта
+ * @property string $partialPayedPower Частично оплаченное электричество
+ * @property string $partialPayedMembership Частично оплаченный членский взнос
+ * @property bool $cottageRegisterData [tinyint(1)]  Данные для реестра
  */
 
 class Table_cottages extends ActiveRecord

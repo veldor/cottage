@@ -19,6 +19,10 @@ nbproject
 /public_html/invoice.pdf
 /public_html/post_addresses.xml
 
+#vagrant
+/vagrant
+/tests
+
 #assets folder
 /public_html/assets/*
 

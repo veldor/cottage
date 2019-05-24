@@ -15,6 +15,11 @@ echo $form->field($matrix, 'haveRights', ['template' =>
 									{error}{hint}</div><div class="col-lg-1"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="Наличие справки о праве собственности на участок."></button></div>'])
     ->checkbox()
     ->label('Наличие прав на собственность.');
+echo $form->field($matrix, 'cottageRegisterData', ['template' =>
+    '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
+									{error}{hint}</div><div class="col-lg-1"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="Наличие справки о праве собственности на участок."></button></div>'])
+    ->checkbox()
+    ->label('Наличие данных для реестра.');
 
 echo $form->field($matrix, 'cottageRegistrationInformation', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}

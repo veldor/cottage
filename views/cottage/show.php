@@ -306,6 +306,9 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
         if (empty($cottageInfo->globalInfo->cottageHaveRights)) {
             echo "<div class='alert alert-warning'>Нет документов на участок.</div>";
         }
+        if (empty($cottageInfo->globalInfo->cottageRegisterData)) {
+            echo "<div class='alert alert-warning'>Нет данных для реестра.</div>";
+        }
         if ($cottageInfo->unpayedBills) {
             if($cottageInfo->unpayedBills->isPartialPayed){
                 echo "<div class='alert alert-warning'>Имеется частично оплаченный счёт.</div>";
