@@ -120,12 +120,14 @@ class PowerHandler extends Model
         if ($this->validate()) {
             $db = Yii::$app->db;
             $transaction = $db->beginTransaction();
+            $limitUsed = 0;
             // проверю, заносились ли уже данные по этому участку
             if ($this->additional) {
                 $oldData = Table_additional_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->orderBy('searchTimestamp DESC')->one();
             } else {
                 $oldData = Table_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->orderBy('searchTimestamp DESC')->one();
             }
+            $oldPowerData = $this->currentCondition->currentPowerData;
             // обработка смены счётчика
             if($this->doChangeCounter){
                 // получу тип смены счётчика
@@ -133,9 +135,9 @@ class PowerHandler extends Model
                     // внесу данные о замене счётчика
                     $change = new Table_counter_changes();
                     $change->cottageNumber = $this->cottageNumber;
-                    $change->oldCounterStartData = $oldData->newPowerData;
+                    $change->oldCounterStartData = $oldPowerData;
                     $change->oldCounterNewData = $this->newPowerData;
-                    $change->newCounterStartData = $this->newCounterStartData;
+                    $change->newCounterData = $this->newCounterStartData;
                     $change->change_time = time();
                     $change->changeMonth = $this->month;
                     $change->save();
@@ -144,6 +146,31 @@ class PowerHandler extends Model
                     if(empty($this->newCounterFinishData)){
                         throw new ExceptionWithStatus('Не заполнены конечные показания нового счётчика', 6);
                     }
+                    // проверю, тратилась ли электроэнергия по старому счётчику. Если тратилась- рассчитаю сумму и вынесу её в разовый платёж.
+                    $oldDifference = $this->newPowerData - $oldData->newPowerData;
+                    if($oldDifference > 0){
+                        $summ = $this->countCost($oldDifference);
+                        // создам разовый платёж
+                        $singlePay = new SingleHandler(['scenario' => SingleHandler::SCENARIO_NEW_DUTY]);
+                        $singlePay->cottageNumber = $this->cottageNumber;
+                        $singlePay->double = $this->additional;
+                        $singlePay->summ = $summ;
+                        $singlePay->description = "Оплата электроэнергии по старому счётчику за " . TimeHandler::getFullFromShotMonth($this->month) . " при замене на новый";
+                        $singlePay->insert();
+                        // отмечу, что использовался льготный лимит
+                        $limitUsed = $oldDifference;
+                    }
+                    // заменю показания старого счётчика на показания нового
+                    $oldPowerData = $this->newCounterStartData;
+                    $this->newPowerData = $this->newCounterFinishData;
+                    $change = new Table_counter_changes();
+                    $change->cottageNumber = $this->cottageNumber;
+                    $change->oldCounterStartData = $oldPowerData;
+                    $change->oldCounterNewData = $this->newPowerData;
+                    $change->newCounterData = $this->newCounterFinishData;
+                    $change->change_time = time();
+                    $change->changeMonth = $this->month;
+                    $change->save();
                 }
                 else{
                     throw new ExceptionWithStatus('Не выбран тип замены счётчика', 4);
@@ -164,7 +191,6 @@ class PowerHandler extends Model
                     }
                 }
             }
-            $oldPowerData = $this->currentCondition->currentPowerData;
             // расчитаю данные
             $this->newPowerData = (int)$this->newPowerData;
             if ($this->newPowerData < $oldPowerData) {
@@ -184,8 +210,12 @@ class PowerHandler extends Model
                 $difference = $this->newPowerData - $oldPowerData;
                 // получу тариф на электричество по данному месяцу. Если его не существует- исключение незаполненного тарифа
                 $tariff = self::getTariff($this->month);
-                if ($difference > $tariff[$this->month]['powerLimit']) {
-                    $inLimitSumm = $tariff[$this->month]['powerLimit'];
+                $powerLimit = $tariff[$this->month]['powerLimit'] - $limitUsed;
+                if($powerLimit < 0){
+                    $powerLimit = 0;
+                }
+                if ($difference > $powerLimit) {
+                    $inLimitSumm = $powerLimit;
                     $inLimitPay = CashHandler::rublesMath($inLimitSumm * $tariff[$this->month]['powerCost']);
                     $overLimitSumm = $difference - $inLimitSumm;
                     $overLimitPay = CashHandler::rublesMath($overLimitSumm * $tariff[$this->month]['powerOvercost']);
@@ -223,7 +253,7 @@ class PowerHandler extends Model
              */
             $ref = $this->currentCondition;
             $ref->powerDebt = CashHandler::rublesMath(CashHandler::toRubles($ref->powerDebt) + $totalPay);
-            if($this->doChangeCounter){
+            if($this->doChangeCounter && $this->counterChangeType === 'simple'){
                 $ref->currentPowerData = $this->newCounterStartData;
             }
             else{
@@ -1011,5 +1041,22 @@ class PowerHandler extends Model
             return $data;
         }
         return false;
+    }
+
+    private function countCost(int $difference)
+    {
+        // расчитаю стоимость электроэнергии
+        $tariff = self::getTariff($this->month);
+        if ($difference > $tariff[$this->month]['powerLimit']) {
+            $inLimitSumm = $tariff[$this->month]['powerLimit'];
+            $inLimitPay = CashHandler::rublesMath($inLimitSumm * $tariff[$this->month]['powerCost']);
+            $overLimitSumm = $difference - $inLimitSumm;
+            $overLimitPay = CashHandler::rublesMath($overLimitSumm * $tariff[$this->month]['powerOvercost']);
+            $totalPay = CashHandler::rublesMath($inLimitPay + $overLimitPay);
+        } else {
+            $inLimitPay = CashHandler::rublesMath($difference * $tariff[$this->month]['powerCost']);
+            $totalPay = $inLimitPay;
+        }
+        return $totalPay;
     }
 }

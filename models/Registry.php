@@ -14,6 +14,10 @@ class Registry extends Model
     public $file;
 
     const SCENARIO_PARSE = 'parse';
+    /**
+     * @var Table_bank_invoices[]
+     */
+    public $unhandled;
 
     public function scenarios(): array
     {
@@ -124,7 +128,12 @@ class Registry extends Model
         return null;
     }
 
-    private function getBillId($string)
+    public function getUnhandled()
+    {
+        $this->unhandled = Table_bank_invoices::find()->where(['bounded_bill_id' => null])->orderBy('pay_date')->all();
+    }
+
+    public static function getBillId($string)
     {
         // номер должен быть последним в строке, разделённым пробелом
         $substrs = explode(' ', $string);
@@ -140,7 +149,7 @@ class Registry extends Model
                 }
             }
         }
-        throw new ExceptionWithStatus('Не распознан номер счёта!', 4);
+        return null;
     }
 
 }

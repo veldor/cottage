@@ -56,10 +56,12 @@ class FillingController extends Controller
             catch (ExceptionWithStatus $e){
                 $errorMessage = $e->getMessage();
             }
+            $registryModel->getUnhandled();
             return $this->render('filling', ['info' => $model, 'model' => $registryModel, 'tab' => 'registry', 'errorMessage' => $errorMessage, 'billDetails' => $details]);
         }
         else{
             $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
+            $registryModel->getUnhandled();
             return $this->render('filling', ['info' => $model, 'model' => $registryModel, 'tab' => 'power', 'errorMessage' => null, 'billDetails' => null]);
         }
     }

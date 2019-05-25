@@ -9,11 +9,12 @@
 
 /* @var $this View */
 
-/* @var $model Filling */
+/* @var $model Registry */
 
 use app\assets\FillingAsset;
 use app\models\CashHandler;
 use app\models\Filling;
+use app\models\Registry;
 use app\models\small_classes\RegistryInfo;
 use app\widgets\AllCottagesWidget;
 use mihaildev\ckeditor\CKEditor;
@@ -45,7 +46,7 @@ if (!empty($tab)) {
 <ul class="nav nav-tabs">
     <li class="<?= $tabs['power'] ?>"><a href="#power" data-toggle="tab">Электроэнергия</a></li>
     <li class="<?= $tabs['bills'] ?>"><a href="#bills" data-toggle="tab">Счета</a></li>
-    <li class="<?= $tabs['registry'] ?>"><a href="#registry" data-toggle="tab">Регистр</a></li>
+    <li class="<?= $tabs['registry'] ?>"><a href="#registry" data-toggle="tab">Реестр</a></li>
     <li class="<?= $tabs['mailing'] ?>"><a href="#mailing" data-toggle="tab">Рассылка</a></li>
 </ul>
 
@@ -79,8 +80,21 @@ if (!empty($tab)) {
             if(!empty($errorMessage)){
                 echo "<div class='col-sm-12'><b>$errorMessage</b></div>";
             } /** @var RegistryInfo $billDetails */
-            elseif(!empty($billDetails)){
-                echo "<div class='col-sm-12'>Распознан платёж по счёту № {$billDetails->billId} на сумму " . CashHandler::toSmoothRubles($billDetails->summ) . ", совершённый {$billDetails->date}  в {$billDetails->time}</div>";
+            if(!empty($model->unhandled)){
+                echo "<div class='col-sm-12'><table class='table-condensed table-striped'><tr><th>Дата оплаты</th><th>Время оплаты</th><th>Номер участка</th><th>Сумма платежа</th><th>ФИО плательщика</th><th>№ счёта</th></tr>";
+                foreach ($model->unhandled as $item) {
+                    echo "<tr>
+                                <td>{$item->pay_date}</td>
+                                <td>{$item->pay_time}</td>
+                                <td>{$item->account_number}</td>
+                                <td>{$item->transaction_summ}</td>
+                                <td>{$item->fio}</td>
+                                <td>" . Registry::getBillId($item->address) . "</td>
+                                <td><button><span class='glyphicon glyphicon-link'></span></button></td>
+                          </tr>
+                           ";
+                }
+                echo "</table></div>";
             }
             ?>
         </div>

@@ -316,6 +316,7 @@ class AddCottage extends Model
             }
         }
         $this->haveRights = $data->cottageHaveRights;
+        $this->cottageRegisterData = $data->cottageRegisterData;
         $this->ownerAddressTown = $data->cottageOwnerAddress;
         if (!empty($data->cottageContacterPersonals)) {
             $this->hasContacter = true;
