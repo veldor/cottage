@@ -1,7 +1,17 @@
 <?php
 
-?>
+use app\models\Cottage;
 
+$cottages = Cottage::getRegistred();
+
+foreach ($cottages as $cottage) {
+    if(!empty($cottage->cottageContacterPhone)){
+        echo "{$cottage->cottageNumber} {$cottage->cottageContacterPersonals} {$cottage->cottageContacterPhone} <br/>\n";
+    }
+}
+
+?>
+<!--
 <!DOCTYPE HTML>
 <html lang="ru">
 <head>
@@ -45,7 +55,7 @@
                     В соответствии с Федеральным законом № 217-ФЗ оплата членских и целевых взносов, а также потребленной электроэнергии производится на расчетный счет садоводческого товарищества.<br/>
                     Квитанция на оплату прилагается к письму. Вы можете произвести оплату через интернет-банк, мобильное приложение, терминал оплаты.<br/>
                     При оплате взимается комиссия в соответствии с тарифами банка, но не менее  1%.</p>
-                <?=$billInfo?>
+                <?/*=$billInfo*/?>
             </td>
         </tr>
         <tr>
@@ -72,7 +82,7 @@
         </tbody>
     </table>
 </body>
-</html>
+</html>-->
 
 
 

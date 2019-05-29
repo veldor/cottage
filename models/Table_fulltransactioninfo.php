@@ -25,6 +25,7 @@ use yii\db\ActiveRecord;
  * @property string $transactionType [enum('cash', 'no-cash')]
  * @property string $transactionWay [enum('in', 'out')]
  * @property bool $partialPayed [tinyint(4)]
+ * @property string $transactionSumm [float unsigned]
  */
 
 class Table_fulltransactioninfo extends ActiveRecord

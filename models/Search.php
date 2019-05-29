@@ -219,13 +219,15 @@ class Search extends Model
      */
     private function getReport($interval)
 	{
+	    $fullSumm = 0;
 	    $totalSumm = 0;
 		$trs = Table_fulltransactioninfo::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
 		$content = [];
 		if (!empty($trs)) {
 			foreach ($trs as $item) {
                 /** @var Table_fulltransactioninfo $item */
-                // членские взносы
+                $fullSumm += CashHandler::toRubles($item->transactionSumm);
+                    // членские взносы
                 $memList = '--';
                 $memSumm = '--';
                 $payedSumm = 0;
@@ -453,12 +455,13 @@ class Search extends Model
 				$totalSumm +=  ($item->toDeposit - $item->depositUsed + $item->discount);
 
 
-				$content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$item->bill_id}</td><td class='cottage-number-cell'>{$item->cottage_number}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>{$item->payedSumm}</td><td class='text-primary'>$type</td></tr>";
+				$content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$item->bill_id}</td><td class='cottage-number-cell'>{$item->cottage_number}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>{$item->transactionSumm}</td><td class='text-primary'>$type</td></tr>";
 			}
 		}
 		$additionalTrs = Table_fulladditionaltransactioninfo::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
 		if (!empty($additionalTrs)) {
 			foreach ($additionalTrs as $item) {
+                $fullSumm += CashHandler::toRubles($item->transactionSumm);
 				$date = TimeHandler::getDateFromTimestamp($item->transactionDate);
 				$type = $item->transactionType === 'cash' ? 'Нал' : 'Безнал';
 				$dom = new \DOMDocument('1.0', 'UTF-8');
@@ -540,9 +543,9 @@ class Search extends Model
 				}
 				$toDeposit = $item->toDeposit ?: 0;
 				$deposit = CashHandler::toRubles($toDeposit - $item->depositUsed, true);
-				$content[] = "<tr><td>$date</td><td>{$item->bill_id}-a</td><td>{$item->cottage_number}-a</td><td>$memList</td><td>$memSumm</td><td>$powCounterValue</td><td>$powUsed</td><td>$powSumm</td><td>$tarList</td><td>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>{$item->payedSumm}</td><td class='text-primary'>$type</td></tr>";
+				$content[] = "<tr><td>$date</td><td>{$item->bill_id}-a</td><td>{$item->cottage_number}-a</td><td>$memList</td><td>$memSumm</td><td>$powCounterValue</td><td>$powUsed</td><td>$powSumm</td><td>$tarList</td><td>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>{$item->transactionSumm}</td><td class='text-primary'>$type</td></tr>";
 			}
 		}
-		return ['status' => 1, 'data' => $content, 'totalSumm' => $totalSumm];
+		return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm];
 	}
 }

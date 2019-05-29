@@ -14,6 +14,17 @@ use yii\db\ActiveRecord;
 /**
  * Class Table_fulladditionaltransactioninfo
  * @package app\models
+ * @property int $cottage_number [int(5) unsigned]
+ * @property int $bill_id [int(10) unsigned]
+ * @property string $bill_content
+ * @property string $discount [float unsigned]
+ * @property string $depositUsed [float unsigned]
+ * @property string $toDeposit [float unsigned]
+ * @property string $payedSumm [float unsigned]
+ * @property int $transactionDate [int(20) unsigned]
+ * @property string $transactionType [enum('cash', 'no-cash')]
+ * @property string $transactionWay [enum('in', 'out')]
+ * @property string $transactionSumm [float unsigned]
  */
 
 class Table_fulladditionaltransactioninfo extends ActiveRecord
