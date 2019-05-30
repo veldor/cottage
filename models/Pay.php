@@ -208,18 +208,11 @@ class Pay extends Model {
                 if($this->single){
                     SingleHandler::handlePartialPayment($dom, $this->single, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
                 }
-
-                // если используются средства с депозита и это первый платёж по данному счёту- списываю средства
-                $fromDeposit = $this->fromDeposit;
-                if($fromDeposit > 0 && $billInfo->isPartialPayed === 0){
-                    DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'out');
-                }
+                $previousPayed = $billInfo->isPartialPayed;
                 $billInfo->isPartialPayed = 1;
                 $billInfo->payedSumm += $this->rawSumm;
                 // сохраню изменения в xml платежа
                 $billInfo->bill_content = $dom->save();
-                $billInfo->save();
-                $cottageInfo->save();
                 if(!empty($additionalCottageInfo)){
                     $additionalCottageInfo->save();
                 }
@@ -235,11 +228,25 @@ class Pay extends Model {
                 }
                 $billTransaction->billId = $billInfo->id;
                 $billTransaction->transactionDate = $paymentTime;
+                // если используются средства с депозита и это первый платёж по данному счёту- списываю средства
+                $fromDeposit = $this->fromDeposit;
+                if($fromDeposit > 0 && $previousPayed === 0){
+                    DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'out');
+                    $billTransaction->usedDeposit = $fromDeposit;
+                }
+                else{
+                    $billTransaction->usedDeposit = 0;
+                }
+                $billTransaction->gainedDeposit = 0;
+                $billTransaction->partial = 1;
+                $billTransaction->billCast = $billInfo->bill_content;
                 $billTransaction->transactionType = $this->payType === 'cash' ? 'cash' : 'no-cash';
                 $billTransaction->transactionSumm = $this->rawSumm;
                 $billTransaction->transactionWay = 'in';
                 $billTransaction->transactionReason = 'Частичная оплата счёта';
                 $billTransaction->save();
+                $billInfo->save();
+                $cottageInfo->save();
                 $transaction->commit();
                 return ['status' => 1, 'message' => 'Частичная оплата успешна'];
             }
@@ -312,6 +319,9 @@ class Pay extends Model {
                 else{
                     $t->transactionType = 'no-cash';
                 }
+                $t->gainedDeposit = $this->toDeposit;
+                $t->usedDeposit = 0;
+                $t->partial = 0;
                 $t->transactionSumm = $this->rawSumm;
                 $t->transactionWay = 'in';
                 $t->transactionReason = 'Оплата';
@@ -386,7 +396,10 @@ class Pay extends Model {
                 $t->transactionType = 'no-cash';
             }
             $t->transactionSumm = $payedSumm;
+            $t->gainedDeposit = $this->toDeposit;
+            $t->usedDeposit = $this->fromDeposit;
             $t->transactionWay = 'in';
+            $t->partial = 0;
             $t->transactionReason = 'Оплата';
             $t->save();
             // обновлю информацию о балансе садоводства на этот месяц

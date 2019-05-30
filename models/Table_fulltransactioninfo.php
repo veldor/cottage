@@ -26,6 +26,10 @@ use yii\db\ActiveRecord;
  * @property string $transactionWay [enum('in', 'out')]
  * @property bool $partialPayed [tinyint(4)]
  * @property string $transactionSumm [float unsigned]
+ * @property string $billCast Слепок счёта на момент транзакции
+ * @property float $usedDeposit [double]  Использованный депозит
+ * @property float $gainedDeposit [double]  Зачислено на депозит
+ * @property bool $partial [tinyint(1)]
  */
 
 class Table_fulltransactioninfo extends ActiveRecord

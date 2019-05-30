@@ -160,7 +160,7 @@ class FillingController extends Controller
             Yii::$app->response->format = Response::FORMAT_JSON;
             // получу список всех участков с подробностями
             $model = new SerialInvoices(['scenario' => SerialInvoices::SCENARIO_FILL]);
-            return $this->renderPartial('cottages-list', ['model' => $model, 'cottages' => SerialInvoices::getCottagesInfo()]);
+            return $this->renderPartial('cottages-list', ['cottages' => SerialInvoices::getCottagesInfo()]);
 
             }
         throw new NotFoundHttpException("Страница не найдена");

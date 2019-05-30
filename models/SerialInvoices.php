@@ -67,6 +67,7 @@ class SerialInvoices extends Model
             $answer->cottageNumber = $cottage->masterId;
             $answer->isDouble = true;
         }
+        $answer->hasMail = Cottage::hasMail($cottage);
         // получу необходимые данные об участке
         // проверю, есть ли вообще задолженности
         if($cottage->powerDebt > 0 || $cottage->targetDebt > 0 || $cottage->singleDebt > 0 || ( !empty($cottage->membershipPayFor) && $cottage->membershipPayFor < self::$quarter)){

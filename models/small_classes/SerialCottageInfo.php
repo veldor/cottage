@@ -19,6 +19,7 @@ class SerialCottageInfo
     public $cottageNumber;
     public $haveDebt = false;
     public $isUnfilledPower = false;
+    public $hasMail = false;
     /**
      * @var bool|Table_payment_bills|Table_payment_bills_double
      */

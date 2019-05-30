@@ -210,4 +210,16 @@ class Cottage extends Model
         }
         return $cottageInfo;
     }
+
+    /**
+     * @param $cottage Table_cottages|Table_additional_cottages
+     * @return bool
+     */
+    public static function hasMail($cottage)
+    {
+        if(!empty($cottage->cottageOwnerEmail) || !empty($cottage->cottageContacterEmail)){
+            return true;
+        }
+        return false;
+    }
 }

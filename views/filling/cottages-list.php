@@ -1,5 +1,6 @@
 <?php
 
+use app\models\Cottage;
 use app\models\small_classes\SerialCottageInfo;
 use app\models\TimeHandler;
 use yii\helpers\Html;
@@ -28,6 +29,7 @@ $form = ActiveForm::begin(['id' => 'billsAutofill', 'options' => ['class' => 'fo
         <th>Электричество</th>
         <th>Счета</th>
         <th>Сформировать</th>
+        <th>Почта</th>
     </tr>
     </thead>
 
@@ -41,6 +43,7 @@ $form = ActiveForm::begin(['id' => 'billsAutofill', 'options' => ['class' => 'fo
             <td><?=$cottage->isUnfilledPower ? '<b class="text-danger">Не заполнено</b>' : '<b class="text-success">Заполнено</b>'?></td>
             <td><?=$cottage->unpayedBill ? '<b class="text-danger">Неоплаченный счёт</b><br/>' . TimeHandler::getDateFromTimestamp($cottage->unpayedBill->creationTime) : '<b class="text-success">Всё оплачено</b>'?></td>
             <td><label class="btn btn-success"><input type="checkbox" name="SerialInvoices[autofill][<?=$cottage->isDouble ? $cottage->cottageNumber . '-a' : $cottage->cottageNumber?>]" class="accept-fill" <?=$cottage->haveDebt ? 'checked': 'disabled'?>>Заполнять</label></td>
+            <td class="has-mail" data-has-mail="<?=$cottage->hasMail?>"><?php echo $cottage->hasMail ? '<span class="glyphicon glyphicon-ok text-success"></span>' : '<span class="glyphicon glyphicon-remove text-danger"></span>'?></td>
         </tr>
         <?php
     }
