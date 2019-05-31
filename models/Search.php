@@ -188,15 +188,15 @@ class Search extends Model
         if(!empty($results)){
             /** @var Table_fulltransactioninfo $result */
             foreach ($results as $result) {
-                $fromDeposit += $result->depositUsed;
-                $toDeposit += $result->toDeposit;
+                $fromDeposit += $result->usedDeposit;
+                $toDeposit += $result->gainedDeposit;
                 $discount += $result->discount;
             }
         }if(!empty($additionalResults)){
             /** @var Table_fulladditionaltransactioninfo $result */
             foreach ($additionalResults as $result) {
-                $fromDeposit += $result->depositUsed;
-                $toDeposit += $result->toDeposit;
+                $fromDeposit += $result->usedDeposit;
+                $toDeposit += $result->gainedDeposit;
                 $discount += $result->discount;
             }
         }
@@ -449,13 +449,13 @@ class Search extends Model
 						$singleList .= $value->getAttribute('timestamp') . ' - ' . CashHandler::toRubles($value->getAttribute('summ')) . '<br/>';
 					}
 				}
-				$toDeposit = $item->toDeposit ?: 0;
-				$deposit = CashHandler::toRubles($toDeposit - $item->depositUsed, true);
+				$toDeposit = $item->gainedDeposit ?: 0;
+				$deposit = CashHandler::toRubles($toDeposit - $item->usedDeposit, true);
 
 				$totalSumm +=  ($item->toDeposit - $item->depositUsed + $item->discount);
 
 
-				$content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$item->bill_id}</td><td class='cottage-number-cell'>{$item->cottage_number}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>{$item->transactionSumm}</td><td class='text-primary'>$type</td></tr>";
+				$content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$item->bill_id}</td><td class='cottage-number-cell'>{$item->cottage_number}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>" . CashHandler::toRubles($item->transactionSumm) . "</td><td class='text-primary'>$type</td></tr>";
 			}
 		}
 		$additionalTrs = Table_fulladditionaltransactioninfo::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();

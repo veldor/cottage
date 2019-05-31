@@ -44,20 +44,66 @@ $qr = $bankInfo->drawQR();
 
 if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'])){
     $summ = 0;
+    $oldData = null;
+    $newData = null;
+    $difference = null;
+    $usedPower = [];
     $values = '';
     if(!empty($paymentContent['power'])){
-        $summ += $paymentContent['power']['summ'];
+        $summ = $paymentContent['power']['summ'];
         foreach ($paymentContent['power']['values'] as $value) {
-            $values .= '<b>' . TimeHandler::getFullFromShotMonth($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
+            $tempOldData = $value["old-data"];
+            $tempNewData = $value["new-data"];
+            if(empty($oldData)){
+                $oldData = $tempOldData;
+            }
+            if($tempNewData >= $oldData){
+                $newData = $tempNewData;
+                $difference += $tempNewData - $tempOldData;
+            }
+            else{
+                // очевидно, был заменён счётчик
+                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+                $oldData = $tempOldData;
+                $newData = $tempNewData;
+                $difference = $newData - $oldData;
+
+            }
         }
+        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+        foreach ($usedPower as $item) {
+            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . " ";
+        }
+        $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
     if(!empty($paymentContent['additionalPower'])){
-        $summ += $paymentContent['additionalPower']['summ'];
+        $usedPower = [];
+        $summ = $paymentContent['additionalPower']['summ'];
         foreach ($paymentContent['additionalPower']['values'] as $value) {
-            $values .= '<b>' . TimeHandler::getFullFromShotMonth($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
+            $tempOldData = $value["old-data"];
+            $tempNewData = $value["new-data"];
+            if(empty($oldData)){
+                $oldData = $tempOldData;
+            }
+            if($tempNewData >= $oldData){
+                $newData = $tempNewData;
+                $difference += $tempNewData - $tempOldData;
+            }
+            else{
+                // очевидно, был заменён счётчик
+                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+                $oldData = $tempOldData;
+                $newData = $tempNewData;
+                $difference = $newData - $oldData;
+            }
         }
+        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+        foreach ($usedPower as $item) {
+            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . " ";
+        }
+        $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
-    $powerText = "Электроэнергия: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
+    $powerText = $values;
 }
 if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])){
 

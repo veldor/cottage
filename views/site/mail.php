@@ -1,14 +1,5 @@
 <?php
-
-use app\models\Cottage;
-
-$cottages = Cottage::getRegistred();
-
-foreach ($cottages as $cottage) {
-    if(!empty($cottage->cottageContacterPhone)){
-        echo "{$cottage->cottageNumber} {$cottage->cottageContacterPersonals} {$cottage->cottageContacterPhone} <br/>\n";
-    }
-}
+\app\models\Fix::fillTransactions();
 
 ?>
 <!--
@@ -60,7 +51,6 @@ foreach ($cottages as $cottage) {
         </tr>
         <tr>
             <td colspan="2">
-                <!--Футер-->
                 <hr/>
                 <h3 class="text-center">Контактная информация</h3>
                 <p>
