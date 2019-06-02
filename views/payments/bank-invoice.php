@@ -217,6 +217,7 @@ BankInvoiceAsset::register($this);
         <?=$singleText?>
         <?=$depositText?>
         <?=$discountText?>
+        <h3>Срок оплаты до 1 июля 2019 года.</h3>
     </div>
 </div>
 <?php $this->endBody() ?>

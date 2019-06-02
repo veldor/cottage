@@ -18,6 +18,7 @@ use app\models\Pay;
 use app\models\Payments;
 use app\models\PDFHandler;
 use app\models\SingleHandler;
+use app\models\TransactionsHandler;
 use Yii;
 use yii\base\InvalidValueException;
 use yii\web\Controller;
@@ -39,7 +40,7 @@ class PaymentsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills'],
+                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -171,6 +172,7 @@ class PaymentsController extends Controller
     {
         // получу данные о платеже
         $info = ComplexPayment::getBankInvoice($identificator, $double);
+        ComplexPayment::setInvoicePrinted($info['billInfo']['billInfo']);
         return $this->renderPartial('bank-invoice', ['info' => $info]);
     }
 
@@ -372,5 +374,17 @@ class PaymentsController extends Controller
             return $this->renderPartial('all-bills', ['info' => $info]);
         }
         throw new NotFoundHttpException('Страница не найдена');
+    }
+
+    public function actionChain($billId, $transactionId){
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        try{
+            $info = TransactionsHandler::handle($billId, $transactionId);
+            $view = $this->renderPartial("transactionComparsion", ['info' => $info]);
+            return ['status' => 1, 'html' => $view];
+        }
+        catch (ExceptionWithStatus $e){
+            return ['status' => 2, 'message' => $e->getMessage(), 'code' => $e->getCode()];
+        }
     }
 }

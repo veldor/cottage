@@ -1,13 +1,8 @@
-<?php
-\app\models\Fix::fillTransactions();
-
-?>
-<!--
 <!DOCTYPE HTML>
 <html lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>Тестовое письмо</title>
+    <title>Счёт на оплату</title>
     <style type="text/css">
         #main-table{
             max-width: 600px;
@@ -72,7 +67,7 @@
         </tbody>
     </table>
 </body>
-</html>-->
+</html>
 
 
 

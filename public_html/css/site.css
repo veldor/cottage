@@ -498,3 +498,31 @@ img.loading_img{
         margin-left: -15px;
     }
 }*/
+span.custom-icon{
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    background-size: cover;
+}
+span.has-email{
+    background-image: url('/graphics/mail.png');
+}
+span.has-bill{
+    background-image: url('/graphics/bill.png');
+}
+span.invoice_printed{
+    background-image: url('/graphics/invoice_printed.png');
+}
+span.message_sended{
+    background-image: url('/graphics/message_sended.png');
+}
+div.additional-block{
+    height: 12px;
+    padding: 0;
+}
+div.inlined{
+    display: inline-block;
+    float: none;
+}
+
+

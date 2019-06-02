@@ -303,8 +303,10 @@ function makeInformerModal(header, text, acceptAction, declineAction) {
     let acceptButton = modal.find('button#acceptActionBtn');
     if (declineAction) {
         let declineBtn = $('<button class="btn btn-warning" role="button">Отмена</button>');
-        acceptAction.insertAfter(declineBtn);
+        declineBtn.insertAfter(acceptButton);
         declineBtn.on('click.custom', function () {
+            normalReload();
+            modal.modal('hide');
             declineAction();
         });
     }

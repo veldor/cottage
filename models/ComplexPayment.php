@@ -67,6 +67,15 @@ class ComplexPayment extends Model
 
     }
 
+    /**
+     * @param $billInfo Table_payment_bills|Table_payment_bills_double
+     */
+    public static function setInvoicePrinted($billInfo)
+    {
+        $billInfo->isInvoicePrinted = 1;
+        $billInfo->save();
+    }
+
 
     public function scenarios(): array
     {

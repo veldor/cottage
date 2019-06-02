@@ -10,6 +10,8 @@ function handleAddingCottage() {
 }
 
 function handle() {
+    let markers = $('span.custom-icon');
+    markers.tooltip();
     let cottagesWithDuty = $('a.popovered');
     cottagesWithDuty.popover({'html': true, 'trigger': 'hover', 'delay': {'show': 500}, 'container': 'body'});
     let emptyCottages = $('button.empty');

@@ -79,7 +79,52 @@ function handlePartialPayments() {
     });
 }
 
+function confirmChaining(data) {
+    if(data['status'] === 1){
+        let modal = makeModal('Подтверждение слияния', data['html']);
+    }
+    else{
+        makeInformer('danger', 'Слияние невозможно', data['message']);
+    }
+}
+
+function chainBill(supposedBillId, bankTransactionId) {
+    // отправлю запрос на совмещение счёта и платежа
+    let url = '/chain/' + supposedBillId + '/' + bankTransactionId;
+    sendAjax('get', url, confirmChaining);
+}
+
+function selectBillId(bankTransactionId) {
+    // покажу модаль с полем ввода номера счёта
+    let modal = makeModal("Выбор номера счёта", '<div class="row"><div class="col-sm-12 margened"><div class="col-sm-5"><label for="billId" class="control-label">Номер счёта</label></div><div class="col-xs-7"><input class="form-control" id="billId" type="text" maxlength="100"></div></div><div class="col-sm-12 margened"><button class="btn btn-success" id="acceptBill">Связать</button></div></div>');
+    let acceptButton = modal.find('button#acceptBill');
+    let billIdInput = modal.find('input#billId');
+    acceptButton.on('click.accept', function () {
+        if(billIdInput.val()){
+            modal.modal('hide');
+            confirmChainedBillId(billIdInput.val(), bankTransactionId);
+        }
+    });
+}
+
+function confirmChainedBillId(supposedBillId, bankTransactionId) {
+    makeInformerModal("Связка платежа", "Связать платёж со счётом №" + supposedBillId + "?", function () {
+        chainBill(supposedBillId, bankTransactionId);
+    }, function () {
+        selectBillId(bankTransactionId);
+    });
+}
+
 function handleMailing() {
+    // обработаю связку платежа
+    const chainActivators = $('button.chain_bill');
+    chainActivators.on('click.chain', function () {
+       let supposedBillId = $(this).attr('data-bill-id');
+       let bankTransactionId = $(this).attr('data-bank-operation');
+       if(supposedBillId){
+           confirmChainedBillId(supposedBillId, bankTransactionId);
+       }
+    });
     // определю кнопку-активатор
     let sendMailingActivator = $('#createMailingActivator');
     sendMailingActivator.on('click.send', function (e) {

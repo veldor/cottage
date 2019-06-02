@@ -90,7 +90,7 @@ if (!empty($tab)) {
                                 <td>{$item->transaction_summ}</td>
                                 <td>{$item->fio}</td>
                                 <td>" . Registry::getBillId($item->address) . "</td>
-                                <td><button><span class='glyphicon glyphicon-link'></span></button></td>
+                                <td><button class='chain_bill btn btn-success' data-bank-operation='{$item->bank_operation_id}' data-bill-id='" . Registry::getBillId($item->address) . "'><span class='glyphicon glyphicon-link'></span></button></td>
                           </tr>
                            ";
                 }

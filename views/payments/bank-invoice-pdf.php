@@ -146,24 +146,6 @@ if(!empty($paymentContent['single'])){
     }
     $singleText = "Разовые взносы:<br/> всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
 }
-
-if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'])){
-    $summ = 0;
-    $values = '';
-    if(!empty($paymentContent['power'])){
-        $summ += $paymentContent['power']['summ'];
-        foreach ($paymentContent['power']['values'] as $value) {
-            $values .= TimeHandler::getFullFromShotMonth($value['date']) . ' : ' . CashHandler::toSmoothRubles($value['summ']) . '<br/>';
-        }
-    }
-    if(!empty($paymentContent['additionalPower'])){
-        $summ += $paymentContent['additionalPower']['summ'];
-        foreach ($paymentContent['additionalPower']['values'] as $value) {
-            $values .= TimeHandler::getFullFromShotMonth($value['date']) . ' : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
-        }
-    }
-    $powerText = "Электроэнергия:<br/> всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
-}
 if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])){
 
     $summ = 0;

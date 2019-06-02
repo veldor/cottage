@@ -25,6 +25,9 @@ use yii\db\ActiveRecord;
  * @property string $discount [float unsigned]
  * @property string $discountReason
  * @property string $toDeposit [float unsigned]
+ * @property bool $isPartialPayed [tinyint(1)]
+ * @property bool $isMessageSend [tinyint(1)]  Уведомление отправлено
+ * @property bool $isInvoicePrinted [tinyint(1)]  Квитанция распечатана
  */
 
 class Table_payment_bills_double extends ActiveRecord

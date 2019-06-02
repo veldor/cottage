@@ -3,6 +3,8 @@ namespace app\widgets;
 
 //use Yii;
 use app\models\CashHandler;
+use app\models\ComplexPayment;
+use app\models\Cottage;
 use app\models\Table_cottages;
 use app\models\TimeHandler;
 use yii\base\Widget;
@@ -20,9 +22,26 @@ class CottagesShowWidget extends Widget{
         /** @var Table_cottages $cottage */
         foreach($this->cottages as $cottage){
             while($cottage->cottageNumber !== $index){
-                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened'><button class='btn empty cottage-button' data-index='$index' data-toggle='tooltip' data-placement='top' title='Регистрация участка № $index'>$index</button></div>";
+                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><button class='btn empty cottage-button' data-index='$index' data-toggle='tooltip' data-placement='top' title='Регистрация участка № $index'>$index</button></div>";
                 $index ++;
             }
+            $additionalBlock = "<div class='col-xs-12 additional-block'>";
+            // проверю, есть ли почта у этого участка
+            if(Cottage::hasMail($cottage)){
+                $additionalBlock .= "<span class='custom-icon has-email'  data-toggle=\"tooltip\" data-placement=\"top\" title=\"Есть адрес электронной почты\"></span>";
+            }
+            // проверю наличие незакрытого счёта у участка
+            $unpayedBill = ComplexPayment::checkUnpayed($cottage);
+            if(!empty($unpayedBill)){
+                $additionalBlock .= "<span class='custom-icon has-bill' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Есть открытый счёт\"></span>";
+                if($unpayedBill->isInvoicePrinted){
+                    $additionalBlock .= "<span class='custom-icon invoice_printed' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Печаталась квитанция\"></span>";
+                }
+                if($unpayedBill->isMessageSend){
+                    $additionalBlock .= "<span class='custom-icon message_sended' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Отправлено сообщение\"></span>";
+                }
+            }
+            $additionalBlock .= "</div>";
             $additional = '';
             if($cottage->haveAdditional){
                 $additional = "<span class='glyphicon glyphicon-plus'></span>";
@@ -57,15 +76,15 @@ class CottagesShowWidget extends Widget{
                     $deposit = CashHandler::toSmoothRubles($cottage->deposit);
                 }
                 $content .= "<p>Депозит участка: {$deposit}</p>";
-                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened'><a href='/show-cottage/$cottage->cottageNumber' class='btn btn-danger popovered cottage-button' data-toggle='popover' data-placement='top' data-title='Имеются задолженности' data-content='{$content}'>$cottage->cottageNumber {$additional}</a></div>";
+                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><a href='/show-cottage/$cottage->cottageNumber' class='btn btn-danger popovered cottage-button' data-toggle='popover' data-placement='top' data-title='Имеются задолженности' data-content='{$content}'>$cottage->cottageNumber {$additional}</a>$additionalBlock</div>";
             }
             else{
-                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened'><a href='/show-cottage/$cottage->cottageNumber' class='btn btn-success cottage-button'>$cottage->cottageNumber {$additional}</a></div>";
+                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><a href='/show-cottage/$cottage->cottageNumber' class='btn btn-success cottage-button'>$cottage->cottageNumber {$additional}</a>$additionalBlock</div>";
             }
             $index ++;
         }
         while($index <= $max){
-            $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened'><button class='btn empty cottage-button' data-index='$index' data-toggle='tooltip' data-placement='top' title='Регистрация участка № $index'>$index</button></div>";
+            $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><button class='btn empty cottage-button' data-index='$index' data-toggle='tooltip' data-placement='top' title='Регистрация участка № $index'>$index</button></div>";
             $index ++;
         }
     }
