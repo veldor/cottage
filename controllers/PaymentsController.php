@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
+
 /**
  * Created by PhpStorm.
  * User: eldor
@@ -8,11 +9,12 @@
 
 namespace app\controllers;
 
+use app\models\CashHandler;
 use app\models\Cloud;
+use app\models\ComparisonHandler;
 use app\models\ComplexPayment;
 use app\models\DepositHandler;
 use app\models\ExceptionWithStatus;
-use app\models\Filling;
 use app\models\GlobalActions;
 use app\models\Pay;
 use app\models\Payments;
@@ -21,8 +23,8 @@ use app\models\SingleHandler;
 use app\models\TransactionsHandler;
 use Yii;
 use yii\base\InvalidValueException;
-use yii\web\Controller;
 use yii\filters\AccessControl;
+use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 use yii\widgets\ActiveForm;
@@ -40,7 +42,7 @@ class PaymentsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain'],
+                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain', 'chain-confirm'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -186,8 +188,7 @@ class PaymentsController extends Controller
             PDFHandler::renderPDF($invoice, $info['billInfo']['billInfo']->id, $info['billInfo']['billInfo']->cottageNumber);
             // отправлю письмо
             $billInfo = ComplexPayment::getBill($identificator, $double);
-            $payDetails = Filling::getBillDetails($billInfo, $double);
-            $message = Cloud::sendInvoiceMail($this->renderPartial('/site/mail', ['billInfo' => $payDetails]), $info);
+            $message = Cloud::sendInvoiceMail($this->renderPartial('/site/mail'), $info);
             $billInfo->isMessageSend = 1;
             $billInfo->save();
             return['status' => 1, 'message' => $message];
@@ -300,6 +301,7 @@ class PaymentsController extends Controller
                     if($model->load(Yii::$app->request->post()) && $model->validate()){
                         return $model->change();
                     }
+                    break;
                 case 'edit_double':
                     $model = new SingleHandler(['scenario' => SingleHandler::SCENARIO_EDIT]);
                     if($model->load(Yii::$app->request->post()) && $model->validate()){
@@ -386,5 +388,14 @@ class PaymentsController extends Controller
         catch (ExceptionWithStatus $e){
             return ['status' => 2, 'message' => $e->getMessage(), 'code' => $e->getCode()];
         }
+    }
+    public function actionChainConfirm(){
+        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            $handler = new ComparisonHandler(['scenario' => ComparisonHandler::SCENARIO_COMPARISON]);
+            $handler->load(Yii::$app->request->post());
+            return $handler->compare();
+        }
+        throw new NotFoundHttpException('Страница не найдена');
     }
 }

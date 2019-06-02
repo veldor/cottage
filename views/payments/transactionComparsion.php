@@ -18,8 +18,8 @@ $difference = CashHandler::toSmoothRubles($transactionSumm - $billSumm);
 <table class="table table-condensed table-hover">
     <thead>
     <tr>
-        <th>Транзакция</th>
-        <th>Счёт</th>
+        <th>Транзакция №<?= $info->transactionId?></th>
+        <th>Счёт №<?= $info->billId?></th>
     </tr>
     </thead>
     <tbody>
@@ -55,4 +55,4 @@ if($difference > 0){
     echo "<h3>{$difference} будет зачислено на депозит участка</h3>";
 }
 ?>
-<button class="btn btn-success">Подтвердить слияние</button>
+<button id="submitComparsionButton" class="btn btn-success" data-bill-id="<?= $info->billId?>" data-transaction-id="<?= $info->transactionId?>">Подтвердить слияние</button>

@@ -48,7 +48,7 @@ class DepositHandler extends Model {
 
 
 	public static function registerDeposit($billInfo, $cottageInfo, $way){
-		$depositIo = new Deposit_io();
+		$depositIo = new Table_deposit_io();
 		$depositIo->cottageNumber = $billInfo->cottageNumber;
 		$depositIo->billId = $billInfo->id;
 		$depositIo->destination = $way;
@@ -77,7 +77,7 @@ class DepositHandler extends Model {
         if($this->additional && !$this->currentCondition->hasDifferentOwner){
             throw new ExceptionWithStatus('У участка не найден дополнительный владелец', 2);
         }
-        $depositIo = new Deposit_io();
+        $depositIo = new Table_deposit_io();
         $depositIo->cottageNumber = $this->cottageNumber;
         $depositIo->destination = 'in';
         $depositIo->summBefore = $this->currentCondition->deposit;

@@ -22,6 +22,7 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
 ?>
 <div class="row">
     <div class="col-lg-12 text-center"><h1>Информация о счёте №<?= $double ? $info['billInfo']->id . '-a' : $info['billInfo']->id ?></h1>
+        <h2>От <?=TimeHandler::getDatetimeFromTimestamp($info['billInfo']->creationTime)?></h2>
         <h3>Информация о плательщике</h3>
         <p>Номер дачного участка: <b class="text-success"><?= $double ? $info['cottageInfo']->masterId . '-a' :$info['cottageInfo']->cottageNumber ?></b></p>
         <p>Ф.И.О. владельца дачи: <b class="text-success"><?= $info['cottageInfo']->cottageOwnerPersonals ?></b></p>
@@ -39,10 +40,10 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
                 $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->depositUsed) + CashHandler::toRubles($info['billInfo']->discount));
 
             }
-            if($payedSumm === 0 || ($payedSumm < $info['billInfo']->totalSumm && !$info['billInfo']->isPartialPayed)){
+            if($payedSumm === 0 || ($payedSumm < CashHandler::toRubles($info['billInfo']->totalSumm) && !$info['billInfo']->isPartialPayed)){
                 echo "<h3>Статус: <b class='text-warning'>Закрыт. Не оплачен.</b></h3>";
             }
-            elseif($payedSumm >= $info['billInfo']->totalSumm){
+            elseif($payedSumm >= CashHandler::toRubles($info['billInfo']->totalSumm)){
                 $payDate = TimeHandler::getDatetimeFromTimestamp($info['billInfo']->paymentTime);
                 echo "<h3>Статус: <b class='text-success'>Закрыт. Оплачен полностью.</b></h3>";
                 echo " <p>Дата оплаты: <b class='text-success'>$payDate</b><br/>";

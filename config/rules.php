@@ -122,4 +122,5 @@ return [
     'mailing/get-list' => 'notify/get-mail-list',
     'mailing/<own:main|double>/<type:owner|contacter>/<cottageNumber:[0-9]+>' => 'notify/mailing',
     'chain/<billId:[0-9]+>/<transactionId:[0-9]+>' => 'payments/chain',
+    'chain/confirm' => 'payments/chain-confirm',
 ];

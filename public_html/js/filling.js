@@ -12,13 +12,12 @@ function handlePartialPayments() {
         container.append('<tbody>');
         let counter = 0;
         while (counter < length) {
-            container.append('<tr><td>Участок ' + data.bills[counter]['cottageNumber'] + (data.bills[counter]['double'] ? '-a' : '') + '</td><td><label class="btn btn-success"><input type="checkbox" data-double="' + data.bills[counter]['double'] + '" data-id="' + data.bills[counter]['billId'] + '" class="accept-fill" checked="">Отправить письмо</label></td></tr>');
+            container.append('<tr><td>Участок ' + data['bills'][counter]['cottageNumber'] + (data['bills'][counter]['double'] ? '-a' : '') + '</td><td><label class="btn btn-success"><input type="checkbox" data-double="' + data['bills'][counter]['double'] + '" data-id="' + data['bills'][counter]['billId'] + '" class="accept-fill" checked="">Отправить письмо</label></td></tr>');
             counter++;
         }
         container.append('</tbody>');
         let sendBtn = modal.find('button#sendMailsBtn');
         sendBtn.on('click.send', function () {
-            let btn = $(this);
             // заблокирую кнопку
             $(this).prop('disabled', true).text('Отправляю сообщения');
             // найду все чекбоксы
@@ -82,6 +81,15 @@ function handlePartialPayments() {
 function confirmChaining(data) {
     if(data['status'] === 1){
         let modal = makeModal('Подтверждение слияния', data['html']);
+        let activator = modal.find('button#submitComparsionButton');
+        activator.on('click.send', function () {
+            let url = "/chain/confirm";
+            let attributes = {
+                'ComparisonHandler[billId]': $(this).attr('data-bill-id'),
+                'ComparisonHandler[transactionId]':$(this).attr('data-transaction-id'),
+            };
+            sendAjax('post', url, simpleAnswerHandler, attributes);
+        })
     }
     else{
         makeInformer('danger', 'Слияние невозможно', data['message']);

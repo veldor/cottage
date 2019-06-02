@@ -568,4 +568,10 @@ class TimeHandler extends Model {
 		$result['end'] = strtotime("1-1-{$year} + 1 year") - 1;
 		return $result;
 	}
+
+    public static function getTimestampFromBank(string $pay_date, string $pay_time)
+    {
+        $date = DateTime::createFromFormat('j-m-Y H-i-s', "$pay_date $pay_time");
+        return $date->getTimestamp();
+    }
 }
