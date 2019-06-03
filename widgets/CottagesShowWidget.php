@@ -31,14 +31,14 @@ class CottagesShowWidget extends Widget{
                 $additionalBlock .= "<span class='custom-icon has-email'  data-toggle=\"tooltip\" data-placement=\"top\" title=\"Есть адрес электронной почты\"></span>";
             }
             // проверю наличие незакрытого счёта у участка
-            $unpayedBill = ComplexPayment::checkUnpayed($cottage);
+            $unpayedBill = ComplexPayment::checkUnpayed($cottage->cottageNumber);
             if(!empty($unpayedBill)){
                 $additionalBlock .= "<span class='custom-icon has-bill' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Есть открытый счёт\"></span>";
                 if($unpayedBill->isInvoicePrinted){
                     $additionalBlock .= "<span class='custom-icon invoice_printed' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Печаталась квитанция\"></span>";
                 }
                 if($unpayedBill->isMessageSend){
-                    $additionalBlock .= "<span class='custom-icon message_sended' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Отправлено сообщение\"></span>";
+                    $additionalBlock .= "<span class='custom-icon message_sended' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Квитанция отправлена на электронную почту\"></span>";
                 }
             }
             $additionalBlock .= "</div>";

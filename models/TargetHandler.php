@@ -25,6 +25,12 @@ class TargetHandler extends Model
 
     const SCENARIO_NEW_TARIFF = 'new_tariff';
 
+    public static function getPayUpTime($year)
+    {
+        $result = Table_tariffs_target::findOne(['year' => $year]);
+        return $result->payUpTime;
+    }
+
 
     public function scenarios(): array
     {

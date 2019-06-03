@@ -38,7 +38,7 @@ class SiteController extends Controller
                     ],
                     [
                         'allow' => true,
-                        'actions' => ['test-mail'],
+                        'actions' => ['test-mail', 'test'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -71,10 +71,8 @@ class SiteController extends Controller
     }
     public function actionTestMail()
     {
-        $billInfo = ComplexPayment::getBill(124);
-        $payDetails = Filling::getBillDetails($billInfo);
         //Cloud::sendTestMail($this->renderPartial('mail', ['billInfo' => $payDetails]));
-        return $this->renderPartial('mail', ['billInfo' => $payDetails]);
+        return $this->renderPartial('mail');
     }
     public function actionAuth()
     {
@@ -94,5 +92,8 @@ class SiteController extends Controller
             return $this->redirect('/', 301);
         }
         return false;
+    }
+    public function actionTest(){
+        return $this->renderPartial('test');
     }
 }

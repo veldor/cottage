@@ -8,6 +8,7 @@
 
 use app\models\BankDetails;
 use app\models\CashHandler;
+use app\models\TargetHandler;
 use app\models\TimeHandler;
 use yii\web\View;
 
@@ -40,6 +41,7 @@ $singleText = '';
 $qr = $bankInfo->drawQR();
 
 if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'])){
+    $dueDate = TimeHandler::getPowerDueDate();
     $summ = 0;
     $oldData = null;
     $newData = null;
@@ -100,7 +102,7 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         }
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
-    $powerText = $values;
+    $powerText = 'Электроэнергия: ' . $values . ' Срок оплаты: до ' . $dueDate . " года<br/>";
 }
 if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])){
 
@@ -109,16 +111,29 @@ if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMe
     if(!empty($paymentContent['membership'])){
         $summ += $paymentContent['membership']['summ'];
         foreach ($paymentContent['membership']['values'] as $value) {
-            $values .= TimeHandler::getFullFromShortQuarter($value['date']) . ' : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
+            // проверю срок оплаты
+            $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
+            if(TimeHandler::checkOverdueQuarter($value['date'])){
+                $values .= '(платёж просрочен)  ';
+            }
+            else{
+                $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
+            }
         }
     }
     if(!empty($paymentContent['additionalMembership'])){
         $summ += $paymentContent['additionalMembership']['summ'];
         foreach ($paymentContent['additionalMembership']['values'] as $value) {
-            $values .= TimeHandler::getFullFromShortQuarter($value['date']) . ' : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
+            $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
+            if(TimeHandler::checkOverdueQuarter($value['date'])){
+                $values .= '(платёж просрочен)  ';
+            }
+            else{
+                $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
+            }
         }
     }
-    $memText = "Членские взносы:<br/> всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
+    $memText = 'Членские взносы: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
 if(!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget'])){
     $summ = 0;
@@ -126,69 +141,33 @@ if(!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget
     if(!empty($paymentContent['target'])){
         $summ += $paymentContent['target']['summ'];
         foreach ($paymentContent['target']['values'] as $value) {
-            $values .= $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
+            $values .= '<b>' . $value['year'] . ' год : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
+            // проверю просроченность платежа
+            $payUpTime = TargetHandler::getPayUpTime($value['year']);
+            if($payUpTime < time()){
+                $values .= '(платёж просрочен)  ';
+            }
+            else{
+                $values .= '(срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUpTime) . ')  ';
+            }
         }
     }
     if(!empty($paymentContent['additionalTarget'])){
         $summ += $paymentContent['additionalTarget']['summ'];
         foreach ($paymentContent['additionalTarget']['values'] as $value) {
-            $values .= $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
+            $values .= '<b>' . $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']). ', ';
         }
     }
-    $tarText = "Целевые взносы:<br/>всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
+    $tarText = "Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
 if(!empty($paymentContent['single'])){
     $summ = 0;
     $values = '';
     $summ += $paymentContent['single']['summ'];
     foreach ($paymentContent['single']['values'] as $value) {
-        $values .= $value['description'] . ' : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
+        $values .= '<b>' . $value['description'] . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
     }
-    $singleText = "Разовые взносы:<br/> всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
-}
-if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])){
-
-    $summ = 0;
-    $values = '';
-    if(!empty($paymentContent['membership'])){
-        $summ += $paymentContent['membership']['summ'];
-        foreach ($paymentContent['membership']['values'] as $value) {
-            $values .= TimeHandler::getFullFromShortQuarter($value['date']) . ' : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
-        }
-    }
-    if(!empty($paymentContent['additionalMembership'])){
-        $summ += $paymentContent['additionalMembership']['summ'];
-        foreach ($paymentContent['additionalMembership']['values'] as $value) {
-            $values .= TimeHandler::getFullFromShortQuarter($value['date']) . ' : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
-        }
-    }
-    $memText = "Членские взносы:<br/> всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
-}
-if(!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget'])){
-    $summ = 0;
-    $values = '';
-    if(!empty($paymentContent['target'])){
-        $summ += $paymentContent['target']['summ'];
-        foreach ($paymentContent['target']['values'] as $value) {
-            $values .= $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
-        }
-    }
-    if(!empty($paymentContent['additionalTarget'])){
-        $summ += $paymentContent['additionalTarget']['summ'];
-        foreach ($paymentContent['additionalTarget']['values'] as $value) {
-            $values .= $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
-        }
-    }
-    $tarText = "Целевые взносы:<br/>всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
-}
-if(!empty($paymentContent['single'])){
-    $summ = 0;
-    $values = '';
-    $summ += $paymentContent['single']['summ'];
-    foreach ($paymentContent['single']['values'] as $value) {
-        $values .= $value['description'] . ' : ' . CashHandler::toSmoothRubles($value['summ']). '<br/>';
-    }
-    $singleText = "Разовые взносы:<br/> всего " . CashHandler::toSmoothRubles($summ) . '<br/>' . $values;
+    $singleText = "Разовые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
 
 $text = "

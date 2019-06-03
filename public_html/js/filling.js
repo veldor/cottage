@@ -132,6 +132,9 @@ function handleMailing() {
        if(supposedBillId){
            confirmChainedBillId(supposedBillId, bankTransactionId);
        }
+       else{
+           selectBillId(bankTransactionId);
+       }
     });
     // определю кнопку-активатор
     let sendMailingActivator = $('#createMailingActivator');
@@ -139,8 +142,10 @@ function handleMailing() {
         e.preventDefault();
         let mailData;
         for(var i in CKEDITOR.instances){
-            mailData = CKEDITOR.instances[i].getData();
-            break;
+            if(CKEDITOR.instances.hasOwnProperty(i)){
+                mailData = CKEDITOR.instances[i].getData();
+                break;
+            }
         }
         let subjectData = $('#mailingSubject').val();
         if (!mailData) {

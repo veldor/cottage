@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use DateInterval;
 use DateTime;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
@@ -122,27 +123,19 @@ class TimeHandler extends Model {
 	{
 		switch ($month) {
 			case 1:
-				;
 			case 2:
-				;
 			case 3:
 				return 1;
 			case 4:
-				;
 			case 5:
-				;
 			case 6:
 				return 2;
 			case 7:
-				;
 			case 8:
-				;
 			case 9:
 				return 3;
 			case 10:
-				;
 			case 11:
-				;
 			case 12:
 				return 4;
 		}
@@ -155,27 +148,19 @@ class TimeHandler extends Model {
 		$arr = explode('-', $date);
 		switch ((int)$arr[1]) {
 			case 1:
-				;
 			case 2:
-				;
 			case 3:
 				return "$arr[0]-1";
 			case 4:
-				;
 			case 5:
-				;
 			case 6:
 				return "$arr[0]-2";
 			case 7:
-				;
 			case 8:
-				;
 			case 9:
 				return "$arr[0]-3";
 			case 10:
-				;
 			case 11:
-				;
 			case 12:
 				return "$arr[0]-4";
 		}
@@ -573,5 +558,49 @@ class TimeHandler extends Model {
     {
         $date = DateTime::createFromFormat('j-m-Y H-i-s', "$pay_date $pay_time");
         return $date->getTimestamp();
+    }
+
+    public static function getPowerDueDate()
+    {
+        $search = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        $replace = ['Января', 'Февраля', 'Мара', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+
+        $now = new DateTime();
+        $dayOfMonth = $now->format("d");
+        if((int) $dayOfMonth > 10){
+            $date = self::getFullFromShotMonth(self::getNextMonth(self::getCurrentShortMonth()));
+        }
+        else{
+            $date = self::getFullFromShotMonth(self::getCurrentShortMonth());
+        }
+        $neededDate = str_replace($search, $replace, $date);
+        return "10 " . mb_strtolower($neededDate);
+    }
+
+    public static function checkOverdueQuarter($quarter){
+        // получу первый месяц квартала
+        $explodedQuarter = explode('-', $quarter);
+        $month = $explodedQuarter[1] * 3 - 2;
+        $date = DateTime::createFromFormat('j-m-Y H-i-s', "1-{$month}-{$explodedQuarter[0]} 12-00-00");
+        $date->modify('+1 month');
+        $date->modify('-1 day');
+        $timestamp = $date->getTimestamp();
+        $nowTimestamp = self::getCurrentTimestamp();
+        return $timestamp < $nowTimestamp;
+    }
+    public static function getPayUpQuarter($quarter){
+        // получу первый месяц квартала
+        $explodedQuarter = explode('-', $quarter);
+        $month = $explodedQuarter[1] * 3 - 2;
+        $date = DateTime::createFromFormat('j-m-Y H-i-s', "1-{$month}-{$explodedQuarter[0]} 12-00-00");
+        $date->modify('+1 month');
+        $date->modify('-1 day');
+        $timestamp = $date->getTimestamp();
+        return self::getDatetimeFromTimestamp($timestamp);
+    }
+
+    private static function getCurrentTimestamp()
+    {
+        return time();
     }
 }

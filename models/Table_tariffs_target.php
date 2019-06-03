@@ -20,6 +20,7 @@ use yii\db\ActiveRecord;
  * @property string $fullSumm [float unsigned]  Расчёт полной суммы платежей с садоводства
  * @property string $payedSumm [float unsigned]  Сумма оплаченных счетов
  * @property string $paymentInfo Полная информация по платежам
+ * @property int $payUpTime [int(11)]  Срок оплаты
  */
 
 class Table_tariffs_target extends ActiveRecord
