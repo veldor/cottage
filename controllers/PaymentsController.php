@@ -9,12 +9,12 @@
 
 namespace app\controllers;
 
-use app\models\CashHandler;
 use app\models\Cloud;
 use app\models\ComparisonHandler;
 use app\models\ComplexPayment;
 use app\models\DepositHandler;
 use app\models\ExceptionWithStatus;
+use app\models\Filling;
 use app\models\GlobalActions;
 use app\models\Pay;
 use app\models\Payments;
@@ -188,7 +188,8 @@ class PaymentsController extends Controller
             PDFHandler::renderPDF($invoice, $info['billInfo']['billInfo']->id, $info['billInfo']['billInfo']->cottageNumber);
             // отправлю письмо
             $billInfo = ComplexPayment::getBill($identificator, $double);
-            $message = Cloud::sendInvoiceMail($this->renderPartial('/site/mail'), $info);
+            $payDetails = Filling::getPaymentDetails($billInfo);
+            $message = Cloud::sendInvoiceMail($this->renderPartial('/site/mail', ['billInfo' => $payDetails]), $info);
             $billInfo->isMessageSend = 1;
             $billInfo->save();
             return['status' => 1, 'message' => $message];
