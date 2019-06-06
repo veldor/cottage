@@ -25,6 +25,19 @@ class MembershipHandler extends Model {
 
 	const SCENARIO_NEW_RECORD = 'new_record';
 
+    public static function changePayTime(int $id, $timestamp)
+    {
+        // найду все платежи данного счёта
+        $pays = Table_payed_membership::find()->where(['billId' => $id])->all();
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                /** @var Table_payed_membership $pay */
+                $pay->paymentDate = $timestamp;
+                $pay->save();
+            }
+        }
+    }
+
 
     public function scenarios(): array
 	{
@@ -40,7 +53,7 @@ class MembershipHandler extends Model {
 		// Сделаю выборку тарифов
 		$start = TimeHandler::getQuarterTimestamp($cottageInfo->membershipPayFor);
 		$now = TimeHandler::getQuarterTimestamp(TimeHandler::getCurrentQuarter());
-		if ($start === $now) {
+		if ($start === $now || $start > $now) {
 			return 0;
 		}
 		$tariffs = Table_tariffs_membership::find()

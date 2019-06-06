@@ -26,6 +26,19 @@ class SingleHandler extends Model
     const SCENARIO_NEW_DUTY = 'new_duty';
     const SCENARIO_EDIT = 'edit';
 
+    public static function changePayTime(int $id, $timestamp)
+    {
+        // найду все платежи данного счёта
+        $pays = Table_payed_single::find()->where(['billId' => $id])->all();
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                /** @var Table_payed_single $pay */
+                $pay->paymentDate = $timestamp;
+                $pay->save();
+            }
+        }
+    }
+
     public function scenarios(): array
     {
         return [

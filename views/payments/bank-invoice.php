@@ -79,6 +79,12 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
     if(!empty($paymentContent['additionalPower'])){
+        $values .= "Дополнительный участок: ";
+        $summ = 0;
+        $oldData = null;
+        $newData = null;
+        $difference = null;
+        $usedPower = [];
         $usedPower = [];
         $summ = $paymentContent['additionalPower']['summ'];
         foreach ($paymentContent['additionalPower']['values'] as $value) {
@@ -105,7 +111,7 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         }
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
-    $powerText = 'Электроэнергия: ' . $values . ' Срок оплаты: до ' . $dueDate . " года<br/>";
+    $powerText = 'Электроэнергия: ' . $values . ' (срок оплаты: до ' . $dueDate . " года)<br/>";
 }
 if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])){
 
@@ -193,7 +199,6 @@ $text = "
 BankInvoiceAsset::register($this);
 
 ?>
-
 <?php $this->beginPage() ?>
 <!DOCTYPE html>
 <html lang="<?= Yii::$app->language ?>">

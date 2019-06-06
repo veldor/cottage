@@ -62,6 +62,25 @@ class PersonalTariff extends Model {
         var_dump($year->item(0));
         die('here');
     }
+
+    public static function getCottagesWithIndividual()
+    {
+        $cottages = Table_cottages::find()->where(['individualTariff' => 1])->all();
+        $adds = Table_additional_cottages::find()->where(['individualTariff' => 1])->all();
+        return array_merge($cottages, $adds);
+    }
+
+    /**
+     * @param $cottage Table_cottages|Table_additional_cottages
+     */
+    public static function getLastMembership($cottage)
+    {
+        $tariffs = self::getMembershipRates($cottage);
+        var_dump($tariffs);
+        return array_key_last($tariffs);
+        //return $tariffs[];
+    }
+
     /**
 	 * @return array
 	 */
@@ -519,17 +538,80 @@ class PersonalTariff extends Model {
 		$dom->loadXML($this->currentCondition->individualTariffRates);
 		$xpath = DOMHandler::getXpath($dom);
 		$parent = $dom->documentElement->getElementsByTagName('membership')->item(0);
-		foreach ($this->membership as $key => $value) {
-			// проверю, не существует ли ещё данного тарифа
-			if($xpath->query("//quarter[@date='{$key}']")->length === 1){
-				throw new InvalidArgumentException('Тариф на данный квартал уже заполнен');
-			}
-			$quarter = $dom->createElement('quarter');
-			$quarter->setAttribute('date', $key);
-			$quarter->setAttribute('fixed', CashHandler::toRubles($value['fixed']));
-			$quarter->setAttribute('float',CashHandler::toRubles($value['float']));
-			$parent->appendChild($quarter);
-		}
+		if(!empty($this->membership)){
+            foreach ($this->membership as $key => $value) {
+                // проверю, не существует ли ещё данного тарифа
+                if($xpath->query("//quarter[@date='{$key}']")->length === 1){
+                    throw new InvalidArgumentException('Тариф на данный квартал уже заполнен');
+                }
+                $quarter = $dom->createElement('quarter');
+                $quarter->setAttribute('date', $key);
+                $quarter->setAttribute('fixed', CashHandler::toRubles($value['fixed']));
+                $quarter->setAttribute('float',CashHandler::toRubles($value['float']));
+                $parent->appendChild($quarter);
+            }
+        }
+        if (!empty($this->target)) {
+            $parent = $dom->documentElement->getElementsByTagName('target')->item(0);
+            // получу данные о текущем состоянии оплаты целевых платежей
+            $targetDom = new \DOMDocument('1.0', 'UTF-8');
+            $targetDom->loadXML($this->currentCondition->targetPaysDuty);
+            $targetXpath = new \DOMXpath($targetDom);
+            foreach ($this->target as $key => $value) {
+                $elem = $dom->createElement('year');
+                $elem->setAttribute('year', $key);
+                $elem->setAttribute('fixed', $value['fixed']);
+                $elem->setAttribute('float', $value['float']);
+                $parent->appendChild($elem);
+            }
+            // Изменю данные о долгах
+            $currentDebts = $targetXpath->query('/targets/target');
+            $targetDebtSumm = 0;
+            if ($currentDebts->length > 0) {
+                foreach ($currentDebts as $debt) {
+                    /** @var \DOMElement $debt */
+                    $year = $debt->getAttribute('year');
+                    if (!empty($this->target[$year])) {
+                        $fixed = CashHandler::toRubles($this->target[$year]['fixed']);
+                        $float = CashHandler::toRubles($this->target[$year]['float']);
+                        $payed = CashHandler::toRubles($this->target[$year]['payed-before']);
+                        $summ = Calculator::countFixedFloat($fixed, $float, $this->currentCondition->cottageSquare);
+                        $targetDebtSumm += $summ - $payed;
+                        // пересчитаю тариф
+                        $debt->setAttribute('fixed', $fixed);
+                        $debt->setAttribute('float', $float);
+                        $debt->setAttribute('payed', $payed);
+                        $debt->setAttribute('summ', $summ);
+                        unset ($this->target[$year]);
+                    }
+                    else {
+                        $summ = CashHandler::toRubles($debt->getAttribute('summ'));
+                        $payed = CashHandler::toRubles($debt->getAttribute('payed'));
+                        $targetDebtSumm += $summ - $payed;
+                    }
+                }
+            }
+            foreach ($this->target as $key => $value) {
+                $fixed = CashHandler::toRubles($value['fixed']);
+                $float = CashHandler::toRubles($value['float']);
+                $payed = CashHandler::toRubles($value['payed-before']);
+                $summ = Calculator::countFixedFloat($fixed, $float, $this->currentCondition->cottageSquare);
+                if ($payed < $summ) {
+                    $elem = $targetDom->createElement('target');
+                    $elem->setAttribute('year', $key);
+                    $elem->setAttribute('fixed', $fixed);
+                    $elem->setAttribute('float', $float);
+                    $elem->setAttribute('payed', $payed);
+                    $elem->setAttribute('square', $this->currentCondition->cottageSquare);
+                    $elem->setAttribute('summ', $summ);
+                    $targetDom->documentElement->appendChild($elem);
+                    $targetDebtSumm += $summ - $payed;
+                }
+            }
+            $this->currentCondition->targetDebt = CashHandler::rublesRound($targetDebtSumm);
+            $data = html_entity_decode($targetDom->saveXML($targetDom->documentElement));
+            $this->currentCondition->targetPaysDuty = $data;
+        }
 		$data = html_entity_decode($dom->saveXML($dom->documentElement));
 		$this->currentCondition->individualTariffRates = $data;
 		$this->currentCondition->save();
@@ -792,6 +874,20 @@ class PersonalTariff extends Model {
 		}
 		return false;
 	}
+
+	public static function getLastMembershipRate($cottageInfo){
+        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom->loadXML($cottageInfo->individualTariffRates);
+        $xpath = new \DOMXpath($dom);
+        $quarters = $xpath->query('/tariffs/membership/quarter');
+        if($quarters->length > 0){
+            // верну номер последнего найденного квартала
+            /** @var \DOMElement $lastQuarter */
+            $lastQuarter = $quarters->item($quarters->length - 1);
+            return $lastQuarter->getAttribute('date');
+        }
+        return null;
+    }
 
 	public static function getMembershipRates($cottageInfo, $membershipPeriods = false): array
 	{

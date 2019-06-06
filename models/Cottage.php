@@ -222,4 +222,25 @@ class Cottage extends Model
         }
         return false;
     }
+
+    /**
+     * @param $cottage Table_additional_cottages|Table_cottages
+     * @return int|mixed|string
+     */
+    public static function getCottageNumber($cottage)
+    {
+        if(self::isMain($cottage)){
+            return $cottage->cottageNumber;
+        }
+        return $cottage->masterId . "-a";
+    }
+
+    public static function getCottageByLiteral($key)
+    {
+        $additional = false;
+        if(strpos($key, '-a')){
+            $additional = true;
+        }
+        return self::getCottageInfo((int) $key, $additional);
+    }
 }

@@ -1,8 +1,22 @@
 let navbar;
+
+function individualIntegrityCheckResults(result) {
+    if(result['hasErrors'] === 1){
+        // перенаправлю на страницу заполнения индивидуальных тарифов
+        makeInformer('info', 'Не заполнены тарифы', 'Необходимо заполнить индивидуальные тарифы <br/> <a href="/individual/fill" target="_blank" class="btn btn-info">Заполнить</a>');
+        //location.replace('/individual/fill');
+    }
+}
+
+function integrityChecks() {
+    // проверю целостность системы индивидуальных тарифов
+    sendSilentAjax('get', '/check/individual', individualIntegrityCheckResults);
+}
 $(function () {
     navbar = $('ul#w1');
     checkSoftwareUpdates();
-    checkUnsendedMessages()
+    checkUnsendedMessages();
+    integrityChecks();
 });
 function serialize(obj) {
     const str = [];
@@ -264,13 +278,13 @@ function answer(e) {
     }
     else if (e['status'] === 9) {
         // noinspection JSValidateTypes
-            navbar.prepend('<li id="no-auth"><a href="/management/index" id="no-auth-indicator" class="btn btn-default btn-lg" data-toggle="tooltip" data-placement="bottom" title="Необходимо войти в почтовый аккаунт"><span class="yandex-connect text-warning">Я</span></a></li>');
-            $('span#no-auth-indicator').tooltip();
+        navbar.prepend('<li id="no-auth"><a href="/management/index" id="no-auth-indicator" class="btn btn-default btn-lg" data-toggle="tooltip" data-placement="bottom" title="Необходимо войти в почтовый аккаунт"><span class="yandex-connect text-warning">Я</span></a></li>');
+        $('span#no-auth-indicator').tooltip();
     }
     else if (e['status'] === 10) {
         // noinspection JSValidateTypes
-            navbar.prepend('<li id="no-connection"><a href="#" id="no-connection-indicator" class="btn btn-danger btn-lg" data-toggle="tooltip" data-placement="bottom" title="Отсутствует подключение к интернету. Обновления и отправка почты недоступны."><span class="glyphicon glyphicon-ban-circle text-default"></span></a></li>');
-            $('span#no-connection-indicator').tooltip();
+        navbar.prepend('<li id="no-connection"><a href="#" id="no-connection-indicator" class="btn btn-danger btn-lg" data-toggle="tooltip" data-placement="bottom" title="Отсутствует подключение к интернету. Обновления и отправка почты недоступны."><span class="glyphicon glyphicon-ban-circle text-default"></span></a></li>');
+        $('span#no-connection-indicator').tooltip();
     }
 }
 

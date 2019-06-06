@@ -42,6 +42,7 @@ class Registry extends Model
         if ($this->validate()) {
 
             $billsList = null;
+            $date = null;
             $newBillsCount = 0;
             $oldBillsCount = 0;
 
@@ -52,6 +53,13 @@ class Registry extends Model
                     $billInfo = $this->handleBill($buffer);
                     if(!empty($billInfo)){
                         $billsList[] = $billInfo;
+                    }
+                    else{
+                        // проверю на строчку с датой рееста
+                        $registerDate = $this->getRegisterDate($buffer);
+                        if(!empty($registerDate)){
+                            $date = $registerDate;
+                        }
                     }
                 }
                 if (!feof($handle)) {
@@ -65,6 +73,7 @@ class Registry extends Model
             if(!empty($billsList)){
                 /** @var RegistryInfo $bill */
                 foreach ($billsList as $bill) {
+                    $bill->payDate = $date;
                     // если в базе данных платежей от сбербанка ещё нет данного- внесу.
                     if(!Table_bank_invoices::findOne(['bank_operation_id' => $bill->sberBillId])){
                         $invoice = new Table_bank_invoices();
@@ -123,6 +132,16 @@ class Registry extends Model
                     throw new ExceptionWithStatus("Ошибка обработки платежа", 3);
                 }
 
+            }
+        }
+        return null;
+    }
+    private function getRegisterDate($string)
+    {
+        if (!empty($string)) {
+            $details = explode(';', $string);
+            if (count($details) === 6) {
+                return $details[5];
             }
         }
         return null;

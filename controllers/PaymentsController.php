@@ -42,7 +42,7 @@ class PaymentsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain', 'chain-confirm'],
+                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain', 'chain-confirm', 'change-transaction-date'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -398,5 +398,10 @@ class PaymentsController extends Controller
             return $handler->compare();
         }
         throw new NotFoundHttpException('Страница не найдена');
+    }
+    public function actionChangeTransactionDate(){
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        ComplexPayment::changeTransactionTime(Yii::$app->request->post()['timestamp'], Yii::$app->request->post()['transactionId']);
+        return ['status' => 1, 'message' => "Дата транзакции изменена."];
     }
 }

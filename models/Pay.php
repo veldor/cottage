@@ -112,7 +112,7 @@ class Pay extends Model {
 
 	public function checkRawSumm($attribute){
 	    if($this->payWholeness === 'full'){
-            $totalSumm = CashHandler::rublesMath($this->totalSumm - $this->fromDeposit - $this->discount - $this->payedBefore);
+            $totalSumm = CashHandler::rublesMath($this->totalSumm - $this->fromDeposit - $this->discount - $this->payedBefore + $this->toDeposit);
             if(CashHandler::rublesMore($totalSumm, $this->$attribute)){
                 $this->addError($attribute, "Сумма наличных не может быть меньше суммы к оплате");
             }

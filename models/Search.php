@@ -68,7 +68,7 @@ class Search extends Model
     private function getTransactions($interval): array
     {
         $totalSumm = 0;
-        $content = "<table class='table table-striped'><thead><th>Дата платежа</th><th>№</th><th>Сумма</th><th>Тип</th><th>Вид</th></thead><tbody>";
+        $content = "<table class='table table-striped'><thead><th>Дата платежа</th><th>№</th><th>Сумма</th><th>Тип</th><th>Вид</th><th>Дата</th></thead><tbody>";
         $results = Table_transactions::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
         if (!empty($results)) {
             foreach ($results as $result) {
@@ -85,7 +85,7 @@ class Search extends Model
                     $type = "<b class='text-primary'>Безналичный расчёт</b>";
                 }
                 $summ = CashHandler::toShortSmoothRubles($result->transactionSumm);
-                $content .= "<tr><td>$date</td><td><a href='#' class='bill-info' data-bill-id='{$result->billId}'>{$result->billId}</a></td><td><b class='text-info'>{$summ}</b></td><td>$way</td><td>$type</td></tr>";
+                $content .= "<tr><td>$date</td><td><a href='#' class='bill-info' data-bill-id='{$result->billId}'>{$result->billId}</a></td><td><b class='text-info'>{$summ}</b></td><td>$way</td><td>$type</td><td><button type='button' data-transaction-id='{$result->id}' class='btn btn-danger change-date'>Изменить</button></td></tr>";
             }
         }
 

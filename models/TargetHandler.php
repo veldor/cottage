@@ -31,6 +31,19 @@ class TargetHandler extends Model
         return $result->payUpTime;
     }
 
+    public static function changePayTime(int $id, $timestamp)
+    {
+        // найду все платежи данного счёта
+        $pays = Table_payed_target::find()->where(['billId' => $id])->all();
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                /** @var Table_payed_power $pay */
+                $pay->paymentDate = $timestamp;
+                $pay->save();
+            }
+        }
+    }
+
 
     public function scenarios(): array
     {

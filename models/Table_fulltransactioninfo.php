@@ -30,6 +30,7 @@ use yii\db\ActiveRecord;
  * @property float $usedDeposit [double]  Использованный депозит
  * @property float $gainedDeposit [double]  Зачислено на депозит
  * @property bool $partial [tinyint(1)]
+ * @property int $transactionId [int(10) unsigned]
  */
 
 class Table_fulltransactioninfo extends ActiveRecord

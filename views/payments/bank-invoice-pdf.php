@@ -25,11 +25,11 @@ $discount = CashHandler::toRubles($payInfo->discount);
 $realSumm = CashHandler::rublesMath(CashHandler::toRubles($payInfo->totalSumm) - $fromDeposit - $discount);
 $smoothSumm = CashHandler::toSmoothRubles($realSumm);
 $depositText = '';
-if(!empty($fromDeposit)){
+if (!empty($fromDeposit)) {
     $depositText = '<br/>Оплачено с депозита: ' . CashHandler::toSmoothRubles($fromDeposit);
 }
 $discountText = '';
-if(!empty($discount)){
+if (!empty($discount)) {
     $discountText = '<br/>Скидка: ' . CashHandler::toSmoothRubles($discount);
 }
 
@@ -40,7 +40,7 @@ $singleText = '';
 
 $qr = $bankInfo->drawQR();
 
-if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'])){
+if (!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'])) {
     $dueDate = TimeHandler::getPowerDueDate();
     $summ = 0;
     $oldData = null;
@@ -48,19 +48,18 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
     $difference = null;
     $usedPower = [];
     $values = '';
-    if(!empty($paymentContent['power'])){
+    if (!empty($paymentContent['power'])) {
         $summ = $paymentContent['power']['summ'];
         foreach ($paymentContent['power']['values'] as $value) {
             $tempOldData = $value["old-data"];
             $tempNewData = $value["new-data"];
-            if(empty($oldData)){
+            if (empty($oldData)) {
                 $oldData = $tempOldData;
             }
-            if($tempNewData >= $oldData){
+            if ($tempNewData >= $oldData) {
                 $newData = $tempNewData;
                 $difference += $tempNewData - $tempOldData;
-            }
-            else{
+            } else {
                 // очевидно, был заменён счётчик
                 $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
                 $oldData = $tempOldData;
@@ -75,20 +74,25 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         }
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
-    if(!empty($paymentContent['additionalPower'])){
+    if (!empty($paymentContent['additionalPower'])) {
+        $values .= "Дополнительный участок: ";
+        $summ = 0;
+        $oldData = null;
+        $newData = null;
+        $difference = null;
+        $usedPower = [];
         $usedPower = [];
         $summ = $paymentContent['additionalPower']['summ'];
         foreach ($paymentContent['additionalPower']['values'] as $value) {
             $tempOldData = $value["old-data"];
             $tempNewData = $value["new-data"];
-            if(empty($oldData)){
+            if (empty($oldData)) {
                 $oldData = $tempOldData;
             }
-            if($tempNewData >= $oldData){
+            if ($tempNewData >= $oldData) {
                 $newData = $tempNewData;
                 $difference += $tempNewData - $tempOldData;
-            }
-            else{
+            } else {
                 // очевидно, был заменён счётчик
                 $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
                 $oldData = $tempOldData;
@@ -102,70 +106,67 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         }
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
-    $powerText = 'Электроэнергия: ' . $values . ' Срок оплаты: до ' . $dueDate . " года<br/>";
+    $powerText = 'Электроэнергия: ' . $values . ' (срок оплаты: до ' . $dueDate . " года)<br/>";
 }
-if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])){
+if (!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])) {
 
     $summ = 0;
     $values = '';
-    if(!empty($paymentContent['membership'])){
+    if (!empty($paymentContent['membership'])) {
         $summ += $paymentContent['membership']['summ'];
         foreach ($paymentContent['membership']['values'] as $value) {
             // проверю срок оплаты
-            $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
-            if(TimeHandler::checkOverdueQuarter($value['date'])){
+            $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
+            if (TimeHandler::checkOverdueQuarter($value['date'])) {
                 $values .= '(платёж просрочен)  ';
-            }
-            else{
+            } else {
                 $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
             }
         }
     }
-    if(!empty($paymentContent['additionalMembership'])){
+    if (!empty($paymentContent['additionalMembership'])) {
         $summ += $paymentContent['additionalMembership']['summ'];
         foreach ($paymentContent['additionalMembership']['values'] as $value) {
-            $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
-            if(TimeHandler::checkOverdueQuarter($value['date'])){
+            $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
+            if (TimeHandler::checkOverdueQuarter($value['date'])) {
                 $values .= '(платёж просрочен)  ';
-            }
-            else{
+            } else {
                 $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
             }
         }
     }
     $memText = 'Членские взносы: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
-if(!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget'])){
+if (!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget'])) {
     $summ = 0;
     $values = '';
-    if(!empty($paymentContent['target'])){
+    if (!empty($paymentContent['target'])) {
         $summ += $paymentContent['target']['summ'];
         foreach ($paymentContent['target']['values'] as $value) {
-            $values .= '<b>' . $value['year'] . ' год : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
+            $values .= '<b>' . $value['year'] . ' год : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
             // проверю просроченность платежа
             $payUpTime = TargetHandler::getPayUpTime($value['year']);
-            if($payUpTime < time()){
+            if ($payUpTime < time()) {
                 $values .= '(платёж просрочен)  ';
-            }
-            else{
+            } else {
                 $values .= '(срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUpTime) . ')  ';
             }
         }
     }
-    if(!empty($paymentContent['additionalTarget'])){
+    if (!empty($paymentContent['additionalTarget'])) {
         $summ += $paymentContent['additionalTarget']['summ'];
         foreach ($paymentContent['additionalTarget']['values'] as $value) {
-            $values .= '<b>' . $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']). ', ';
+            $values .= '<b>' . $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']) . ', ';
         }
     }
     $tarText = "Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
-if(!empty($paymentContent['single'])){
+if (!empty($paymentContent['single'])) {
     $summ = 0;
     $values = '';
     $summ += $paymentContent['single']['summ'];
     foreach ($paymentContent['single']['values'] as $value) {
-        $values .= '<b>' . $value['description'] . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
+        $values .= '<b>' . $value['description'] . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
     }
     $singleText = "Разовые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
@@ -193,11 +194,12 @@ $text = "
     <meta charset="utf-8">
     <title>Квитанции</title>
     <style type="text/css">
-        div#invoiceWrapper{
+        div#invoiceWrapper {
             width: 180mm;
             margin: auto;
             font-size: 10px;
         }
+
         .margened {
             margin-bottom: 10px;
             margin-top: 5px;
@@ -206,27 +208,33 @@ $text = "
         .col-xs-12 {
             width: 100%;
         }
-        td.leftSide{
+
+        td.leftSide {
             text-align: center;
             width: 65mm;
             border-right: 1px solid black;
         }
-        img.qr-img{
+
+        img.qr-img {
             width: 80%;
         }
-        .bottom-bordered{
+
+        .bottom-bordered {
             border-bottom: 1px solid black;
         }
-        .description{
+
+        .description {
             font-size: 8px;
         }
 
-        .text-underline{
+        .text-underline {
         }
-        .margened{
+
+        .margened {
             margin-bottom: 10px;
         }
-        .sign-span{
+
+        .sign-span {
             width: 20mm;
             display: inline-block;
         }
@@ -241,10 +249,12 @@ $text = "
         .pull-right {
             float: right !important;
         }
+
         .text-center {
             text-align: center;
         }
-        img.logo-img{
+
+        img.logo-img {
             width: 50%;
             margin-left: 25%;
         }
@@ -252,44 +262,44 @@ $text = "
 </head>
 <body>
 <div id="invoiceWrapper">
-    <img class="logo-img" src="<?php echo $_SERVER["DOCUMENT_ROOT"].'/graphics/logo.png';?>" alt="logo">
+    <img class="logo-img" src="<?php echo $_SERVER["DOCUMENT_ROOT"] . '/graphics/logo.png'; ?>" alt="logo">
     <table class="table">
         <tr>
             <td class="leftSide">
                 <h3>Извещение</h3>
             </td>
             <td class="rightSide">
-                <?=$text?>
+                <?= $text ?>
             </td>
         </tr>
         <tr>
             <td class="leftSide">
                 <h3>Квитанция</h3>
-                <img class="qr-img" src="<?=$qr?>" alt=""/>
+                <img class="qr-img" src="<?= $qr ?>" alt=""/>
             </td>
             <td class="rightSide">
-                <?=$text?>
+                <?= $text ?>
             </td>
         </tr>
     </table>
     <div class="row">
         <div class="col-xs-12 text-center">
-            <h2>Детализация платежа по счёту №<?=$payInfo->id . ($info['double'] ? '-a' : '')?></h2>
+            <h2>Детализация платежа по счёту №<?= $payInfo->id . ($info['double'] ? '-a' : '') ?></h2>
         </div>
         <div class="col-xs-12">
-            <?=$powerText?>
+            <?= $powerText ?>
         </div>
         <div class="col-xs-12">
-            <?=$memText?>
+            <?= $memText ?>
         </div>
         <div class="col-xs-12">
-            <?=$tarText?>
+            <?= $tarText ?>
         </div>
         <div class="col-xs-12">
-            <?=$singleText?>
+            <?= $singleText ?>
         </div>
-        <?=$depositText?>
-        <?=$discountText?>
+        <?= $depositText ?>
+        <?= $discountText ?>
     </div>
 </div>
 </body>

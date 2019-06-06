@@ -76,6 +76,27 @@ class ComplexPayment extends Model
         $billInfo->save();
     }
 
+    public static function changeTransactionTime($timestamp, $transactionId)
+    {
+        // найду транзакцию
+        $transactionInfo = Table_transactions::findOne($transactionId);
+        if(!empty($transactionInfo)){
+            $timestamp = $timestamp / 1000;
+            // тут просто, изменяю дату транзакции
+            $transactionInfo->transactionDate = $timestamp;
+            $transactionInfo->save();
+            // найду данные о счёте
+            $billInfo = self::getBill($transactionInfo->billId);
+            $billInfo->paymentTime = $timestamp;
+            $billInfo->save();
+            // теперь сохраню данные о каждом конкретном платеже
+            PowerHandler::changePayTime($billInfo->id, $timestamp);
+            MembershipHandler::changePayTime($billInfo->id, $timestamp);
+            TargetHandler::changePayTime($billInfo->id, $timestamp);
+            SingleHandler::changePayTime($billInfo->id, $timestamp);
+        }
+    }
+
 
     public function scenarios(): array
     {

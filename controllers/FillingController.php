@@ -5,6 +5,7 @@ namespace app\controllers;
 use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\MembershipHandler;
+use app\models\PersonalTariffFilling;
 use app\models\PowerHandler;
 use app\models\Registry;
 use app\models\SerialInvoices;
@@ -32,7 +33,7 @@ class FillingController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['view', 'fill', 'create', 'future-quarters', 'cancel-power', 'fill-current', 'get-serial-cottages', 'confirm-serial-payments'],
+                        'actions' => ['view', 'fill', 'create', 'future-quarters', 'cancel-power', 'fill-current', 'get-serial-cottages', 'confirm-serial-payments', 'fill-missing-individuals'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -175,5 +176,19 @@ class FillingController extends Controller
             return ['status' =>1 ,'message' => "Счета сформированы", 'bills' => $bills];
             }
         throw new NotFoundHttpException("Страница не найдена");
+    }
+    public function actionFillMissingIndividuals(){
+        $hasError = false;
+        if (Yii::$app->request->isPost) {
+            $model = new PersonalTariffFilling(['scenario' => PersonalTariffFilling::SCENARIO_FILL]);
+            $model->load(Yii::$app->request->post());
+            if($model->fill()){
+                return $this->redirect('/', 301);
+            }
+            $hasError = true;
+        }
+        // получу сведения о незаполненных тарифах
+        $cottagesWithMissing = PersonalTariffFilling::getCottagesWithMissing();
+        return $this->render("fill-missed-individuals", ['items' => $cottagesWithMissing, 'error' => $hasError]);
     }
 }
