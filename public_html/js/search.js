@@ -1,5 +1,6 @@
 $(function () {
     baseFunctional();
+    enableTabNavigation();
 });
 
 let additionalFilterCounters = 0;

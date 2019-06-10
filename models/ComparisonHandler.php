@@ -11,6 +11,7 @@ use yii\base\Model;
 class ComparisonHandler extends Model
 {
 
+    const SCENARIO_MANUAL_COMPARISON = 'manual comparison';
     public $billId;
     public $transactionId;
 
@@ -20,6 +21,7 @@ class ComparisonHandler extends Model
     {
         return [
             self::SCENARIO_COMPARISON => ['billId', 'transactionId'],
+            self::SCENARIO_MANUAL_COMPARISON => ['billId', 'transactionId'],
         ];
     }
 
@@ -47,12 +49,12 @@ class ComparisonHandler extends Model
             // обработаю отдельные категории
 
             $additionalCottageInfo = null;
-            if(!empty($cottageInfo->haveAdditional)) {
+            if (!empty($cottageInfo->haveAdditional)) {
                 $additionalCottageInfo = Cottage::getCottageInfo($cottageInfo->cottageNumber, true);
             }
 
             if (!empty($fullBillInfo['paymentContent']['power'])) {
-                PowerHandler::registerPayment($cottageInfo, $billInfo,$fullBillInfo['paymentContent']['power']);
+                PowerHandler::registerPayment($cottageInfo, $billInfo, $fullBillInfo['paymentContent']['power']);
             }
             if (!empty($fullBillInfo['paymentContent']['additionalPower'])) {
                 PowerHandler::registerPayment($additionalCottageInfo, $billInfo, $fullBillInfo['paymentContent']['additionalPower'], true);
@@ -82,6 +84,8 @@ class ComparisonHandler extends Model
             if ($difference > 0) {
                 // зачислю сдачу на депозит участка
                 DepositHandler::registerDeposit($billInfo, $cottageInfo, 'in');
+                /** @var Table_cottages|Table_additional_cottages $cottageInfo */
+                $cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->deposit) + CashHandler::toRubles($difference));
             }
             // создам транзакцию
             $t = new Table_transactions();
@@ -100,14 +104,28 @@ class ComparisonHandler extends Model
             $transactionInfo->bounded_bill_id = $billInfo->id;
             $transactionInfo->save();
             $billInfo->save();
+            if(!empty($additionalCottageInfo)){
+                $additionalCottageInfo->save();
+            }
             $cottageInfo->save();
             $transaction->commit();
             return ['status' => 1];
-        }
-        catch (Exception $e){
+        } catch (Exception $e) {
             $transaction->rollBack();
             throw $e;
         }
+    }
+
+    public function manualCompare()
+    {
+        $billInfo = ComplexPayment::getBill($this->billId);
+        $transactionInfo = TransactionsHandler::getTransaction($this->transactionId);
+        if (empty($billInfo) || empty($transactionInfo)) {
+            throw new ExceptionWithStatus('Не найден элемент транзакции', 2);
+        }
+        $transactionInfo->bounded_bill_id = $this->billId;
+        $transactionInfo->save();
+        return ['status' => 1, 'message' => "Транзакции успешно связаны"];
     }
 
 }

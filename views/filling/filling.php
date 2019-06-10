@@ -74,13 +74,14 @@ if (!empty($tab)) {
             echo $form->field($model, 'file[]', ['template' =>
                 '<div class="col-sm-6 text-center">{label}{input}
 									{error}{hint}</div><div class="col-sm-6"><button class="btn btn-success">Обработать</button></div>'])
-                ->fileInput(['class' => 'hidden','multiple' => true, 'accept' => 'text/plain'])
+                ->fileInput(['class' => 'hidden', 'multiple' => true, 'accept' => 'text/plain'])
                 ->label('Выберите файл регистра.', ['class' => 'btn btn-info']);
             ActiveForm::end();
-            if(!empty($errorMessage)){
+            if (!empty($errorMessage)) {
                 echo "<div class='col-sm-12'><b>$errorMessage</b></div>";
-            } /** @var RegistryInfo $billDetails */
-            if(!empty($model->unhandled)){
+            }
+            /** @var RegistryInfo $billDetails */
+            if (!empty($model->unhandled)) {
                 echo "<div class='col-sm-12'><table class='table-condensed table-striped'><tr><th>Дата оплаты</th><th>Время оплаты</th><th>Номер участка</th><th>Сумма платежа</th><th>ФИО плательщика</th><th>№ счёта</th></tr>";
                 foreach ($model->unhandled as $item) {
                     echo "<tr>
@@ -90,7 +91,18 @@ if (!empty($tab)) {
                                 <td>{$item->transaction_summ}</td>
                                 <td>{$item->fio}</td>
                                 <td>" . Registry::getBillId($item->address) . "</td>
-                                <td><button class='chain_bill btn btn-success' data-bank-operation='{$item->bank_operation_id}' data-bill-id='" . Registry::getBillId($item->address) . "'><span class='glyphicon glyphicon-link'></span></button></td>
+                                <td>
+                                    <div class='btn-group'>
+                                         <button class='chain_bill btn btn-success' data-bank-operation='{$item->bank_operation_id}' data-bill-id='" . Registry::getBillId($item->address) . "'><span class='glyphicon glyphicon-link'></span></button>
+                                           <button type=\"button\" class=\"btn btn-success dropdown-toggle\" data-toggle=\"dropdown\">
+                                             <span class=\"caret\"></span>
+                                             <span class=\"sr-only\">Меню с переключением</span>
+                                             </button>
+                                              <ul class=\"dropdown-menu\" role=\"menu\">
+                                                <li><a class='bill-manual-inserted' data-bank-operation='{$item->bank_operation_id}' href='#'>Внесён вручную</a></li>
+                                              </ul>
+                                    </div>
+                                </td>
                           </tr>
                            ";
                 }

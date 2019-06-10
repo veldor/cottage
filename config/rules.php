@@ -123,8 +123,11 @@ return [
     'mailing/<own:main|double>/<type:owner|contacter>/<cottageNumber:[0-9]+>' => 'notify/mailing',
     'chain/<billId:[0-9]+>/<transactionId:[0-9]+>' => 'payments/chain',
     'chain/confirm' => 'payments/chain-confirm',
+    'chain/confirm-manual' => 'payments/chain-confirm-manual',
     //    CHECKS ==================================================================================
     'check/individual' => 'checks/individual',
     'individual/fill' => 'filling/fill-missing-individuals',
     'change/transaction-time' => 'payments/change-transaction-date',
+    'fines/count/<cottageNumber:[0-9]+>' => 'payments/count-fines',
+    'bill/reopen/<billId:[0-9]+>' => 'payments/bill-reopen',
 ];

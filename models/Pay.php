@@ -27,6 +27,7 @@ class Pay extends Model {
 	public $payType;// тип оплаты: наличный\безналичный
 	public $payWholeness;// целостность оплаты: полная\частичная
     public $double;
+    public $customDate;
 
     public $power = 0;
     public $additionalPower = 0;
@@ -73,10 +74,29 @@ class Pay extends Model {
         throw new ExceptionWithStatus('Счёт не найден', 3);
     }
 
+    public static function reopenBill($billId)
+    {
+        $billInfo = ComplexPayment::getBill($billId);
+        if(!empty($billInfo)){
+            // если счёт открыт- пишу, что он открыт
+            if($billInfo->isPayed === 0){
+                return ['status' => 2, 'message' => 'Счёт ещё открыт!'];
+            }
+            // проверю, не открыт ли счёт у данного участка
+            if(!empty(Pay::getUnpayedBill(Cottage::getCottageByLiteral($billInfo->cottageNumber)))){
+                return ['status' => 4, 'message' => 'Сначала нужно закрыть все открытые счета участка!'];
+            }
+            $billInfo->isPayed = 0;
+            $billInfo->save();
+            return ['status' => 1, 'message' => 'Счёт успешно открыт заново!'];
+        }
+        return ['status' => 3, 'message' => 'Счёт не найден!'];
+    }
+
     public function scenarios(): array
 	{
 		return [
-			self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'payWholeness', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single'],
+			self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'payWholeness', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single', 'customDate'],
 		];
 	}
 
@@ -158,7 +178,6 @@ class Pay extends Model {
 
 	public function confirm()
 	{
-
         $cottageInfo = $this->billInfo['cottageInfo'];
         $additionalCottageInfo = null;
         if($this->double){
@@ -177,7 +196,12 @@ class Pay extends Model {
             $db = Yii::$app->db;
             $transaction = $db->beginTransaction();
 	        try{
-	            $paymentTime = time();
+	            if(!empty($this->customDate)){
+	                $paymentTime = TimeHandler::getCustomTimestamp($this->customDate);
+                }
+                else{
+                    $paymentTime = time();
+                }
 	            $billInfo = $this->billInfo['billInfo'];
 	            $cottageInfo = $this->billInfo['cottageInfo'];
                 // проверю, сумма внесённых средств должна соответствовать раскладке по категориям
@@ -261,7 +285,12 @@ class Pay extends Model {
             $transaction = $db->beginTransaction();
             try{
                 // отмечу все категории счёта полностью оплаченными
-                $paymentTime = time();
+                if(!empty($this->customDate)){
+                    $paymentTime = TimeHandler::getCustomTimestamp($this->customDate);
+                }
+                else{
+                    $paymentTime = time();
+                }
                 $billInfo = $this->billInfo['billInfo'];
                 $billInfo->paymentTime = $paymentTime;
                 $billInfo->toDeposit = $this->toDeposit;
@@ -338,7 +367,12 @@ class Pay extends Model {
         $transaction = $db->beginTransaction();
         try {
             $billInfo = $this->billInfo['billInfo'];
-            $billInfo->paymentTime = time();
+            if(!empty($this->customDate)){
+                $billInfo->paymentTime = TimeHandler::getCustomTimestamp($this->customDate);
+            }
+            else{
+                $billInfo->paymentTime = time();
+            }
             $billInfo->toDeposit = $this->toDeposit;
             // теперь нужно отметить платёж как оплаченный, создать денежную транзакцию, сохранить её, сохранить в данных участка изменения связанные с оплатой
             // ищу информацию по каждому платежу

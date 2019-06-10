@@ -34,7 +34,7 @@ class TransactionsHandler
         $billSumm = CashHandler::toRubles($billInfo->totalSumm);
         $fromDeposit = CashHandler::toRubles($billInfo->depositUsed);
         $discount = CashHandler::toRubles($billInfo->discount);
-        $fullSumm = $billSumm - $fromDeposit - $discount;
+        $fullSumm = CashHandler::toRubles($billSumm - $fromDeposit - $discount);
         $transactionSumm = CashHandler::toRubles($transactionInfo->payment_summ);
         if($fullSumm > $transactionSumm){
             throw new ExceptionWithStatus("Частичная оплата", 5);
@@ -47,7 +47,7 @@ class TransactionsHandler
         $comparsion->transactionCottageNumber = $transactionInfo->account_number;
         $comparsion->billFio = $cottageInfo->cottageOwnerPersonals;
         $comparsion->transactionFio = $transactionInfo->fio;
-        $comparsion->billSumm = $billInfo->totalSumm;
+        $comparsion->billSumm = $fullSumm;
         $comparsion->transactionSumm = $transactionInfo->payment_summ;
         return $comparsion;
     }

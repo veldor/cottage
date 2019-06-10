@@ -305,5 +305,7 @@ echo $form->field($model, 'toDeposit', ['options' => ['class' => 'col-lg-8 form-
     ->hint('В рублях')
     ->label('Начислить на депозит');
 echo "<div class='clearfix'></div>";
+echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-5"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div>';
+echo "<div class='clearfix'></div></div>";
 echo Html::submitButton('Сохранить', ['class' => 'btn btn-success   ', 'id' => 'addSubmit', 'data-toggle' => 'tooltip', 'data-placement' => 'top', 'data-html' => 'true',]);
 ActiveForm::end();

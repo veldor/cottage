@@ -559,6 +559,13 @@ class TimeHandler extends Model {
         $date = DateTime::createFromFormat('j-m-Y H-i-s', "$pay_date $pay_time");
         return $date->getTimestamp();
     }
+    public static function getCustomTimestamp(string $pay_date)
+    {
+        $dates = explode('-', $pay_date);
+        $date = new DateTime();
+        $date->setDate($dates[0],$dates[1],$dates[2]);
+        return $date->getTimestamp();
+    }
 
     public static function getPowerDueDate()
     {
@@ -598,9 +605,39 @@ class TimeHandler extends Model {
         $timestamp = $date->getTimestamp();
         return self::getDatetimeFromTimestamp($timestamp);
     }
+    public static function getPayUpQuarterTimestamp($quarter){
+        // получу первый месяц квартала
+        $explodedQuarter = explode('-', $quarter);
+        $month = $explodedQuarter[1] * 3 - 2;
+        $date = DateTime::createFromFormat('j-m-Y H-i-s', "1-{$month}-{$explodedQuarter[0]} 12-00-00");
+        $date->modify('+1 month');
+        $date->modify('-1 day');
+        return $date->getTimestamp();
+    }
 
     private static function getCurrentTimestamp()
     {
         return time();
+    }
+
+    public static function getPayUpMonth($month)
+    {
+        $date = DateTime::createFromFormat('Y-m-j H-i-s', "{$month}-10 12-00-00");
+        $date->modify('+1 month');
+        return $date->getTimestamp();
+    }
+
+    public static function checkDayDifference(int $payUp)
+    {
+        // получу дату из временной метки
+        $date = new DateTime();
+        $date->setTimestamp($payUp);
+        $nowDatetime = new DateTime();
+        $interval = $date->diff($nowDatetime);
+        $diff = $interval->format('%R%a');
+        if($diff > 0){
+            return $diff;
+        }
+        return false;
     }
 }

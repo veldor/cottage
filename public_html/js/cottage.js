@@ -516,7 +516,20 @@ function addToDeposit(double) {
     });
 }
 
+function showFines(data) {
+    if(data['status'] === 1){
+        makeModal('Расчёт пени', data['text']);
+    }
+}
+
 function basementFunctional() {
+    // расчитаю пени
+    let countFinesActivator = $('a#countFines');
+    countFinesActivator.on('click.count', function (e) {
+        e.preventDefault();
+        sendAjax('get', '/fines/count/' + cottageNumber, showFines);
+    });
+
     // добавление средств напрямую на депозит
     const addToDepositActivator = $('#addToDepositActivator');
     addToDepositActivator.on('click.addToDeposit', function (e) {
@@ -1548,6 +1561,7 @@ function basementFunctional() {
     }
 }
 
+
 function editBill(identificator, double) {
     // запрошу сведения о платеже
     if (double) {
@@ -1594,6 +1608,21 @@ function editBill(identificator, double) {
                 makeInformer('success', 'Квитанция распечатана');
             }
 
+            const reopenBillActivator = modal.find('button#payReopenActivator');
+
+            reopenBillActivator.on('click.reopen', function () {
+                modal.modal('hide');
+               makeInformerModal("Повторное открытие счёта", "Вы точно хотите повторно открыть закрытый счёт?", reopenClosedBill, function () {});
+            });
+
+            function reopenClosedBill() {
+                if(double){
+                    makeInformer('info', 'Повторное открытие счёта', 'Сообщите мне о том, что увидели это сообщение при попытке открытия счёта');
+                }
+                else{
+                    sendAjax('post', '/bill/reopen/' + identificator, simpleAnswerHandler);
+                }
+            }
             const remindAboutPayBtn = modal.find('button#remindAbout');
             remindAboutPayBtn.on('click.remind', function () {
                 remind('/send/pay/' + identificator);

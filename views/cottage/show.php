@@ -444,6 +444,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <li><a id="sendNotificationBtn" href="#">Отправить напоминание о долгах</a></li>
                 <li><a id="sendRegInfoNotificationBtn" href="#">Отправить регистрационные данные</a></li>
                 <li><a id="showReports" href="#">Отчёт о платежах</a></li>
+                <li><a id="countFines" class="text-danger" href="#">(Бета!) Посчитать пени</a></li>
                 <?php
 
                 if($hasSingleDebt){

@@ -139,6 +139,15 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
         ';
     }
 
+    if($info['billInfo']->isPayed === 1){
+        // заново открою счёт
+        echo '
+        <div class="col-lg-12 margened btn-group">
+            <button type="button" class="btn btn-warning" id="payReopenActivator">Заново открыть счёт</button>
+        </div>
+        ';
+    }
+
     if ($info['billInfo']->isPayed === 0 && $info['billInfo']->isPartialPayed === 0 ) {
         ?>
        <!-- <div class="col-lg-12 margened">
