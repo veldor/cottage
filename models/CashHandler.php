@@ -115,4 +115,14 @@ class CashHandler extends Model
     {
         return (double) $summ / 100 * $percent;
     }
+
+    /**
+     * @param string $powerCost
+     * @return int
+     */
+    public static function toNewRubles(string $powerCost)
+    {
+        $summ = self::dividedSumm($powerCost);
+        return (int) ($summ['rubles'] . $summ ['cents']);
+    }
 }

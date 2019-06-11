@@ -5,4 +5,4 @@ use yii\web\View;
 
 /* @var $this View */
 
-echo TimeHandler::getPowerDueDate();
+

@@ -63,15 +63,4 @@ class AuthController extends Controller{
 		}
 		return $this->redirect('/', 301);
 	}
-/* 	public function actionSignup(){
-		$auth = new AuthForm(['scenario' => AuthForm::SCENARIO_SIGNUP]);
-		if(Yii::$app->request->isPost and $auth->load(Yii::$app->request->post()) and $auth->validate() and $auth->signup()){
-			return $this->render('signup-result', [
-										'auth' => $auth,
-									]);
-		}
-		return $this->render('signup', [
-										'auth' => $auth,
-									]);
-	} */
 }

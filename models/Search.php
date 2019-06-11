@@ -202,7 +202,11 @@ class Search extends Model
         $totalTargetSumm = CashHandler::toRubles($totalTargetSumm);
         $totalSingleSumm = CashHandler::toRubles($totalSingleSumm);
         $fromDeposit = CashHandler::toRubles($fromDeposit);
-        $toDeposit = CashHandler::toRubles($toDeposit);
+        if ($toDeposit > 0) {
+            $toDeposit = CashHandler::toRubles($toDeposit);
+        } else {
+            $toDeposit = 0;
+        }
         $discount = CashHandler::toRubles($discount);
         $total = CashHandler::toRubles($totalSingleSumm + $totalPowerSumm + $totalTargetSumm + $totalMemSumm - $discount - $fromDeposit + $toDeposit, true);
         $content .= "<tr><td>" . CashHandler::toShortSmoothRubles($totalPowerSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalMemSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalTargetSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalSingleSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($fromDeposit) . "</td><td>" . CashHandler::toShortSmoothRubles($toDeposit) . "</td><td>" . CashHandler::toShortSmoothRubles($discount) . "</td></tr></tbody></table>";
@@ -236,7 +240,7 @@ class Search extends Model
                     /** @var DOMElement $memItem */
                     $memItem = $mem->item(0);
                     if ($partial) {
-                        $payedSumm = $memItem->getAttribute('payed');
+                        $payedSumm = CashHandler::toRubles($memItem->getAttribute('payed'));
                         if ($payedSumm > 0) {
                             $memSumm = $payedSumm;
                         } else {
@@ -257,7 +261,7 @@ class Search extends Model
                             // если оплата частичная- сверю сумму с полной оплатой раздела.
                             if ($payedSumm > 0) {
                                 if ($summ > $payedSumm) {
-                                    $payedSumm -= $summ;
+                                    $payedSumm -= CashHandler::toRubles($summ);
                                 } else {
                                     $summ = $payedSumm;
                                     $payedSumm = 0;
@@ -382,7 +386,7 @@ class Search extends Model
                     } else {
                         $tarSumm = CashHandler::toRubles($targetItem->parentNode->getAttribute('cost'));
                     }
-                    $totalSumm += $tarSumm;
+                    $totalSumm += CashHandler::toRubles($tarSumm);
                     foreach ($tar as $value) {
                         /** @var \DOMElement $value */
                         $summ = CashHandler::toRubles($value->getAttribute('summ'));

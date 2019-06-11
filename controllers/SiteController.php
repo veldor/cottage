@@ -7,6 +7,7 @@ use app\models\Cloud;
 use app\models\ComplexPayment;
 use app\models\Cottage;
 use app\models\Filling;
+use app\models\migration\Migration;
 use app\models\Pay;
 use app\models\Payments;
 use app\models\TariffsKeeper;
@@ -38,7 +39,7 @@ class SiteController extends Controller
                     ],
                     [
                         'allow' => true,
-                        'actions' => ['test-mail', 'test'],
+                        'actions' => ['test'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -69,11 +70,6 @@ class SiteController extends Controller
             return $this->redirect('/tariffs/index', 301);
         }
     }
-    public function actionTestMail()
-    {
-        //Cloud::sendTestMail($this->renderPartial('mail', ['billInfo' => $payDetails]));
-        return $this->renderPartial('mail');
-    }
     public function actionAuth()
     {
         if(empty($_SESSION['ya_auth'])){
@@ -94,6 +90,9 @@ class SiteController extends Controller
         return false;
     }
     public function actionTest(){
-        return $this->renderPartial('test');
+        Migration::migrateCottages();
+        Migration::migrateTariffs();
+        Migration::migratePaysData();
+        return 'done';
     }
 }

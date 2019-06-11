@@ -94,7 +94,12 @@ class ComparisonHandler extends Model
             $t->transactionDate = $billInfo->paymentTime;
             $t->transactionType = 'no-cash';
             $t->transactionSumm = $transactionSumm;
-            $t->gainedDeposit = $difference;
+            if($difference > 0){
+                $t->gainedDeposit = $difference;
+            }
+            else{
+                $t->gainedDeposit = 0;
+            }
             $t->usedDeposit = $billInfo->depositUsed;
             $t->transactionWay = 'in';
             $t->partial = 0;
