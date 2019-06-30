@@ -50,9 +50,6 @@ class ComplexPayment extends Model
         if (!empty($info['paymentContent']['target']) || !empty($info['paymentContent']['additionalTarget'])) {
             $purposeText .= ' целевых взносов,';
         }
-        if (!empty($info['paymentContent']['single'])) {
-            $purposeText .= ' разовых взносов,';
-        }
 
         $purposeText = substr($purposeText, 0, strlen($purposeText) - 1) . ' по сч. № ' . $info['billInfo']->id . ($double ? '-a' : '');
 

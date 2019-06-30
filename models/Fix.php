@@ -219,4 +219,22 @@ class Fix extends Model
         }
 
     }
+
+    public static function test()
+    {
+        // получу платежи с задолженностями за 2018
+        $results = Table_cottages::find()->where(['LIKE', 'targetPaysDuty', 'year="2018"'])->all();
+        // для каждого получу последний платёж
+        foreach ($results as $result) {
+            $bill = Table_payment_bills::find()->where(['cottageNumber' => $result->cottageNumber])->orderBy('creationTime DESC')->one();
+            if(!empty($bill)){
+                if(!$bill->isMessageSend && !$bill->isInvoicePrinted){
+                    echo "$result->cottageNumber <br/>";
+                }
+            }
+            else{
+                echo "$result->cottageNumber <br/>";
+            }
+        }
+    }
 }

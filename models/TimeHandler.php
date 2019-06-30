@@ -119,28 +119,28 @@ class TimeHandler extends Model {
 	}
 
 	// ========================== КВАРТАЛ ИЗ МЕСЯЦА ==> "10" <== "4"   ======================
-	public static function quarterFromMonth($month)
-	{
-		switch ($month) {
-			case 1:
-			case 2:
-			case 3:
-				return 1;
-			case 4:
-			case 5:
-			case 6:
-				return 2;
-			case 7:
-			case 8:
-			case 9:
-				return 3;
-			case 10:
-			case 11:
-			case 12:
-				return 4;
-		}
-		return false;
-	}
+        public static function quarterFromMonth($month)
+        {
+            switch ($month) {
+                case 1:
+                case 2:
+                case 3:
+                    return 1;
+                case 4:
+                case 5:
+                case 6:
+                    return 2;
+                case 7:
+                case 8:
+                case 9:
+                    return 3;
+                case 10:
+                case 11:
+                case 12:
+                    return 4;
+            }
+            return false;
+        }
 
 	// ========================== ГОД-КВАРТАЛ ИЗ ДАТЫ ==> "2018-10" <== "2018-4"   ======================
 	public static function getQuarterFromMonth($date)
@@ -639,5 +639,18 @@ class TimeHandler extends Model {
             return $diff;
         }
         return false;
+    }
+
+    public static function getPrevQuarter(string $quarter)
+    {
+        $info = self::isQuarter($quarter);
+        if ($info['quarter'] === 1) {
+            $info['quarter'] = 4;
+            --$info['year'];
+        }
+        else {
+            --$info['quarter'];
+        }
+        return "{$info['year']}-{$info['quarter']}";
     }
 }

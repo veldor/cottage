@@ -176,7 +176,7 @@ if(!empty($paymentContent['single'])){
     foreach ($paymentContent['single']['values'] as $value) {
         $values .= '<b>' . $value['description'] . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
     }
-    $singleText = "Разовые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
+    $singleText = "Дополнительно: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
 
 $text = "

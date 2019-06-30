@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\tables\Table_penalties;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
 use yii\web\NotFoundHttpException;
@@ -27,6 +28,7 @@ class Cottage extends Model
     public $counterChanged = false;
     public $totalDebt = 0;
     public $additionalCottageInfo;
+    public $fines;
 
     /**
      * Cottage constructor.
@@ -71,6 +73,7 @@ class Cottage extends Model
                 $this->powerDataAdditionalCancellable = true;
             }
         }
+        $this->fines = Table_penalties::find()->where(['cottage_number' => $cottageId])->all();
     }
 
     /**
@@ -242,5 +245,27 @@ class Cottage extends Model
             $additional = true;
         }
         return self::getCottageInfo((int) $key, $additional);
+    }
+
+    public static function hasPayUpDuty(Table_cottages $cottage)
+    {
+        // получу данные по целевым задолженностям
+        $duty = TargetHandler::getDebt($cottage);
+        if(!empty($duty)){
+            foreach ($duty as $key => $value) {
+                if($key < TimeHandler::getThisYear()){
+                    return true;
+                }
+            }
+        }
+        // если не оплачен предыдущий месяц электроэнергии
+        if($cottage->powerDebt > 0 && $cottage->powerPayFor < TimeHandler::getPrevMonth(TimeHandler::getPreviousShortMonth())){
+            return true;
+        }
+        // если не оплачен текущий квартал
+        if($cottage->membershipPayFor < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())){
+            return true;
+        }
+        return false;
     }
 }

@@ -924,7 +924,13 @@ class PersonalTariff extends Model
         if ($cottageInfo->individualTariff) {
             $data = [];
             $dom = new \DOMDocument('1.0', 'UTF-8');
-            $dom->loadXML($cottageInfo->individualTariffRates);
+            try{
+                $dom->loadXML($cottageInfo->individualTariffRates);
+            }
+            catch (\Exception $e){
+                echo $cottageInfo->cottageNumber;
+                die;
+            }
             $xpath = new \DOMXpath($dom);
             $quarters = $xpath->query('/tariffs/membership/quarter');
             if ($quarters->length > 0) {

@@ -4,15 +4,15 @@
 namespace app\controllers;
 
 
-use app\models\PenaltiesHandler;
-use app\models\Utils;
+use app\models\FinesHandler;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\Response;
 
-class UtilsController extends Controller
+class FinesController extends Controller
 {
+
     public function behaviors(): array
     {
         return [
@@ -24,7 +24,7 @@ class UtilsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['addresses', 'count-penalties'],
+                        'actions' => ['change'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -32,12 +32,13 @@ class UtilsController extends Controller
         ];
     }
 
-    public function actionAddresses(){
-        Utils::makeAddressesList();
-        Yii::$app->response->xSendFile('post_addresses.xml');
-    }
-    public function actionCountPenalties(){
+    public function actionChange($action, $finesId){
         Yii::$app->response->format = Response::FORMAT_JSON;
-        return PenaltiesHandler::countPenalties();
+        if($action === 'disable'){
+            return FinesHandler::disableFine($finesId);
+        }
+        elseif ($action === 'enable'){
+            return FinesHandler::enableFine($finesId);
+        }
     }
 }

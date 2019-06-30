@@ -755,6 +755,21 @@ function simpleAnswerHandler(data) {
         makeInformer('alert', 'Ошибка', stringify(data));
     }
 }
+// ТИПИЧНАЯ ОБРАБОТКА ОТВЕТА AJAX
+function simpleAnswerInformerHandler(data) {
+    if (data['status']) {
+        if (data['status'] === 1) {
+            let message = data['message'] ? data['message'] : 'Операция успешно завершена';
+            makeInformer('success',"Успешно", message);
+        }
+        else {
+            makeInformer('info', 'Ошибка, статус: ' + data['status'], stringify(data['message']));
+        }
+    }
+    else {
+        makeInformer('alert', 'Ошибка', stringify(data));
+    }
+}
 
 function simpleModalHandler(data) {
     if (data.status) {
@@ -781,7 +796,6 @@ function simpleSendForm(form, url) {
 }
 
 // навигация по табам
-
 function enableTabNavigation() {
     let url = location.href.replace(/\/$/, "");
     if (location.hash) {

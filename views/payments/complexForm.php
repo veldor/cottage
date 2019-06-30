@@ -9,6 +9,8 @@
 
 use app\models\CashHandler;
 use app\models\ComplexPayment;
+use app\models\FinesHandler;
+use app\models\tables\Table_penalties;
 use app\models\TimeHandler;
 use yii\widgets\ActiveForm;
 
@@ -188,6 +190,12 @@ else {
     echo '<p class="text-center text-success">Долгов за разовые взносы не найдено</p>';
 }
 
+// пени
+$fines = FinesHandler::getFinesSumm($matrix->cottageNumber);
+if($fines > 0){
+    $totalDutySumm += $fines;
+    echo "<div class='col-sm-12'><table class='table'><tr><td><label class='btn btn-default'>Оплатить пени <input class='form-control' type='checkbox' id='payFinesInput' name='ComplexPayment[payFines]'/></label></td><td><label class='label-info' for='finesInput'>Пени</label></td><td><input id='finesInput' class='form-control' name='ComplexPayment[finesSumm]' value='$fines' readonly/></td></tr></table></div>";
+}
 echo "<span class='hidden' id='paySumm'>$totalDutySumm</span>";
 echo "<div class='margened'></div>";
 

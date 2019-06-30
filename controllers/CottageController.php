@@ -6,6 +6,7 @@ use app\models\AddCottage;
 use app\models\AdditionalCottage;
 use app\models\Cottage;
 use app\models\Filling;
+use app\models\FinesHandler;
 use app\models\PersonalTariff;
 use ErrorException;
 use Exception;
@@ -102,7 +103,7 @@ class CottageController extends Controller {
      * @param $type
      * @return array
      * @throws NotFoundHttpException
-     * @throws Exception
+     * @throws \Throwable
      */
     public function actionSave($type): array
 	{
@@ -143,7 +144,9 @@ class CottageController extends Controller {
 	{
 		// Проверю тарифы за данный месяц. Если они не заполнены- решу проблему :)
 		if (Filling::checkTariffsFilling()) {
+            FinesHandler::check($cottageNumber);
 			$info = new Cottage($cottageNumber);
+			// посчитаю пени
 			if (PersonalTariff::checkTariffsFilling($info['globalInfo'])) {
 				$unfliiedInfo = PersonalTariff::getUnfilledInfo($info['globalInfo']);
 				return $this->render('fill-individual-tariff', ['info' => $unfliiedInfo]);

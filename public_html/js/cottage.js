@@ -517,14 +517,14 @@ function addToDeposit(double) {
 }
 
 function showFines(data) {
-    if(data['status'] === 1){
+    if (data['status'] === 1) {
         makeModal('Расчёт пени', data['text']);
     }
 }
 
 function basementFunctional() {
     // расчитаю пени
-    let countFinesActivator = $('a#countFines');
+    let countFinesActivator = $('#finesSumm');
     countFinesActivator.on('click.count', function (e) {
         e.preventDefault();
         sendAjax('get', '/fines/count/' + cottageNumber, showFines);
@@ -685,6 +685,13 @@ function basementFunctional() {
             let depositSummInput = $('input#complexpayment-fromdeposit, input#complexpaymentdouble-fromdeposit');
             let discountSumm = $('b.discountSumm');
             let depositSumm = $('b.fromDepositSumm');
+            let finesSumm = $('#finesInput').val();
+            if (!finesSumm) {
+                finesSumm = 0;
+            }
+            else{
+                finesSumm = isSumm(finesSumm);
+            }
             let recalculatedSumm = $('b.recalculatedSumm');
             const useDiscountBtn = modal.find('button#useDiscountBtn');
             const discountInput = modal.find('input#complexpayment-discount, input#complexpaymentdouble-discount');
@@ -755,10 +762,11 @@ function basementFunctional() {
             });
 
             function recalculateSumm() {
-                console.log("recalculate");
+
                 let discount = isSumm(discountSummInput.val());
                 let deposit = isSumm(depositSummInput.val());
-                let summ = powerSumm + memSumm + targetSumm + simpleSumm;
+                let summ = powerSumm + memSumm + targetSumm + simpleSumm + finesSumm;
+                console.log(summ);
                 totalPayment.text(toRubles(summ));
                 leftSumm.text(toRubles(globalSumm - summ + additionalSumm));
                 countedSumm.val(toRubles(summ));
@@ -815,6 +823,7 @@ function basementFunctional() {
                     recalculatedSumm.parents('p').eq(0).addClass('hidden');
                 }
             }
+            recalculateSumm();
 
             // ОБРАБОТКА СКИДКИ ==================================================================================
             handleCashInput(discountInput);
@@ -1003,7 +1012,7 @@ function basementFunctional() {
             });
             // ОБРАБОТКА ПЛАТЕЖЕЙ ЗА ЧЛЕНСКИЕ ВЗНОСЫ ==================================================================================
             let addQuartersInput = modal.find('input#addFutureQuarters');
-            let addQuartersAdditionalInput = modal.find('input#addFutureQuartersAdditional');
+            let addQuartersAdditionalInput = modal.find('input#addAddtionalFutureQuarters');
             let memPayAllBtn = modal.find('div#membershipCollector button.pay-all');
             let memPayNothingBtn = modal.find('div#membershipCollector button.pay-nothing');
             let memParts = modal.find('div.membership-container.main');
@@ -1354,14 +1363,12 @@ function basementFunctional() {
                     let payed = simple['isPartialPayed'] ? '<button class="btn btn-info">Частично оплачен</button>' : (simple['isPayed'] ? '<button class="btn btn-success">Завершен</button>' : '<button class="btn btn-warning">В ожидании оплаты</button>');
                     if (simple['isPayed'] || simple['isPartialPayed']) {
                         let summ;
-                        if(simple['isPartialPayed']){
+                        if (simple['isPartialPayed']) {
                             summ = ' Оплачено ' + simple['payed-summ'] + ' из ' + simple['summ'] + ' ';
-                        }
-                        else{
-                            if(simple['payed-summ'] >= simple['summ']){
+                        } else {
+                            if (simple['payed-summ'] >= simple['summ']) {
                                 summ = '<b class="text-success">' + simple['summ'] + ' &#8381;</b> Оплачено полностью ';
-                            }
-                            else{
+                            } else {
                                 summ = '<b class="text-danger">' + simple['summ'] + ' &#8381;</b> Не оплачено ';
                             }
                         }
@@ -1612,17 +1619,18 @@ function editBill(identificator, double) {
 
             reopenBillActivator.on('click.reopen', function () {
                 modal.modal('hide');
-               makeInformerModal("Повторное открытие счёта", "Вы точно хотите повторно открыть закрытый счёт?", reopenClosedBill, function () {});
+                makeInformerModal("Повторное открытие счёта", "Вы точно хотите повторно открыть закрытый счёт?", reopenClosedBill, function () {
+                });
             });
 
             function reopenClosedBill() {
-                if(double){
+                if (double) {
                     makeInformer('info', 'Повторное открытие счёта', 'Сообщите мне о том, что увидели это сообщение при попытке открытия счёта');
-                }
-                else{
+                } else {
                     sendAjax('post', '/bill/reopen/' + identificator, simpleAnswerHandler);
                 }
             }
+
             const remindAboutPayBtn = modal.find('button#remindAbout');
             remindAboutPayBtn.on('click.remind', function () {
                 remind('/send/pay/' + identificator);
@@ -1947,8 +1955,8 @@ function editBill(identificator, double) {
 
 function additionalFunctions() {
 
-    function fillPowerCallback(data){
-        if(data['data']){
+    function fillPowerCallback(data) {
+        if (data['data']) {
             let modal = makeModal("Заполнение данных", data['data']);
             let counterChangeActivator = modal.find('input#powerhandler-dochangecounter');
             let changeCounterTypeWrapper = modal.find('div.field-powerhandler-counterchangetype');
@@ -1956,21 +1964,19 @@ function additionalFunctions() {
             let counterStartDataWrapper = modal.find('div.field-powerhandler-newcounterstartdata');
             let counterFinishDataWrapper = modal.find('div.field-powerhandler-newcounterfinishdata');
             counterChangeActivator.on('change', function () {
-                if($(this).prop('checked')){
+                if ($(this).prop('checked')) {
                     changeCounterTypeWrapper.removeClass('hidden');
-                }
-                else{
+                } else {
                     changeCounterTypeWrapper.addClass('hidden');
                     counterStartDataWrapper.addClass('hidden');
                     counterFinishDataWrapper.addClass('hidden');
                 }
             });
             changeCounterOptions.on('change', function () {
-                if($(this).val() === 'simple'){
+                if ($(this).val() === 'simple') {
                     counterStartDataWrapper.removeClass('hidden');
                     counterFinishDataWrapper.addClass('hidden');
-                }
-                else{
+                } else {
                     counterStartDataWrapper.removeClass('hidden');
                     counterFinishDataWrapper.removeClass('hidden');
                 }
@@ -1981,17 +1987,17 @@ function additionalFunctions() {
                 e.preventDefault();
                 sendAjax('post', "/fill/power/" + cottageNumber, simpleAnswerHandler, modalForm, true);
             })
-        }
-        else{
-            if(data['status'] === 2){
+        } else {
+            if (data['status'] === 2) {
                 makeInformer('danger', 'Не получится', 'Данные за месяц уже внесены');
-            }
-            else if (data['status'] === 3){
+            } else if (data['status'] === 3) {
                 makeInformer('info', 'Не заполнен тариф', 'Сначала заполните тарифные ставки на текущий месяц');
-                makeNewWindow('/fill/power/' + data['month'], tariffsFillWindow, function(){});
+                makeNewWindow('/fill/power/' + data['month'], tariffsFillWindow, function () {
+                });
             }
         }
     }
+
     // заполнение данных электроэнергии за предыдущий месяц
     let prevMonthEnergyBtn = $('button#fillPower');
     prevMonthEnergyBtn.on('click.fill', function () {
@@ -2066,48 +2072,48 @@ function additionalFunctions() {
         sendAjax('get', '/fill/power/current/' + cottageNumber, fillPowerCallback);
     });
 
-/*    function makeFillModal(data) {
-        if (data.status) {
-            if (data.status === 1) {
-                newModal = makeModal('Внесение информации по электроэнергии');
-                let frm = $(data['data']);
-                newModal.find('div.modal-body').append(frm);
-                let sended = false;
-                frm.on('submit.send', function (e) {
-                    e.preventDefault();
-                    if (!sended) {
-                        sended = true;
-                        let i = 0;
-                        let loadedForm;
-                        while (frm[i]) {
-                            if (frm[i].nodeName === "FORM") {
-                                loadedForm = frm[i];
-                                break;
+    /*    function makeFillModal(data) {
+            if (data.status) {
+                if (data.status === 1) {
+                    newModal = makeModal('Внесение информации по электроэнергии');
+                    let frm = $(data['data']);
+                    newModal.find('div.modal-body').append(frm);
+                    let sended = false;
+                    frm.on('submit.send', function (e) {
+                        e.preventDefault();
+                        if (!sended) {
+                            sended = true;
+                            let i = 0;
+                            let loadedForm;
+                            while (frm[i]) {
+                                if (frm[i].nodeName === "FORM") {
+                                    loadedForm = frm[i];
+                                    break;
+                                }
+                                i++;
                             }
-                            i++;
-                        }
-                        const url = '/fill/power/' + cottageNumber;
-                        sendAjax('post', url, callback, loadedForm, true);
+                            const url = '/fill/power/' + cottageNumber;
+                            sendAjax('post', url, callback, loadedForm, true);
 
-                        function callback(data) {
-                            if (data.status === 1) {
-                                newModal.modal('hide');
-                                makeInformerModal('Успешно', 'Данные за ' + data['data']['month'] + ' внесены.<br/>К оплате ' + data['data']['totalPay'] + '&#8381;.')
+                            function callback(data) {
+                                if (data.status === 1) {
+                                    newModal.modal('hide');
+                                    makeInformerModal('Успешно', 'Данные за ' + data['data']['month'] + ' внесены.<br/>К оплате ' + data['data']['totalPay'] + '&#8381;.')
+                                }
                             }
                         }
+                    });
+                } else if (data.status === 3) {
+                    makeInformer('info', 'Не заполнен тариф', 'Сначала заполните тарифные ставки на текущий месяц');
+                    makeNewWindow('/fill/power/' + data['month'], tariffsFillWindow, handle);
+
+                    function handle(e) {
                     }
-                });
-            } else if (data.status === 3) {
-                makeInformer('info', 'Не заполнен тариф', 'Сначала заполните тарифные ставки на текущий месяц');
-                makeNewWindow('/fill/power/' + data['month'], tariffsFillWindow, handle);
-
-                function handle(e) {
+                } else if (data.status === 2) {
+                    makeInformer('danger', 'Невозможно', 'Похоже, данные за этот месяц уже внесены');
                 }
-            } else if (data.status === 2) {
-                makeInformer('danger', 'Невозможно', 'Похоже, данные за этот месяц уже внесены');
             }
-        }
-    }*/
+        }*/
 
     // Отображение подробной информации о долгах
     let detailViewers = $('a.detail-debt');

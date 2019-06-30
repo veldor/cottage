@@ -28,17 +28,17 @@ class CottagesShowWidget extends Widget{
             $additionalBlock = "<div class='col-xs-12 additional-block'>";
             // проверю, есть ли почта у этого участка
             if(Cottage::hasMail($cottage)){
-                $additionalBlock .= "<span class='custom-icon has-email'  data-toggle=\"tooltip\" data-placement=\"top\" title=\"Есть адрес электронной почты\"></span>";
+                $additionalBlock .= "<span class='custom-icon has-email'  data-toggle=\"tooltip\" data-placement=\"auto\" title=\"Есть адрес электронной почты\"></span>";
             }
             // проверю наличие незакрытого счёта у участка
             $unpayedBill = ComplexPayment::checkUnpayed($cottage->cottageNumber);
             if(!empty($unpayedBill)){
-                $additionalBlock .= "<span class='custom-icon has-bill' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Есть открытый счёт\"></span>";
+                $additionalBlock .= "<span class='custom-icon has-bill' data-toggle=\"tooltip\" data-placement=\"auto\" title=\"Есть открытый счёт\"></span>";
                 if($unpayedBill->isInvoicePrinted){
-                    $additionalBlock .= "<span class='custom-icon invoice_printed' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Печаталась квитанция\"></span>";
+                    $additionalBlock .= "<span class='custom-icon invoice_printed' data-toggle=\"tooltip\" data-placement=\"auto\" title=\"Печаталась квитанция\"></span>";
                 }
                 if($unpayedBill->isMessageSend){
-                    $additionalBlock .= "<span class='custom-icon message_sended' data-toggle=\"tooltip\" data-placement=\"top\" title=\"Квитанция отправлена на электронную почту\"></span>";
+                    $additionalBlock .= "<span class='custom-icon message_sended' data-toggle=\"tooltip\" data-placement=\"auto\" title=\"Квитанция отправлена на электронную почту\"></span>";
                 }
             }
             $additionalBlock .= "</div>";
@@ -76,7 +76,15 @@ class CottagesShowWidget extends Widget{
                     $deposit = CashHandler::toSmoothRubles($cottage->deposit);
                 }
                 $content .= "<p>Депозит участка: {$deposit}</p>";
-                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><a href='/show-cottage/$cottage->cottageNumber' class='btn btn-danger popovered cottage-button' data-toggle='popover' data-placement='top' data-title='Имеются задолженности' data-content='{$content}'>$cottage->cottageNumber {$additional}</a>$additionalBlock</div>";
+
+                if(Cottage::hasPayUpDuty($cottage)){
+                    $color = 'btn-danger';
+                }
+                else{
+                    $color = 'btn-warning';
+                }
+
+                $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><a href='/show-cottage/$cottage->cottageNumber' class='btn $color popovered cottage-button' data-toggle='popover' data-placement='auto' data-title='Имеются задолженности' data-content='{$content}'>$cottage->cottageNumber {$additional}</a>$additionalBlock</div>";
             }
             else{
                 $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><a href='/show-cottage/$cottage->cottageNumber' class='btn btn-success cottage-button'>$cottage->cottageNumber {$additional}</a>$additionalBlock</div>";

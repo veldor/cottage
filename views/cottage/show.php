@@ -114,6 +114,19 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <td>Разовые платежи</td>
                 <td><?= $hasSingleDebt ? "<a class='btn btn-default detail-debt' data-type='single' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->globalInfo->singleDebt) . "</b></a>" : "Задолженностей не найдено  " ?></td>
             </tr>
+            <?php
+            // просмотрю пени
+            if(!empty($cottageInfo->fines)){
+                $total = 0;
+                foreach ($cottageInfo->fines as $fine) {
+                    if($fine->is_enabled){
+                        $total += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
+                    }
+                }
+                echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button></td></tr>";
+                $cottageInfo->totalDebt += $total;
+            }
+            ?>
             </tbody>
             <tr>
                 <td>Итоговая задолженность</td>
@@ -444,7 +457,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <li><a id="sendNotificationBtn" href="#">Отправить напоминание о долгах</a></li>
                 <li><a id="sendRegInfoNotificationBtn" href="#">Отправить регистрационные данные</a></li>
                 <li><a id="showReports" href="#">Отчёт о платежах</a></li>
-                <li><a id="countFines" class="text-danger" href="#">(Бета!) Посчитать пени</a></li>
                 <?php
 
                 if($hasSingleDebt){

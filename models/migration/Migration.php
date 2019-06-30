@@ -11,17 +11,24 @@ use app\models\PersonalTariff;
 use app\models\Table_additional_cottages;
 use app\models\Table_additional_payed_membership;
 use app\models\Table_additional_payed_power;
+use app\models\Table_additional_payed_single;
+use app\models\Table_additional_payed_target;
 use app\models\Table_additional_power_months;
 use app\models\Table_payed_membership;
 use app\models\Table_payed_power;
+use app\models\Table_payed_single;
+use app\models\Table_payed_target;
 use app\models\Table_payment_bills;
 use app\models\Table_payment_bills_double;
 use app\models\Table_power_months;
 use app\models\Table_tariffs_membership;
 use app\models\Table_tariffs_power;
 use app\models\Table_tariffs_target;
+use app\models\Table_transactions;
+use app\models\Table_transactions_double;
 use app\models\TimeHandler;
 use DOMElement;
+use Exception;
 use yii\base\Model;
 
 class Migration extends Model
@@ -36,10 +43,12 @@ class Migration extends Model
         // перегоню необходимую информацию об участках в XML
         $cottages = Cottage::getRegistred();
         foreach ($cottages as $cottage) {
-            $text .= "<cottage cottage_number='{$cottage->cottageNumber}' is_membership='1' membership_debt='0' is_power='1' power_debt='0' is_target='1' target_debt='0' single_debt='0' square='{$cottage->cottageSquare}' is_have_property_rights='{$cottage->cottageHaveRights}' is_cottage_register_data='{$cottage->cottageRegisterData}' property_data='{$cottage->cottageRightsData}' register_data='$cottage->cottageRegistrationInformation' is_individual_tariff='{$cottage->individualTariff}' is_additional='0' is_different_owner='0' main_cottage_id=''/>";
+            $individualTariff = $cottage->individualTariff ? 1 : 0;
+            $cottageHaveRights = $cottage->cottageHaveRights ? 1 : 0;
+            $text .= "<cottage cottage_number='{$cottage->cottageNumber}' deposit='{$cottage->deposit}' is_membership='1' membership_debt='0' is_power='1' power_debt='0' is_target='1' target_debt='0' single_debt='0' square='{$cottage->cottageSquare}' is_have_property_rights='$cottageHaveRights' is_cottage_register_data='{$cottage->cottageRegisterData}' property_data='{$cottage->cottageRightsData}' register_data='$cottage->cottageRegistrationInformation' is_individual_tariff='{$individualTariff}' is_additional='0' is_different_owner='0' main_cottage_id=''/>";
 
             if (!empty($cottage->cottageOwnerPersonals)) {
-                $address = strlen(trim(str_replace('&', '', $cottage->cottageOwnerAddress))) > 0 ? $cottage->cottageOwnerAddress : '';
+                $address = strlen(trim(str_replace('&', '', $cottage->cottageOwnerAddress))) > 0 ? urlencode($cottage->cottageOwnerAddress) : '';
                 $contacts .= "<contact cottage_id='$cottage->cottageNumber' contact_name='{$cottage->cottageOwnerPersonals}' contact_address='$address' contact_description='{$cottage->cottageOwnerDescription}' is_owner='1'/>";
                 if (!empty($cottage->cottageOwnerPhone)) {
                     $phones .= "<phone cottage='{$cottage->cottageNumber}' is_main='1' phone_description='' number='" . GrammarHandler::normalizePhone($cottage->cottageOwnerPhone) . "'/>";
@@ -61,11 +70,13 @@ class Migration extends Model
             if ($cottage->haveAdditional) {
                 /** @var Table_additional_cottages $additionalCottage */
                 $additionalCottage = AdditionalCottage::getCottage($cottage->cottageNumber);
+
                 if (!empty($additionalCottage)) {
-                    $text .= "<cottage cottage_number='{$additionalCottage->masterId}-a' is_membership='{$additionalCottage->isMembership}' membership_debt='0' is_power='{$additionalCottage->isPower}' power_debt='0' is_target='$additionalCottage->isTarget' target_debt='0' single_debt='0' square='{$additionalCottage->cottageSquare}' is_have_property_rights='' is_cottage_register_data='' property_data='' register_data='' is_individual_tariff='{$additionalCottage->individualTariff}' is_additional='1' is_different_owner='{$additionalCottage->hasDifferentOwner}' main_cottage_id='{$additionalCottage->masterId}'/>";
+                    $individualTariff = $additionalCottage->individualTariff ? 1 : 0;
+                    $text .= "<cottage cottage_number='{$additionalCottage->masterId}-a' deposit='{$additionalCottage->deposit}' is_membership='{$additionalCottage->isMembership}' membership_debt='0' is_power='{$additionalCottage->isPower}' power_debt='0' is_target='$additionalCottage->isTarget' target_debt='0' single_debt='0' square='{$additionalCottage->cottageSquare}' is_have_property_rights='0' is_cottage_register_data='0' property_data='' register_data='' is_individual_tariff='{$individualTariff}' is_additional='1' is_different_owner='{$additionalCottage->hasDifferentOwner}' main_cottage_id='{$additionalCottage->masterId}'/>";
 
                     if (!empty($additionalCottage->cottageOwnerPersonals)) {
-                        $address = strlen(trim(str_replace('&', '', $additionalCottage->cottageOwnerAddress))) > 0 ? $additionalCottage->cottageOwnerAddress : '';
+                        $address = strlen(trim(str_replace('&', '', $additionalCottage->cottageOwnerAddress))) > 0 ? urlencode($additionalCottage->cottageOwnerAddress) : '';
                         $contacts .= "<contact cottage_id='{$additionalCottage->masterId}-a' contact_name='{$additionalCottage->cottageOwnerPersonals}' contact_address='$address' contact_description='' is_owner='1'/>";
                         if (!empty($additionalCottage->cottageOwnerPhone)) {
                             $phones .= "<phone cottage='{$additionalCottage->masterId}-a' is_main='1' phone_description='' number='" . GrammarHandler::normalizePhone($additionalCottage->cottageOwnerPhone) . "'/>";
@@ -121,7 +132,7 @@ class Migration extends Model
         foreach ($targetTariffs as $targetTariff) {
             $forMeter = CashHandler::toNewRubles($targetTariff->float_part);
             $forCottage = CashHandler::toNewRubles($targetTariff->fixed_part);
-            $targets .= "<target year='{$targetTariff->year}' pay_for_meter='{$forMeter}' pay_for_cottage='$forCottage' pay_up_date='{$targetTariff->payUpTime}'/>";
+            $targets .= "<target year='{$targetTariff->year}' pay_for_meter='{$forMeter}' pay_for_cottage='$forCottage' pay_up_date='{$targetTariff->payUpTime}' pay_description='$targetTariff->description'/>";
         }
         $targets .= '</targets>';
         file_put_contents('Z:/migration/tariff_target.xml', $targets);
@@ -173,7 +184,7 @@ class Migration extends Model
                             $dom = new DOMHandler($paymentInfo->bill_content);
                             /** @var DOMElement $elem */
                             $elem = $dom->query('//month[@date="' . $item->month . '"]')->item(0);
-                            $limitIgnored = (bool)$elem->getAttribute('corrected');
+                            $limitIgnored = $elem->getAttribute('corrected') ? 1 : 0;
                             if (!$limitIgnored) {
                                 if ($payedSumm === $totalPay) {
                                     $fullPayed = 1;
@@ -224,6 +235,7 @@ class Migration extends Model
                         if ($payedSumm === $totalPay) {
                             $isFullPayed = 1;
                         } elseif ($payedSumm > $totalPay) {
+                            echo $cottage->cottageNumber . ' ' . $key . ' ';
                             die('ошибка в расчётах');
                         } elseif ($payedSumm > 0) {
                             $isPartialPayed = 1;
@@ -264,6 +276,7 @@ class Migration extends Model
                     if ($payedSumm === $totalPay) {
                         $isFullPayed = 1;
                     } elseif ($payedSumm > $totalPay) {
+                        echo $cottage->cottageNumber . ' ' . $thisTariff->quarter . ' ';
                         die('ошибка в расчётах');
                     } elseif ($payedSumm > 0) {
                         $isPartialPayed = 1;
@@ -281,7 +294,7 @@ class Migration extends Model
                         $payForCottage = CashHandler::toNewRubles($tariff['fixed']);
                         $payForField = CashHandler::toNewRubles($tariff['float']);
                         $totalPay = (int)round($payForCottage + (double)$payForField / 100 * $square);
-                        if(empty( $targetTariffs[$key])){
+                        if (empty($targetTariffs[$key])) {
                             echo $cottage->cottageNumber;
                             var_dump($tariffs);
                             die;
@@ -292,14 +305,13 @@ class Migration extends Model
                         $isPartialPayed = 0;
                         $dom = new DOMHandler($cottage->targetPaysDuty);
                         $pay = $dom->query('//target[@year="' . $key . '"]');
-                        if(empty($payItem = $pay->item(0))){
+                        if (empty($payItem = $pay->item(0))) {
                             $isFullPayed = 1;
                             $payedSumm = $totalPay;
-                        }
-                        else{
+                        } else {
                             /** @var DOMElement $payItem */
                             $payedSumm = CashHandler::toNewRubles($payItem->getAttribute('payed'));
-                            if($payedSumm > 0){
+                            if ($payedSumm > 0) {
                                 $isPartialPayed = 1;
                             }
                         }
@@ -315,14 +327,13 @@ class Migration extends Model
                     $isPartialPayed = 0;
                     $dom = new DOMHandler($cottage->targetPaysDuty);
                     $pay = $dom->query('//target[@year="' . $targetTariff->year . '"]');
-                    if(empty($payItem = $pay->item(0))){
+                    if (empty($payItem = $pay->item(0))) {
                         $isFullPayed = 1;
                         $payedSumm = $totalPay;
-                    }
-                    else{
+                    } else {
                         /** @var DOMElement $payItem */
                         $payedSumm = CashHandler::toNewRubles($payItem->getAttribute('payed'));
-                        if($payedSumm > 0){
+                        if ($payedSumm > 0) {
                             $isPartialPayed = 1;
                         }
                     }
@@ -330,10 +341,10 @@ class Migration extends Model
                 }
             }
             // разовые платежи
-            if(!empty($cottage->singlePaysDuty)){
+            if (!empty($cottage->singlePaysDuty)) {
                 $dom = new DOMHandler($cottage->singlePaysDuty);
                 $singlePayments = $dom->query('//singlePayment');
-                if(!empty($singlePayments)){
+                if (!empty($singlePayments)) {
                     foreach ($singlePayments as $singlePayment) {
                         /** @var DOMElement $singlePayment */
                         $summ = CashHandler::toNewRubles($singlePayment->getAttribute('summ'));
@@ -345,10 +356,10 @@ class Migration extends Model
                     }
                 }
             }
-            if(!empty($cottage->haveAdditional)){
+            if (!empty($cottage->haveAdditional)) {
                 $cottage = AdditionalCottage::getCottage($cottage->cottageNumber);
                 // повторю всё то же для дополнительного участка
-                if($cottage->isPower){
+                if ($cottage->isPower) {
                     // получу первый заполненный месяц электроэнергии
                     $filledPower = Table_additional_power_months::find()->where(['cottageNumber' => $cottage->masterId])->orderBy('searchTimestamp')->all();
                     if (!empty($filledPower)) {
@@ -368,11 +379,21 @@ class Migration extends Model
                                         $payedSumm += CashHandler::toNewRubles($payment->summ);
                                     }
                                     // теперь нужно проверить, не игнорировался ли лимит
-                                    $paymentInfo = Table_payment_bills_double::findOne($payments[0]->billId);
-                                    $dom = new DOMHandler($paymentInfo->bill_content);
+                                    if ($cottage->hasDifferentOwner) {
+                                        $paymentInfo = Table_payment_bills_double::findOne($payments[0]->billId);
+                                    } else {
+                                        $paymentInfo = Table_payment_bills::findOne($payments[0]->billId);
+                                    }
+
+                                    try {
+                                        $dom = new DOMHandler($paymentInfo->bill_content);
+                                    } catch (Exception $e) {
+                                        echo "Не удалось загрузить информацию по оплате " . $cottage->masterId . ' ' . $payment->month;
+                                        die;
+                                    }
                                     /** @var DOMElement $elem */
                                     $elem = $dom->query('//month[@date="' . $item->month . '"]')->item(0);
-                                    $limitIgnored = (bool)$elem->getAttribute('corrected');
+                                    $limitIgnored = $elem->getAttribute('corrected') ? 1 : 0;
                                     if (!$limitIgnored) {
                                         if ($payedSumm === $totalPay) {
                                             $fullPayed = 1;
@@ -399,7 +420,7 @@ class Migration extends Model
                         }
                     }
                 }
-                if($cottage->isMembership){
+                if ($cottage->isMembership) {
                     // членские взносы
                     $square = $cottage->cottageSquare;
                     if ($cottage->individualTariff) {
@@ -474,70 +495,68 @@ class Migration extends Model
                         } while ($current <= $finish);
                     }
                 }
-if($cottage->isTarget){
-    // целевые платежи
-    if ($cottage->individualTariff) {
-        // получу индивидуальные тарифы по членским взносам
-        $tariffs = PersonalTariff::getTargetTariffs($cottage);
-        if (!empty($tariffs)) {
-            foreach ($tariffs as $key => $tariff) {
-                $payForCottage = CashHandler::toNewRubles($tariff['fixed']);
-                $payForField = CashHandler::toNewRubles($tariff['float']);
-                $totalPay = (int)round($payForCottage + (double)$payForField / 100 * $square);
-                if(empty( $targetTariffs[$key])){
-                    echo $cottage->masterId;
-                    var_dump($tariffs);
-                    die;
-                }
-                $payUpDate = $targetTariffs[$key]->payUpTime;
-                // проверю наличие оплаты
-                $isFullPayed = 0;
-                $isPartialPayed = 0;
-                $dom = new DOMHandler($cottage->targetPaysDuty);
-                $pay = $dom->query('//target[@year="' . $key . '"]');
-                if(empty($payItem = $pay->item(0))){
-                    $isFullPayed = 1;
-                    $payedSumm = $totalPay;
-                }
-                else{
-                    /** @var DOMElement $payItem */
-                    $payedSumm = CashHandler::toNewRubles($payItem->getAttribute('payed'));
-                    if($payedSumm > 0){
-                        $isPartialPayed = 1;
+                if ($cottage->isTarget) {
+                    // целевые платежи
+                    if ($cottage->individualTariff) {
+                        // получу индивидуальные тарифы по членским взносам
+                        $tariffs = PersonalTariff::getTargetTariffs($cottage);
+                        if (!empty($tariffs)) {
+                            foreach ($tariffs as $key => $tariff) {
+                                $payForCottage = CashHandler::toNewRubles($tariff['fixed']);
+                                $payForField = CashHandler::toNewRubles($tariff['float']);
+                                $totalPay = (int)round($payForCottage + (double)$payForField / 100 * $square);
+                                if (empty($targetTariffs[$key])) {
+                                    echo $cottage->masterId;
+                                    var_dump($tariffs);
+                                    die;
+                                }
+                                $payUpDate = $targetTariffs[$key]->payUpTime;
+                                // проверю наличие оплаты
+                                $isFullPayed = 0;
+                                $isPartialPayed = 0;
+                                $dom = new DOMHandler($cottage->targetPaysDuty);
+                                $pay = $dom->query('//target[@year="' . $key . '"]');
+                                if (empty($payItem = $pay->item(0))) {
+                                    $isFullPayed = 1;
+                                    $payedSumm = $totalPay;
+                                } else {
+                                    /** @var DOMElement $payItem */
+                                    $payedSumm = CashHandler::toNewRubles($payItem->getAttribute('payed'));
+                                    if ($payedSumm > 0) {
+                                        $isPartialPayed = 1;
+                                    }
+                                }
+                                $target .= "<target cottage_number='{$cottage->masterId}-a' year='$key' square='$square' total_pay='$totalPay' payed_summ='$payedSumm' is_partial_payed='$isPartialPayed' is_full_payed='$isFullPayed' is_individual_tariff='1' individual_pay_for_cottage='$payForCottage' individual_pay_for_field='$payForField' pay_up_date='$payUpDate'/>";
+                            }
+                        }
+                    } else {
+                        // пройдусь по годам
+                        /** @var Table_tariffs_target $targetTariff */
+                        foreach ($targetTariffs as $targetTariff) {
+                            $totalPay = (int)round(CashHandler::toNewRubles($targetTariff->fixed_part) + (double)CashHandler::toNewRubles($targetTariff->float_part) / 100 * $square);
+                            $isFullPayed = 0;
+                            $isPartialPayed = 0;
+                            $dom = new DOMHandler($cottage->targetPaysDuty);
+                            $pay = $dom->query('//target[@year="' . $targetTariff->year . '"]');
+                            if (empty($payItem = $pay->item(0))) {
+                                $isFullPayed = 1;
+                                $payedSumm = $totalPay;
+                            } else {
+                                /** @var DOMElement $payItem */
+                                $payedSumm = CashHandler::toNewRubles($payItem->getAttribute('payed'));
+                                if ($payedSumm > 0) {
+                                    $isPartialPayed = 1;
+                                }
+                            }
+                            $target .= "<target cottage_number='{$cottage->masterId}-a' year='{$targetTariff->year}' square='$square' total_pay='$totalPay' payed_summ='$payedSumm' is_partial_payed='$isPartialPayed' is_full_payed='$isFullPayed' is_individual_tariff='0'/>";
+                        }
                     }
                 }
-                $target .= "<target cottage_number='{$cottage->masterId}-a' year='$key' square='$square' total_pay='$totalPay' payed_summ='$payedSumm' is_partial_payed='$isPartialPayed' is_full_payed='$isFullPayed' is_individual_tariff='1' individual_pay_for_cottage='$payForCottage' individual_pay_for_field='$payForField' pay_up_date='$payUpDate'/>";
-            }
-        }
-    } else {
-        // пройдусь по годам
-        /** @var Table_tariffs_target $targetTariff */
-        foreach ($targetTariffs as $targetTariff) {
-            $totalPay = (int)round(CashHandler::toNewRubles($targetTariff->fixed_part) + (double)CashHandler::toNewRubles($targetTariff->float_part) / 100 * $square);
-            $isFullPayed = 0;
-            $isPartialPayed = 0;
-            $dom = new DOMHandler($cottage->targetPaysDuty);
-            $pay = $dom->query('//target[@year="' . $targetTariff->year . '"]');
-            if(empty($payItem = $pay->item(0))){
-                $isFullPayed = 1;
-                $payedSumm = $totalPay;
-            }
-            else{
-                /** @var DOMElement $payItem */
-                $payedSumm = CashHandler::toNewRubles($payItem->getAttribute('payed'));
-                if($payedSumm > 0){
-                    $isPartialPayed = 1;
-                }
-            }
-            $target .= "<target cottage_number='{$cottage->masterId}-a' year='{$targetTariff->year}' square='$square' total_pay='$totalPay' payed_summ='$payedSumm' is_partial_payed='$isPartialPayed' is_full_payed='$isFullPayed' is_individual_tariff='0'/>";
-        }
-    }
-}
                 // разовые платежи
-                if(!empty($cottage->singlePaysDuty)){
+                if (!empty($cottage->singlePaysDuty)) {
                     $dom = new DOMHandler($cottage->singlePaysDuty);
                     $singlePayments = $dom->query('//singlePayment');
-                    if(!empty($singlePayments)){
+                    if (!empty($singlePayments)) {
                         foreach ($singlePayments as $singlePayment) {
                             /** @var DOMElement $singlePayment */
                             $summ = CashHandler::toNewRubles($singlePayment->getAttribute('summ'));
@@ -562,5 +581,193 @@ if($cottage->isTarget){
 
         $single .= '</singles>';
         file_put_contents('Z:/migration/data_singles.xml', $single);
+    }
+
+    public static function migrateBillsData()
+    {
+        // заполню данные электроэнергии
+        $payed_powers = Table_payed_power::find()->all();
+        $power_data = '<?xml version="1.0" encoding="utf-8"?><powers>';
+        foreach ($payed_powers as $payed_power) {
+            $transactionInfo = Table_transactions::find()->where(['billId' => $payed_power->billId])->one();
+            $summ = CashHandler::toNewRubles($payed_power->summ);
+            $power_data .= "<power_item cottage_number='{$payed_power->cottageId}' bill_id='{$payed_power->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_power->month}' summ='$summ'/>";
+        }
+        // получу даные о оплате дополнительных участков
+        $payed_powers = Table_additional_payed_power::find()->all();
+        foreach ($payed_powers as $payed_power) {
+            $cottageInfo = AdditionalCottage::getCottage($payed_power->cottageId);
+            if ($cottageInfo->hasDifferentOwner) {
+                $transactionInfo = Table_transactions_double::find()->where(['billId' => $payed_power->billId])->one();
+            } else {
+                $transactionInfo = Table_transactions::find()->where(['billId' => $payed_power->billId])->one();
+            }
+            $summ = CashHandler::toNewRubles($payed_power->summ);
+            $power_data .= "<power_item cottage_number='{$payed_power->cottageId}-a' bill_id='{$payed_power->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_power->month}' summ='$summ'/>";
+        }
+        $power_data .= '</powers>';
+        file_put_contents('Z:/migration/payed_power.xml', $power_data);
+
+        // заполню данные членских взносов
+        $payed_memberships = Table_payed_membership::find()->all();
+        $membership_data = '<?xml version="1.0" encoding="utf-8"?><memberships>';
+        foreach ($payed_memberships as $payed_membership) {
+            $transactionInfo = Table_transactions::find()->where(['billId' => $payed_membership->billId])->one();
+            $summ = CashHandler::toNewRubles($payed_membership->summ);
+            $membership_data .= "<membership cottage_number='{$payed_membership->cottageId}' bill_id='{$payed_membership->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_membership->quarter}' summ='$summ'/>";
+        }
+        $payed_memberships = Table_additional_payed_membership::find()->all();
+        foreach ($payed_memberships as $payed_membership) {
+            // если у участка отдельный хозяин- ищу информацию в базе дополнительных транзакций, иначе- обычных
+            $cottageInfo = AdditionalCottage::getCottage($payed_membership->cottageId);
+            if ($cottageInfo->hasDifferentOwner) {
+                $transactionInfo = Table_transactions_double::find()->where(['billId' => $payed_membership->billId])->one();
+            } else {
+                $transactionInfo = Table_transactions::find()->where(['billId' => $payed_membership->billId])->one();
+            }
+            $summ = CashHandler::toNewRubles($payed_membership->summ);
+            $membership_data .= "<membership cottage_number='{$payed_membership->cottageId}-a' bill_id='{$payed_membership->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_membership->quarter}' summ='$summ'/>";
+        }
+        $membership_data .= '</memberships>';
+        file_put_contents('Z:/migration/payed_membership.xml', $membership_data);
+        // заполню данные целевых взносов
+        $payed_targets = Table_payed_target::find()->all();
+        $target_data = '<?xml version="1.0" encoding="utf-8"?><targets>';
+        foreach ($payed_targets as $payed_target) {
+            $transactionInfo = Table_transactions::find()->where(['billId' => $payed_target->billId])->one();
+            $summ = CashHandler::toNewRubles($payed_target->summ);
+            $target_data .= "<target cottage_number='{$payed_target->cottageId}' bill_id='{$payed_target->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_target->year}' summ='$summ'/>";
+        }
+        $payed_targets = Table_additional_payed_target::find()->all();
+        foreach ($payed_targets as $payed_target) {
+            // если у участка отдельный хозяин- ищу информацию в базе дополнительных транзакций, иначе- обычных
+            $cottageInfo = AdditionalCottage::getCottage($payed_target->cottageId);
+            if ($cottageInfo->hasDifferentOwner) {
+                $transactionInfo = Table_transactions_double::find()->where(['billId' => $payed_target->billId])->one();
+            } else {
+                $transactionInfo = Table_transactions::find()->where(['billId' => $payed_target->billId])->one();
+            }
+            $summ = CashHandler::toNewRubles($payed_target->summ);
+            $target_data .= "<target cottage_number='{$payed_target->cottageId}-a' bill_id='{$payed_target->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_target->year}' summ='$summ'/>";
+        }
+        $target_data .= '</targets>';
+        file_put_contents('Z:/migration/payed_target.xml', $target_data);
+
+        // заполню данные разовых взносов
+        $payed_singles = Table_payed_single::find()->all();
+        $single_data = '<?xml version="1.0" encoding="utf-8"?><singles>';
+        foreach ($payed_singles as $payed_single) {
+            $transactionInfo = Table_transactions::find()->where(['billId' => $payed_single->billId])->one();
+            $summ = CashHandler::toNewRubles($payed_single->summ);
+            $single_data .= "<single cottage_number='{$payed_single->cottageId}' bill_id='{$payed_single->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_single->time}' summ='$summ'/>";
+        }
+        $payed_singles = Table_additional_payed_single::find()->all();
+        if (!empty($payed_singles)) {
+            foreach ($payed_singles as $payed_single) {
+                // если у участка отдельный хозяин- ищу информацию в базе дополнительных транзакций, иначе- обычных
+                $cottageInfo = AdditionalCottage::getCottage($payed_single->cottageId);
+                if ($cottageInfo->hasDifferentOwner) {
+                    $transactionInfo = Table_transactions_double::find()->where(['billId' => $payed_single->billId])->one();
+                } else {
+                    $transactionInfo = Table_transactions::find()->where(['billId' => $payed_single->billId])->one();
+                }
+                $summ = CashHandler::toNewRubles($payed_single->summ);
+                $single_data .= "<single cottage_number='{$payed_single->cottageId}-a' bill_id='{$payed_single->billId}' transaction_id='{$transactionInfo->id}' pay_date='{$transactionInfo->transactionDate}' month='{$payed_single->time}' summ='$summ'/>";
+            }
+        }
+        $single_data .= '</singles>';
+        file_put_contents('Z:/migration/payed_single.xml', $single_data);
+    }
+
+    public static function migratePayments()
+    {
+        $bills_data = '<?xml version="1.0" encoding="utf-8"?><bills>';
+        // найду все счета
+        $payments = Table_payment_bills::find()->all();
+        foreach ($payments as $payment) {
+            if (!empty($payment->depositUsed)) {
+                $fromDeposit = CashHandler::toNewRubles($payment->depositUsed);
+            } else {
+                $fromDeposit = 0;
+            }
+            if (!empty($payment->discount)) {
+                $discount = CashHandler::toNewRubles($payment->discount);
+            } else {
+                $discount = 0;
+            }
+            if (!empty($payment->payedSumm)) {
+                $payed = CashHandler::toNewRubles($payment->payedSumm);
+            } else {
+                $payed = 0;
+            }
+
+            $fullPayed = 0;
+            $partialPayed = 0;
+
+            $totalPayed = $payed + $discount + $fromDeposit;
+
+            $payTotalSumm = CashHandler::toNewRubles($payment->totalSumm);
+            if ($totalPayed >= $payTotalSumm) {
+                $fullPayed = 1;
+            } elseif ($payed > 0) {
+                $partialPayed = 1;
+            }
+            $bill_content = urlencode($payment->bill_content);
+            $bills_data .= "<bill cottage_number='$payment->cottageNumber' bill_id='$payment->id' creation_time='$payment->creationTime' from_deposit='$fromDeposit' discount='$discount' bill_content='$bill_content' bill_summ='$payTotalSumm' payed='$payed' full_payed='$fullPayed' partial_payed='$partialPayed'/>";
+        }
+        // найду все счета
+        $payments = Table_payment_bills_double::find()->all();
+        foreach ($payments as $payment) {
+            if (!empty($payment->depositUsed)) {
+                $fromDeposit = CashHandler::toNewRubles($payment->depositUsed);
+            } else {
+                $fromDeposit = 0;
+            }
+            if (!empty($payment->discount)) {
+                $discount = CashHandler::toNewRubles($payment->discount);
+            } else {
+                $discount = 0;
+            }
+            if (!empty($payment->payedSumm)) {
+                $payed = CashHandler::toNewRubles($payment->payedSumm);
+            } else {
+                $payed = 0;
+            }
+
+            $fullPayed = 0;
+            $partialPayed = 0;
+
+            $totalPayed = $payed + $discount + $fromDeposit;
+
+            $payTotalSumm = CashHandler::toNewRubles($payment->totalSumm);
+            if ($totalPayed >= $payTotalSumm) {
+                $fullPayed = 1;
+            } elseif ($payed > 0) {
+                $partialPayed = 1;
+            }
+
+            $bill_content = urlencode($payment->bill_content);
+            $bills_data .= "<bill cottage_number='{$payment->cottageNumber}-a' bill_id='$payment->id' creation_time='$payment->creationTime' from_deposit='$fromDeposit' discount='$discount' bill_content='$bill_content' bill_summ='$payTotalSumm' payed='$payed' full_payed='$fullPayed' partial_payed='$partialPayed'/>";
+        }
+        $bills_data .= '</bills>';
+        file_put_contents('Z:/migration/bills.xml', $bills_data);
+
+        // транзакции
+        $transactions_data = '<?xml version="1.0" encoding="utf-8"?><transactions>';
+
+        $transactions = Table_transactions::find()->all();
+        foreach ($transactions as $transaction) {
+            $summ = CashHandler::toNewRubles($transaction->transactionSumm);
+            $billCast = urlencode($transaction->billCast);
+            $transactions_data .= "<transaction id='$transaction->id' cottage_number='$transaction->cottageNumber' summ='$summ' bill_id='$transaction->billId' bill_cast='$billCast' date='$transaction->transactionDate'/>";
+        }
+        $transactions = Table_transactions_double::find()->all();
+        foreach ($transactions as $transaction) {
+            $summ = CashHandler::toNewRubles($transaction->transactionSumm);
+            $billCast = urlencode($transaction->billCast);
+            $transactions_data .= "<transaction id='$transaction->id' cottage_number='{$transaction->cottageNumber}-a' summ='$summ' bill_id='$transaction->billId' bill_cast='$billCast' date='$transaction->transactionDate'/>";
+        }
+        $transactions_data .= '</transactions>';
+        file_put_contents('Z:/migration/transactions.xml', $transactions_data);
     }
 }

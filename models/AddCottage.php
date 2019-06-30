@@ -17,7 +17,6 @@ use yii\base\Model;
 
 class AddCottage extends Model
 {
-
     public $cottageNumber; // номер участка.
     public $haveRights; // наличие свидетельства о собственности
     public $cottageRegistrationInformation;// данные о кадастровом номере участка

@@ -416,7 +416,9 @@ class PaymentsController extends Controller
     }
     public function actionCountFines($cottageNumber){
         Yii::$app->response->format = Response::FORMAT_JSON;
-        return FinesHandler::countFines($cottageNumber);
+        $info = FinesHandler::getFines($cottageNumber);
+        $text = $this->renderAjax('fines', ['info' => $info]);
+        return ['status' => 1, 'text' => $text];
     }
     public function actionBillReopen($billId){
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {

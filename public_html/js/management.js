@@ -66,6 +66,10 @@ function handleFixes() {
             }
         }
     });
+    const recountPenalties = $('button#count_penalties');
+    recountPenalties.on('click.recount', function () {
+       sendAjax('post', '/penalties/count', simpleAnswerHandler);
+    });
 }
 function handleUpdate() {
     const updateButton = $('button#createUpdateButton');

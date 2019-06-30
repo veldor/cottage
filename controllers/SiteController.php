@@ -7,6 +7,7 @@ use app\models\Cloud;
 use app\models\ComplexPayment;
 use app\models\Cottage;
 use app\models\Filling;
+use app\models\Fix;
 use app\models\migration\Migration;
 use app\models\Pay;
 use app\models\Payments;
@@ -90,9 +91,12 @@ class SiteController extends Controller
         return false;
     }
     public function actionTest(){
-        Migration::migrateCottages();
+        Fix::test();
+        /*Migration::migrateCottages();
         Migration::migrateTariffs();
         Migration::migratePaysData();
-        return 'done';
+        Migration::migrateBillsData();
+        Migration::migratePayments();
+        return 'done';*/
     }
 }

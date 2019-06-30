@@ -106,7 +106,7 @@ if (!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'
         }
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
-    $powerText = 'Электроэнергия: ' . $values . ' (срок оплаты: до ' . $dueDate . " года)<br/>";
+    $powerText = '<p>Электроэнергия: ' . $values . ' (срок оплаты: до ' . $dueDate . " года)</p>";
 }
 if (!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])) {
 
@@ -135,7 +135,7 @@ if (!empty($paymentContent['membership']) || !empty($paymentContent['additionalM
             }
         }
     }
-    $memText = 'Членские взносы: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
+    $memText = '<p>Членские взносы: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p>';
 }
 if (!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget'])) {
     $summ = 0;
@@ -159,7 +159,7 @@ if (!empty($paymentContent['target']) || !empty($paymentContent['additionalTarge
             $values .= '<b>' . $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']) . ', ';
         }
     }
-    $tarText = "Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
+    $tarText = "<p>Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p><br/>';
 }
 if (!empty($paymentContent['single'])) {
     $summ = 0;
@@ -168,7 +168,7 @@ if (!empty($paymentContent['single'])) {
     foreach ($paymentContent['single']['values'] as $value) {
         $values .= '<b>' . $value['description'] . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
     }
-    $singleText = "Разовые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
+    $singleText = "<p>Дополнительно: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p>';
 }
 
 $text = "
@@ -257,6 +257,9 @@ $text = "
         img.logo-img {
             width: 50%;
             margin-left: 25%;
+        }
+        p{
+            line-height: 2;
         }
     </style>
 </head>
