@@ -25,6 +25,7 @@ class ComplexPayment extends Model
     public $fromDeposit = 0;
     public $discount = 0;
     public $discountReason;
+    public $fines;
     public $noLimitPower;
     public $noLimitAdditionalPower;
     public $double;
@@ -98,7 +99,7 @@ class ComplexPayment extends Model
     public function scenarios(): array
     {
         return [
-            self::SCENARIO_CREATE => ['cottageNumber', 'membershipPeriods', 'additionalMembershipPeriods', 'powerPeriods', 'additionalPowerPeriods', 'target', 'additionalTarget', 'single', 'countedSumm', 'fromDeposit', 'discount', 'discountReason', 'noLimitPower', 'noLimitAdditionalPower', 'double'],
+            self::SCENARIO_CREATE => ['cottageNumber', 'membershipPeriods', 'additionalMembershipPeriods', 'powerPeriods', 'additionalPowerPeriods', 'target', 'additionalTarget', 'single', 'countedSumm', 'fromDeposit', 'discount', 'discountReason', 'noLimitPower', 'noLimitAdditionalPower', 'double', 'fines'],
         ];
     }
 
@@ -174,6 +175,8 @@ class ComplexPayment extends Model
         if (self::checkUnpayed($this->cottageNumber, $this->double)) {
             throw new ErrorException('Имеется неоплченный счёт. Создание нового невозможно! Оплатите или отмените предыдущий!');
         }
+        var_dump($this->fines);
+        die;
         $fromDeposit = $this->fromDeposit;
         $discount = $this->discount;
         if ($this->double) {

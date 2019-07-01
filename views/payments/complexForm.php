@@ -10,7 +10,6 @@
 use app\models\CashHandler;
 use app\models\ComplexPayment;
 use app\models\FinesHandler;
-use app\models\tables\Table_penalties;
 use app\models\TimeHandler;
 use yii\widgets\ActiveForm;
 
@@ -190,11 +189,16 @@ else {
     echo '<p class="text-center text-success">Долгов за разовые взносы не найдено</p>';
 }
 
-// пени
-$fines = FinesHandler::getFinesSumm($matrix->cottageNumber);
-if($fines > 0){
-    $totalDutySumm += $fines;
-    echo "<div class='col-sm-12'><table class='table'><tr><td><label class='btn btn-default'>Оплатить пени <input class='form-control' type='checkbox' id='payFinesInput' name='ComplexPayment[payFines]'/></label></td><td><label class='label-info' for='finesInput'>Пени</label></td><td><input id='finesInput' class='form-control' name='ComplexPayment[finesSumm]' value='$fines' readonly/></td></tr></table></div>";
+// ======================================================   ПЕНИ   ====================================================
+$fines = FinesHandler::getFines($matrix->cottageNumber);
+if($fines != null){
+    echo "<div class='col-sm-12'><h2 class='text-center'>Пени</h2><table class='table'><thead><tr><th>Оплачивать</th><th>Тип</th><th>Период</th><th>Сумма</th></tr></thead><tbody>";
+    foreach ($fines as $fine) {
+        $summ = CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));
+        echo "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][{$fine->id}]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td></tr>";
+        $totalDutySumm += $summ;
+    }
+    echo "</tbody></table></div>";
 }
 echo "<span class='hidden' id='paySumm'>$totalDutySumm</span>";
 echo "<div class='margened'></div>";

@@ -9,6 +9,8 @@ use yii\base\Model;
 class FinesHandler extends Model
 {
 
+    public static $types = ['membership' => 'членские', 'target' => 'целевые', 'power' => 'электроэнергия'];
+
     private const PERCENT = 0.5;
     private const START_POINT = 1559336400;
 

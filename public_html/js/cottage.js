@@ -685,13 +685,19 @@ function basementFunctional() {
             let depositSummInput = $('input#complexpayment-fromdeposit, input#complexpaymentdouble-fromdeposit');
             let discountSumm = $('b.discountSumm');
             let depositSumm = $('b.fromDepositSumm');
-            let finesSumm = $('#finesInput').val();
-            if (!finesSumm) {
-                finesSumm = 0;
-            }
-            else{
-                finesSumm = isSumm(finesSumm);
-            }
+            let finesSumm = 0;
+
+            let finesActivators = $('.fines-item');
+            finesActivators.on('click.count', function () {
+                let summ = toRubles($(this).attr('data-summ'));
+                if($(this).prop('checked')){
+                    finesSumm += summ;
+                }
+                else{
+                    finesSumm -= summ;
+                }
+            });
+
             let recalculatedSumm = $('b.recalculatedSumm');
             const useDiscountBtn = modal.find('button#useDiscountBtn');
             const discountInput = modal.find('input#complexpayment-discount, input#complexpaymentdouble-discount');

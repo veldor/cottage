@@ -83,7 +83,6 @@ class CottagesShowWidget extends Widget{
                 else{
                     $color = 'btn-warning';
                 }
-
                 $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><a href='/show-cottage/$cottage->cottageNumber' class='btn $color popovered cottage-button' data-toggle='popover' data-placement='auto' data-title='Имеются задолженности' data-content='{$content}'>$cottage->cottageNumber {$additional}</a>$additionalBlock</div>";
             }
             else{
