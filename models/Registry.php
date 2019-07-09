@@ -5,6 +5,8 @@ namespace app\models;
 
 
 use app\models\small_classes\RegistryInfo;
+use app\models\utils\DbTransaction;
+use Exception;
 use FontLib\Table\Table;
 use yii\base\Model;
 
@@ -71,31 +73,40 @@ class Registry extends Model
             $newBills = null;
 
             if(!empty($billsList)){
-                /** @var RegistryInfo $bill */
-                foreach ($billsList as $bill) {
-                    $bill->payDate = $date;
-                    // если в базе данных платежей от сбербанка ещё нет данного- внесу.
-                    if(!Table_bank_invoices::findOne(['bank_operation_id' => $bill->sberBillId])){
-                        $invoice = new Table_bank_invoices();
-                        $invoice->bank_operation_id = $bill->sberBillId;
-                        $invoice->pay_date = $bill->payDate;
-                        $invoice->pay_time = $bill->payTime;
-                        $invoice->filial_number = $bill->departmentNumber;
-                        $invoice->handler_number = $bill->handlerNumber;
-                        $invoice->account_number = $bill->personalAcc;
-                        $invoice->fio = $bill->fio;
-                        $invoice->address = $bill->address;
-                        $invoice->payment_period = $bill->period;
-                        $invoice->payment_summ = $bill->operationSumm;
-                        $invoice->transaction_summ = $bill->transactionSumm;
-                        $invoice->commission_summ = $bill->commissionSumm;
-                        $invoice->save();
-                        $newBills[] = $bill;
-                        $newBillsCount ++;
+                $transaction = new DbTransaction();
+                try{
+                    /** @var RegistryInfo $bill */
+                    foreach ($billsList as $bill) {
+                        $bill->payDate = $date;
+                        // если в базе данных платежей от сбербанка ещё нет данного- внесу.
+                        if(!Table_bank_invoices::findOne(['bank_operation_id' => $bill->sberBillId])){
+                            $invoice = new Table_bank_invoices();
+                            $invoice->bank_operation_id = $bill->sberBillId;
+                            $invoice->pay_date = $bill->payDate;
+                            $invoice->pay_time = $bill->payTime;
+                            $invoice->filial_number = $bill->departmentNumber;
+                            $invoice->handler_number = $bill->handlerNumber;
+                            $invoice->account_number = str_replace('№', '', $bill->personalAcc);
+                            $invoice->fio = $bill->fio;
+                            $invoice->address = $bill->address;
+                            $invoice->payment_period = $bill->period;
+                            $invoice->payment_summ = $bill->operationSumm;
+                            $invoice->transaction_summ = $bill->transactionSumm;
+                            $invoice->commission_summ = $bill->commissionSumm;
+                            $invoice->save();
+                            $newBills[] = $bill;
+                            $newBillsCount ++;
+                        }
+                        else{
+                            $oldBillsCount++;
+                        }
                     }
-                    else{
-                        $oldBillsCount++;
-                    }
+                    $transaction->commitTransaction();
+                }
+                catch (Exception $e){
+                    $transaction->rollbackTransaction();
+                    echo $e->getMessage();
+                    die;
                 }
                 return ['billsList' => $newBills, 'newBillsCount' => $newBillsCount, 'oldBillsCount' => $oldBillsCount];
             }

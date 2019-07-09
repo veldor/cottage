@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\tables\Table_view_fines_info;
 use app\validators\CashValidator;
 use Exception;
 use Yii;
@@ -24,10 +25,11 @@ class Pay extends Model {
 	public $changeToDeposit = 0; // зачислить сдачу на депозин
 	public $change = 0;
 	public $discount = 0;
-	public $payType;// тип оплаты: наличный\безналичный
+	public $payType = 'cashless';// тип оплаты: наличный\безналичный
 	public $payWholeness;// целостность оплаты: полная\частичная
     public $double;
     public $customDate;
+    public $sendConfirmation = true;
 
     public $power = 0;
     public $additionalPower = 0;
@@ -96,7 +98,7 @@ class Pay extends Model {
     public function scenarios(): array
 	{
 		return [
-			self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'payWholeness', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single', 'customDate'],
+			self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'payWholeness', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single', 'customDate', 'sendConfirmation'],
 		];
 	}
 
@@ -108,6 +110,7 @@ class Pay extends Model {
 			'toDeposit' => 'Сумма, зачисляемая на депозит',
 			'payType' => 'Вариант оплаты',
 			'payWholeness' => 'Целостность оплаты',
+            'sendConfirmation' => 'Отправить'
 		];
 	}
 
@@ -118,7 +121,7 @@ class Pay extends Model {
 	{
 		return [
 			[['totalSumm', 'rawSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'change', 'changeToDeposit', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single'], CashValidator::class],
-			[['billIdentificator', 'totalSumm', 'rawSumm', 'change', 'payType', 'payWholeness'], 'required', 'on' => self::SCENARIO_PAY],
+			[['billIdentificator', 'totalSumm', 'rawSumm', 'change', 'payWholeness'], 'required', 'on' => self::SCENARIO_PAY],
 			[['toDeposit'], 'required', 'when' => function () {
 				return $this->changeToDeposit;
 			}, 'whenClient' => "function () {return $('input#pay-changetodeposit').prop('checked');}"],
@@ -272,6 +275,9 @@ class Pay extends Model {
                 $billInfo->save();
                 $cottageInfo->save();
                 $transaction->commit();
+                if($this->sendConfirmation){
+                    Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($billTransaction->transactionSumm) . ". Благодарим за оплату.");
+                }
                 return ['status' => 1, 'message' => 'Частичная оплата успешна'];
             }
             catch (Exception $e){
@@ -356,7 +362,10 @@ class Pay extends Model {
                 $t->transactionReason = 'Оплата';
                 $t->save();
                 $transaction->commit();
-                return ['status' => 1, 'message' => 'Платёж полностью оплачен'];
+                if($this->sendConfirmation) {
+                    Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
+                    return ['status' => 1, 'message' => 'Платёж полностью оплачен'];
+                }
             }
             catch (Exception $e){
                 $transaction->rollBack();
@@ -373,6 +382,31 @@ class Pay extends Model {
             else{
                 $billInfo->paymentTime = time();
             }
+            $payedSumm = $billInfo->totalSumm - $this->discount - $this->fromDeposit + $this->toDeposit;
+            if($this->double){
+                $t = new Table_transactions_double();
+                $t->cottageNumber = $this->billInfo['cottageInfo']->masterId;
+            }
+            else{
+                $t = new Table_transactions();
+                $t->cottageNumber = $this->billInfo['cottageInfo']->cottageNumber;
+            }
+
+            $t->billId = $billInfo->id;
+            $t->transactionDate = $billInfo->paymentTime;
+            if($this->payType === 'cash'){
+                $t->transactionType = 'cash';
+            }
+            else{
+                $t->transactionType = 'no-cash';
+            }
+            $t->transactionSumm = $payedSumm;
+            $t->gainedDeposit = $this->toDeposit;
+            $t->usedDeposit = $this->fromDeposit;
+            $t->transactionWay = 'in';
+            $t->partial = 0;
+            $t->transactionReason = 'Оплата';
+            $t->save();
             $billInfo->toDeposit = $this->toDeposit;
             // теперь нужно отметить платёж как оплаченный, создать денежную транзакцию, сохранить её, сохранить в данных участка изменения связанные с оплатой
             // ищу информацию по каждому платежу
@@ -398,7 +432,10 @@ class Pay extends Model {
             if (!empty($this->billInfo['paymentContent']['single'])) {
                 SingleHandler::registerPayment($cottageInfo, $billInfo, $this->billInfo['paymentContent']['single'], $this->double);
             }
-
+            $fines = Table_view_fines_info::find()->where(['bill_id' => $this->billIdentificator])->all();
+            if(!empty($fines)){
+                FinesHandler::makePayed($fines, $t->id);
+            }
             if ($this->fromDeposit > 0) {
                 DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'out');
             }
@@ -408,34 +445,9 @@ class Pay extends Model {
             if ($this->changeToDeposit && $this->toDeposit > 0) {
                 DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'in');
             }
-            $payedSumm = $billInfo->totalSumm - $this->discount - $this->fromDeposit + $this->toDeposit;
             $billInfo->isPayed = 1;
             $billInfo->payedSumm = $payedSumm;
             $billInfo->save();
-            if($this->double){
-                $t = new Table_transactions_double();
-                $t->cottageNumber = $this->billInfo['cottageInfo']->masterId;
-            }
-            else{
-                $t = new Table_transactions();
-                $t->cottageNumber = $this->billInfo['cottageInfo']->cottageNumber;
-            }
-
-            $t->billId = $billInfo->id;
-            $t->transactionDate = $billInfo->paymentTime;
-            if($this->payType === 'cash'){
-                $t->transactionType = 'cash';
-            }
-            else{
-                $t->transactionType = 'no-cash';
-            }
-            $t->transactionSumm = $payedSumm;
-            $t->gainedDeposit = $this->toDeposit;
-            $t->usedDeposit = $this->fromDeposit;
-            $t->transactionWay = 'in';
-            $t->partial = 0;
-            $t->transactionReason = 'Оплата';
-            $t->save();
             // обновлю информацию о балансе садоводства на этот месяц
             Balance::toBalance($t->transactionSumm, 'cash');
             /** @var Table_cottages $cottageInfo */
@@ -444,6 +456,10 @@ class Pay extends Model {
                 $additionalCottageInfo->save();
             }
             $transaction->commit();
+            if($this->sendConfirmation) {
+                Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
+                return ['status' => 1, 'message' => 'Платёж полностью оплачен'];
+            }
             return ['status' => 1];
         }
         catch (Exception $e){

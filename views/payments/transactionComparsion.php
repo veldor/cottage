@@ -55,4 +55,13 @@ if($difference > 0){
     echo "<h3 class='text-info text-center'>" . CashHandler::toSmoothRubles($difference) . " будет зачислено на депозит участка</h3>";
 }
 ?>
-<button id="submitComparsionButton" class="btn btn-success" data-bill-id="<?= $info->billId?>" data-transaction-id="<?= $info->transactionId?>">Подтвердить слияние</button>
+<div class="row">
+    <div class="col-sm-12">
+        <label><input class="form-control" type="checkbox" id="sendConfirmation" checked>Отправить уведомление о получении
+            платежа</label>
+    </div>
+    <div class="col-sm-12">
+        <button id="submitComparsionButton" class="btn btn-success" data-bill-id="<?= $info->billId?>" data-transaction-id="<?= $info->transactionId?>">Подтвердить слияние</button>
+    </div>
+</div>
+

@@ -696,6 +696,7 @@ function basementFunctional() {
                 else{
                     finesSumm -= summ;
                 }
+                recalculateSumm();
             });
 
             let recalculatedSumm = $('b.recalculatedSumm');

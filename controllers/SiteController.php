@@ -91,7 +91,8 @@ class SiteController extends Controller
         return false;
     }
     public function actionTest(){
-        Fix::test();
+        return $this->render('test');
+        //Fix::test();
         /*Migration::migrateCottages();
         Migration::migrateTariffs();
         Migration::migratePaysData();

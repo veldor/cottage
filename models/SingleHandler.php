@@ -78,12 +78,16 @@ class SingleHandler extends Model
     {
         if ($double) {
             $cottageInfo = AdditionalCottage::getCottage($cottageNumber);
+            // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
+            if (Pay::getUnpayedBillId($cottageInfo->masterId)) {
+                return ['status' => 2, 'message' => 'Сначала завершите работу с неоплаченным счётом по участку'];
+            }
         } else {
             $cottageInfo = Cottage::getCottageInfo($cottageNumber);
-        }
-        // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
-        if (Pay::getUnpayedBillId($cottageInfo)) {
-            return ['status' => 2, 'message' => 'Сначала завершите работу с неоплаченным счётом по участку'];
+            // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
+            if (Pay::getUnpayedBillId($cottageInfo->cottageNumber)) {
+                return ['status' => 2, 'message' => 'Сначала завершите работу с неоплаченным счётом по участку'];
+            }
         }
         $existedPays = self::getDebtReport($cottageInfo);
         if ($pay = $existedPays[$id]) {
@@ -107,12 +111,16 @@ class SingleHandler extends Model
 
         if ($double) {
             $cottageInfo = AdditionalCottage::getCottage($cottageNumber);
+            // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
+            if (Pay::getUnpayedBillId($cottageInfo->masterId)) {
+                return ['status' => 2, 'message' => 'Сначала завершите работу с неоплаченным счётом по участку'];
+            }
         } else {
             $cottageInfo = Cottage::getCottageInfo($cottageNumber);
-        }
-        // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
-        if (Pay::getUnpayedBillId($cottageInfo)) {
-            return ['status' => 2, 'message' => 'Сначала завершите работу с неоплаченным счётом по участку'];
+            // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
+            if (Pay::getUnpayedBillId($cottageInfo->cottageNumber)) {
+                return ['status' => 2, 'message' => 'Сначала завершите работу с неоплаченным счётом по участку'];
+            }
         }
         $existedPays = self::getDebtReport($cottageInfo);
         if ($pay = $existedPays[$id]) {
@@ -308,8 +316,15 @@ class SingleHandler extends Model
         // стандартные проверки
         $cottageInfo = Cottages::getCottage($cottageNumber, $double);
         // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
-        if (Pay::getUnpayedBillId($cottageInfo)) {
-            throw new ExceptionWithStatus('Сначала завершите работу с неоплаченным счётом по участку', '2');
+        if($double){
+            if (Pay::getUnpayedBillId($cottageInfo->masterId)) {
+                throw new ExceptionWithStatus('Сначала завершите работу с неоплаченным счётом по участку', '2');
+            }
+        }
+        else{
+            if (Pay::getUnpayedBillId($cottageInfo->cottageNumber)) {
+                throw new ExceptionWithStatus('Сначала завершите работу с неоплаченным счётом по участку', '2');
+            }
         }
         $existedPays = self::getDebtReport($cottageInfo);
         if ($pay = $existedPays[$id]) {
@@ -328,7 +343,7 @@ class SingleHandler extends Model
     {
         // тут дополнительные проверки
         $cottageInfo = Cottages::getCottage($this->cottageNumber, $this->double);
-        if (Pay::getUnpayedBillId($cottageInfo)) {
+        if (Pay::getUnpayedBillId($cottageInfo->cottageNumber)) {
             throw new ExceptionWithStatus('Сначала завершите работу с неоплаченным счётом по участку', '2');
         }
         $dom = new DOMHandler($cottageInfo->singlePaysDuty);

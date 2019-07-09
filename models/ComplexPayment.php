@@ -2,7 +2,10 @@
 
 namespace app\models;
 
-
+use app\models\tables\Table_bill_fines;
+use app\models\tables\Table_penalties;
+use app\models\tables\Table_view_fines_info;
+use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use DOMDocument;
 use DOMElement;
@@ -36,6 +39,8 @@ class ComplexPayment extends Model
 
     const SCENARIO_CREATE = 'create';
 
+    private $innerFines;
+
     public static function getBankInvoice($identificator, $double = false)
     {
         $info = self::getBillInfo($identificator, $double);
@@ -51,13 +56,22 @@ class ComplexPayment extends Model
         if (!empty($info['paymentContent']['target']) || !empty($info['paymentContent']['additionalTarget'])) {
             $purposeText .= ' целевых взносов,';
         }
+        if(Table_bill_fines::find()->where(['bill_id' => $identificator])->count() > 0){
+            $purposeText .= ' пени,';
+        }
 
         $purposeText = substr($purposeText, 0, strlen($purposeText) - 1) . ' по сч. № ' . $info['billInfo']->id . ($double ? '-a' : '');
 
         $bankDetails = new BankDetails();
         $realSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->totalSumm) - CashHandler::toRubles($info['billInfo']->depositUsed) - CashHandler::toRubles($info['billInfo']->discount));
         $dividedSumm = CashHandler::dividedSumm($realSumm);
-        $bankDetails->lastName = GrammarHandler::getPersonInitials($info['cottageInfo']->cottageOwnerPersonals);
+        if(!empty($info['cottageInfo']->bill_payers)){
+            $bankDetails->lastName = $info['cottageInfo']->bill_payers;
+        }
+        else{
+            $bankDetails->lastName = GrammarHandler::getPersonInitials($info['cottageInfo']->cottageOwnerPersonals);
+        }
+
         $bankDetails->purpose = $purposeText;
         $bankDetails->summ = $dividedSumm['rubles'] . $dividedSumm['cents'];
         $bankDetails->cottageNumber = $double ? $info['cottageInfo']->masterId . '-a' : $info['cottageInfo']->cottageNumber;
@@ -78,7 +92,7 @@ class ComplexPayment extends Model
     {
         // найду транзакцию
         $transactionInfo = Table_transactions::findOne($transactionId);
-        if(!empty($transactionInfo)){
+        if (!empty($transactionInfo)) {
             $timestamp = $timestamp / 1000;
             // тут просто, изменяю дату транзакции
             $transactionInfo->transactionDate = $timestamp;
@@ -172,90 +186,111 @@ class ComplexPayment extends Model
      */
     public function save(): array
     {
-        if (self::checkUnpayed($this->cottageNumber, $this->double)) {
-            throw new ErrorException('Имеется неоплченный счёт. Создание нового невозможно! Оплатите или отмените предыдущий!');
-        }
-        var_dump($this->fines);
-        die;
-        $fromDeposit = $this->fromDeposit;
-        $discount = $this->discount;
-        if ($this->double) {
-            $this->cottageInfo = AdditionalCottage::getCottage($this->cottageNumber);
-        } else {
-            $this->cottageInfo = Cottage::getCottageInfo($this->cottageNumber);
-        }
+        $transaction = new DbTransaction();
+        try {
 
-        if (!empty($this->cottageInfo->haveAdditional)) {
-            $this->additionalCottageInfo = AdditionalCottage::getCottage($this->cottageNumber);
-        }
-        if ($fromDeposit > $this->cottageInfo->deposit) {
-            throw new InvalidArgumentException('Превышена сумма доступного депозита!');
-        }
-        $totalCost = 0;
-        $power = '';
-        $additionalPower = '';
-        $membership = '';
-        $additionalMembership = '';
-        $target = '';
-        $additionalTarget = '';
-        $single = '';
-        // ЭЛЕКТРОЭНЕРГИЯ========================================================================================================
-        if ($this->powerPeriods > 0) {
-            $powerData = PowerHandler::createPayment($this->cottageInfo, $this->powerPeriods, $this->noLimitPower, $this->double);
-            $power = $powerData['text'];
-            $totalCost += $powerData['summ'];
-        }
-        if ($this->additionalPowerPeriods > 0) {
-            $additionalPowerData = PowerHandler::createPayment($this->additionalCottageInfo, $this->additionalPowerPeriods, $this->noLimitAdditionalPower, true);
-            $additionalPower = $additionalPowerData['text'];
-            $totalCost += $additionalPowerData['summ'];
-        }
-        if ($this->membershipPeriods > 0) {
-            $membershipData = MembershipHandler::createPayment($this->cottageInfo, $this->membershipPeriods, $this->double);
-            $membership = $membershipData['text'];
-            $totalCost += $membershipData['summ'];
-        }
-        if ($this->additionalMembershipPeriods > 0) {
-            $additionalMembershipData = MembershipHandler::createPayment($this->additionalCottageInfo, $this->additionalMembershipPeriods, true);
-            $additionalMembership = $additionalMembershipData['text'];
-            $totalCost += $additionalMembershipData['summ'];
-        }
-        if (!empty($this->target)) {
-            $targetData = TargetHandler::createPayment($this->cottageInfo, $this->target, $this->double);
-            $target = $targetData['text'];
-            $totalCost += $targetData['summ'];
-        }
-        if (!empty($this->additionalTarget)) {
-            $additionalTargetData = TargetHandler::createPayment($this->additionalCottageInfo, $this->additionalTarget, true);
-            $additionalTarget = $additionalTargetData['text'];
-            $totalCost += $additionalTargetData['summ'];
-        }
-        if (!empty($this->single)) {
-            $singleData = SingleHandler::createPayment($this->cottageInfo, $this->single);
-            $single = $singleData['text'];
-            $totalCost += $singleData['summ'];
-        }
-        $totalCost = CashHandler::rublesRound($totalCost);
-        $content = "<payment summ='{$totalCost}'>{$power}{$additionalPower}{$membership}{$additionalMembership}{$single}{$target}{$additionalTarget}</payment>";
-        if ($fromDeposit > $totalCost || $discount > $totalCost || ($fromDeposit + $discount) > $totalCost) {
-            throw new InvalidArgumentException('Сумма скидки и оплаты с депозита не должна превышать сумму платежа');
-        }
-        // сохраняю платёж
-        if ($this->double) {
-            $bill = new Table_payment_bills_double();
-        } else {
-            $bill = new Table_payment_bills();
-        }
-        $bill->cottageNumber = $this->cottageNumber;
-        $bill->bill_content = $content;
-        $bill->isPayed = 0;
-        $bill->creationTime = time();
-        $bill->totalSumm = $totalCost;
-        $bill->depositUsed = $this->fromDeposit;
-        $bill->discount = $this->discount;
-        $bill->discountReason = urlencode($this->discountReason);
-        $bill->save();
-        // отправлю письмо о созданном счёте
+            if (self::checkUnpayed($this->cottageNumber, $this->double)) {
+                throw new ErrorException('Имеется неоплченный счёт. Создание нового невозможно! Оплатите или отмените предыдущий!');
+            }
+            $fromDeposit = $this->fromDeposit;
+            $discount = $this->discount;
+            if ($this->double) {
+                $this->cottageInfo = AdditionalCottage::getCottage($this->cottageNumber);
+            } else {
+                $this->cottageInfo = Cottage::getCottageInfo($this->cottageNumber);
+            }
+
+            if (!empty($this->cottageInfo->haveAdditional)) {
+                $this->additionalCottageInfo = AdditionalCottage::getCottage($this->cottageNumber);
+            }
+            if ($fromDeposit > $this->cottageInfo->deposit) {
+                throw new InvalidArgumentException('Превышена сумма доступного депозита!');
+            }
+            $totalCost = 0;
+            $power = '';
+            $additionalPower = '';
+            $membership = '';
+            $additionalMembership = '';
+            $target = '';
+            $additionalTarget = '';
+            $single = '';
+            // ЭЛЕКТРОЭНЕРГИЯ========================================================================================================
+            if ($this->powerPeriods > 0) {
+                $powerData = PowerHandler::createPayment($this->cottageInfo, $this->powerPeriods, $this->noLimitPower, $this->double);
+                $power = $powerData['text'];
+                $totalCost += $powerData['summ'];
+            }
+            if ($this->additionalPowerPeriods > 0) {
+                $additionalPowerData = PowerHandler::createPayment($this->additionalCottageInfo, $this->additionalPowerPeriods, $this->noLimitAdditionalPower, true);
+                $additionalPower = $additionalPowerData['text'];
+                $totalCost += $additionalPowerData['summ'];
+            }
+            if ($this->membershipPeriods > 0) {
+                $membershipData = MembershipHandler::createPayment($this->cottageInfo, $this->membershipPeriods, $this->double);
+                $membership = $membershipData['text'];
+                $totalCost += $membershipData['summ'];
+            }
+            if ($this->additionalMembershipPeriods > 0) {
+                $additionalMembershipData = MembershipHandler::createPayment($this->additionalCottageInfo, $this->additionalMembershipPeriods, true);
+                $additionalMembership = $additionalMembershipData['text'];
+                $totalCost += $additionalMembershipData['summ'];
+            }
+            if (!empty($this->target)) {
+                $targetData = TargetHandler::createPayment($this->cottageInfo, $this->target, $this->double);
+                $target = $targetData['text'];
+                $totalCost += $targetData['summ'];
+            }
+            if (!empty($this->additionalTarget)) {
+                $additionalTargetData = TargetHandler::createPayment($this->additionalCottageInfo, $this->additionalTarget, true);
+                $additionalTarget = $additionalTargetData['text'];
+                $totalCost += $additionalTargetData['summ'];
+            }
+            if (!empty($this->single)) {
+                $singleData = SingleHandler::createPayment($this->cottageInfo, $this->single);
+                $single = $singleData['text'];
+                $totalCost += $singleData['summ'];
+            }
+            if (!empty($this->fines)) {
+                foreach ($this->fines as $key => $value) {
+                    $fine = Table_penalties::findOne($key);
+                    if (empty($fine)) {
+                        throw new ExceptionWithStatus("Пени не найдены");
+                    }
+                    $this->innerFines[] = $fine;
+                    $totalCost += CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));
+                }
+            }
+            $totalCost = CashHandler::rublesRound($totalCost);
+            $content = "<payment summ='{$totalCost}'>{$power}{$additionalPower}{$membership}{$additionalMembership}{$single}{$target}{$additionalTarget}</payment>";
+            if ($fromDeposit > $totalCost || $discount > $totalCost || ($fromDeposit + $discount) > $totalCost) {
+                throw new InvalidArgumentException('Сумма скидки и оплаты с депозита не должна превышать сумму платежа');
+            }
+            // сохраняю платёж
+            if ($this->double) {
+                $bill = new Table_payment_bills_double();
+            } else {
+                $bill = new Table_payment_bills();
+            }
+            $bill->cottageNumber = $this->cottageNumber;
+            $bill->bill_content = $content;
+            $bill->isPayed = 0;
+            $bill->creationTime = time();
+            $bill->totalSumm = $totalCost;
+            $bill->depositUsed = $this->fromDeposit;
+            $bill->discount = $this->discount;
+            $bill->discountReason = urlencode($this->discountReason);
+            $bill->save();
+            if(!empty($this->innerFines)){
+                foreach ($this->innerFines as $fine) {
+                    $link = new Table_bill_fines();
+                    $link->fines_id = $fine->id;
+                    $link->bill_id = $bill->id;
+                    $link->start_summ = $fine->summ - $fine->payed_summ;
+                    $link->start_days = TimeHandler::checkDayDifference($fine->payUpLimit);
+                    $link->save();
+                }
+            }
+            // отправлю письмо о созданном счёте
 //            if($this->cottageInfo->cottageOwnerEmail || $this->cottageInfo->cottageContacterEmail){
 //                $payDetails = Filling::getPaymentDetails($bill);
 //                $dutyText = Filling::getCottageDutyText($this->cottageInfo);
@@ -266,7 +301,12 @@ class ComplexPayment extends Model
 //                $result['billId'] = $bill->id;
 //                return $result;
 //            }
-        return ['status' => 1, 'billId' => $bill->id, 'double' => (boolean)$this->double];
+            $transaction->commitTransaction();
+            return ['status' => 1, 'billId' => $bill->id, 'double' => (boolean)$this->double];
+        } catch (ExceptionWithStatus $e) {
+            $transaction->rollbackTransaction();
+            return ['status' => 2, 'message' => 'Ошибка при создании счёта'];
+        }
     }
 
     /**
@@ -302,6 +342,7 @@ class ComplexPayment extends Model
         $content['target'] = self::getPaymentPart($dom, $xpath, 'target', 'pay');
         $content['additionalTarget'] = self::getPaymentPart($dom, $xpath, 'additional_target', 'pay');
         $content['single'] = self::getPaymentPart($dom, $xpath, 'single', 'pay');
+        $content['fines'] = Table_view_fines_info::find()->where(['bill_id' => $bill->id])->all();
         $summToPay = $bill->totalSumm - $bill->discount - $bill->depositUsed - $bill->payedSumm;
         return ['billInfo' => $bill, 'cottageInfo' => $cottageInfo, 'payInfo' => $payInfo, 'payedSumm' => $bill->payedSumm, 'summToPay' => $summToPay, 'paymentContent' => $content];
     }
@@ -330,11 +371,9 @@ class ComplexPayment extends Model
                 }
                 if (!empty($item->payedSumm)) {
                     $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($item->payedSumm) + CashHandler::toRubles($item->depositUsed) + CashHandler::toRubles($item->discount));
-                }
-                elseif(!empty($item->depositUsed) || !empty($item->discount)){
+                } elseif (!empty($item->depositUsed) || !empty($item->discount)) {
                     $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($item->depositUsed) + CashHandler::toRubles($item->discount));
-                }
-                else {
+                } else {
                     $payedSumm = '';
                 }
                 $paymentsInfo[] = ['id' => $item->id, 'isPartialPayed' => $item->isPartialPayed, 'isPayed' => $item->isPayed, 'creationTime' => TimeHandler::getDatetimeFromTimestamp($item->creationTime), 'paymentTime' => $pt, 'summ' => CashHandler::toRubles($item->totalSumm), 'payed-summ' => $payedSumm, 'from-deposit' => $item->depositUsed, 'discount' => $item->discount];
@@ -441,18 +480,19 @@ class ComplexPayment extends Model
 
     /**
      * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @return array
      * @throws ErrorException
      */
-    public static function makeWholeBill($cottageInfo){
+    public static function makeWholeBill($cottageInfo)
+    {
         $totalSumm = 0;
         $form = new ComplexPayment(['scenario' => ComplexPayment::SCENARIO_CREATE]);
         $main = Cottage::isMain($cottageInfo);
         $cottageNumber = null;
-        if($main){
+        if ($main) {
             $cottageNumber = $cottageInfo->cottageNumber;
 
-        }
-        else{
+        } else {
             $cottageNumber = $cottageInfo->masterId;
             $form->double = true;
         }
@@ -460,25 +500,25 @@ class ComplexPayment extends Model
 
         // ЭЛЕКТРОЭНЕРГИЯ
         $additionalCottage = null;
-        if($main && $cottageInfo->haveAdditional){
+        if ($main && $cottageInfo->haveAdditional) {
             $additionalCottage = Cottage::getCottageInfo($cottageInfo->cottageNumber, true);
         }
 
         $power = PowerHandler::getDebtReport($cottageInfo, !$main);
 
-        if(!!$power){
+        if (!!$power) {
             foreach ($power as $item) {
                 $totalSumm += CashHandler::toRubles($item['totalPay']);
             }
             $form->powerPeriods = count($power);
         }
         $additionalPower = null;
-        if($additionalCottage){
-            if(!$additionalCottage->hasDifferentOwner){
+        if ($additionalCottage) {
+            if (!$additionalCottage->hasDifferentOwner) {
                 $additionalPower = PowerHandler::getDebtReport($additionalCottage, true);
             }
         }
-        if(!!$additionalPower){
+        if (!!$additionalPower) {
             foreach ($additionalPower as $item) {
                 $totalSumm += CashHandler::toRubles($item['totalPay']);
             }
@@ -486,19 +526,19 @@ class ComplexPayment extends Model
         }
         // ЧЛЕНСКИЕ ВЗНОСЫ
         $membership = MembershipHandler::getDebt($cottageInfo, !$main);
-        if(!!$membership){
+        if (!!$membership) {
             foreach ($membership as $item) {
                 $totalSumm += CashHandler::toRubles($item['total_summ']);
             }
             $form->membershipPeriods = count($membership);
         }
         $additionalMembership = null;
-        if($additionalCottage){
-            if(!$additionalCottage->hasDifferentOwner){
+        if ($additionalCottage) {
+            if (!$additionalCottage->hasDifferentOwner) {
                 $additionalMembership = MembershipHandler::getDebt($additionalCottage, true);
             }
         }
-        if(!!$additionalMembership){
+        if (!!$additionalMembership) {
             foreach ($additionalMembership as $item) {
                 $totalSumm += CashHandler::toRubles($item['total_summ']);
             }
@@ -507,9 +547,9 @@ class ComplexPayment extends Model
         // ЦЕЛЕВЫЕ ВЗНОСЫ
         $target = TargetHandler::getDebt($cottageInfo, !$main);
 
-        if(!empty($target)){
+        if (!empty($target)) {
             $targets = [];
-            foreach ($target as $key=>$item) {
+            foreach ($target as $key => $item) {
                 // создам счёт на сумму, необходимую для оплаты
                 $summ = CashHandler::toRubles($item['realSumm']);
                 $targets[$key] = $summ;
@@ -518,14 +558,14 @@ class ComplexPayment extends Model
             $form->target = $targets;
         }
         $additionalTarget = null;
-        if($additionalCottage){
-            if(!$additionalCottage->hasDifferentOwner){
+        if ($additionalCottage) {
+            if (!$additionalCottage->hasDifferentOwner) {
                 $additionalTarget = TargetHandler::getDebt($additionalCottage, true);
             }
         }
-        if(!empty($additionalTarget)){
+        if (!empty($additionalTarget)) {
             $targets = [];
-            foreach ($additionalTarget as $key=>$item) {
+            foreach ($additionalTarget as $key => $item) {
                 // создам счёт на сумму, необходимую для оплаты
                 $summ = CashHandler::toRubles($item['realSumm']);
                 $targets[$key] = $summ;
@@ -535,9 +575,9 @@ class ComplexPayment extends Model
         }
         // РАЗОВЫЕ ВЗНОСЫ
         $single = SingleHandler::getDebtReport($cottageInfo, !$main);
-        if(!empty($single)){
+        if (!empty($single)) {
             $pays = [];
-            foreach ($single as $key=>$item) {
+            foreach ($single as $key => $item) {
                 // создам счёт на сумму, необходимую для оплаты
                 $summ = CashHandler::toRubles($item['summ']);
                 $payed = CashHandler::toRubles($item['payed']);
@@ -547,19 +587,18 @@ class ComplexPayment extends Model
             }
             $form->single = $pays;
         }
-        if($cottageInfo->deposit > 0){
-            if($cottageInfo->deposit <= $totalSumm){
+        if ($cottageInfo->deposit > 0) {
+            if ($cottageInfo->deposit <= $totalSumm) {
                 $form->fromDeposit = $cottageInfo->deposit;
-            }
-            else{
+            } else {
                 $form->fromDeposit = $totalSumm;
             }
         }
         $openedBill = null;
         // Если у участка есть неоплаченный счёт- закрою его
-        if($openedBill = self::checkUnpayed($cottageNumber, !$main)){
-           $openedBill->isPayed = 1;
-           $openedBill->save();
+        if ($openedBill = self::checkUnpayed($cottageNumber, !$main)) {
+            $openedBill->isPayed = 1;
+            $openedBill->save();
         }
         $result = $form->save();
         // получу идентификатор платежа

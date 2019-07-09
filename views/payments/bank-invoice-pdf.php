@@ -8,6 +8,8 @@
 
 use app\models\BankDetails;
 use app\models\CashHandler;
+use app\models\FinesHandler;
+use app\models\tables\Table_view_fines_info;
 use app\models\TargetHandler;
 use app\models\TimeHandler;
 use yii\web\View;
@@ -37,6 +39,7 @@ $powerText = '';
 $memText = '';
 $tarText = '';
 $singleText = '';
+$finesText = '';
 
 $qr = $bankInfo->drawQR();
 
@@ -171,6 +174,25 @@ if (!empty($paymentContent['single'])) {
     $singleText = "<p>Дополнительно: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p>';
 }
 
+$fines = Table_view_fines_info::find()->where(['bill_id' => $payInfo->id])->all();
+if(!empty($fines)){
+    $finesSumm = 0;
+    foreach ($fines as $fine) {
+        $finesSumm += $fine->start_summ;
+        if($fine->pay_type === 'membership'){
+            $fullPeriod = TimeHandler::getFullFromShortQuarter($fine->period);
+        }
+        else if($fine->pay_type === 'power'){
+            $fullPeriod = TimeHandler::getFullFromShotMonth($fine->period);
+        }
+        else{
+            $fullPeriod = $fine->period;
+        }
+        $finesText .= FinesHandler::$types[$fine->pay_type] . " за {$fullPeriod} просрочено на {$fine->start_days} дней на сумму " . CashHandler::toSmoothRubles($fine->start_summ) . ', ';
+    }
+    $finesText = "<p>Пени: всего " . CashHandler::toSmoothRubles($finesSumm) . ", в том числе " . substr($finesText, 0, strlen($finesText) - 2) . '</p>';
+}
+
 $text = "
 <div class='description margened'><span>ПАО СБЕРБАНК</span><span class='pull-right''>Форма №ПД-4</span></div>
 
@@ -300,6 +322,9 @@ $text = "
         </div>
         <div class="col-xs-12">
             <?= $singleText ?>
+        </div>
+        <div class="col-xs-12">
+            <?= $finesText ?>
         </div>
         <?= $depositText ?>
         <?= $discountText ?>

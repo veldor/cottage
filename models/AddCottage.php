@@ -40,6 +40,7 @@ class AddCottage extends Model
     public $cottageContacterPersonals; // личные данные владельца участка.
     public $cottageContacterPhone; // контактный телефон владельца участка.
     public $cottageContacterEmail; // адрес почты владельца участка.
+    public $payerInfo; // имя плательщика для квитанции
     public $targetFilled = true;
     public $cottageRegisterData = false;
 
@@ -78,6 +79,7 @@ class AddCottage extends Model
             'currentPowerData' => 'Текущие показания счётчика электроэнергии',
             'membershipPayFor' => 'Месяц, по который оплачены членские взносы',
             'targetPayFor' => 'Месяц, по который оплачены целевые взносы',
+            'payerInfo' => 'Имена плательщиков для квитанции',
         ];
     }
 
@@ -89,8 +91,8 @@ class AddCottage extends Model
     {
         return [
             self::SCENARIO_ADD => ['cottageNumber', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled'],
-            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled', 'cottageRegisterData'],
-            self::SCENARIO_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageRegisterData', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'],
+            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled', 'cottageRegisterData', 'payerInfo'],
+            self::SCENARIO_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageRegisterData', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation', 'payerInfo'],
         ];
     }
 
@@ -204,6 +206,7 @@ class AddCottage extends Model
                 $this->currentCondition->cottageOwnerPhone = $this->cottageOwnerPhone;
                 $this->currentCondition->cottageOwnerAddress = "$this->ownerAddressIndex & $this->ownerAddressTown & $this->ownerAddressStreet & $this->ownerAddressBuild & $this->ownerAddressFlat";
                 $this->currentCondition->cottageOwnerDescription = $this->cottageOwnerDescription;
+                $this->currentCondition->bill_payers = $this->payerInfo;
                 if (!empty($this->haveRights) && $this->haveRights === '1') {
                     $this->currentCondition->cottageHaveRights = 1;
                 } else {
@@ -314,6 +317,9 @@ class AddCottage extends Model
                 $this->$attribute = $data->$attribute;
             }
         }
+
+        $this->payerInfo = $data->bill_payers;
+
         $this->haveRights = $data->cottageHaveRights;
         $this->cottageRegisterData = $data->cottageRegisterData;
         $this->ownerAddressTown = $data->cottageOwnerAddress;

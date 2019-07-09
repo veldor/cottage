@@ -70,6 +70,12 @@ echo $form->field($matrix, 'cottageOwnerEmail', ['template' =>
     ->textInput(['autocomplete' => 'off', 'placeholder' => 'Например, vasya@yandex.ru'])
     ->label('Адрес электронной почты владельца участка.')
     ->hint("<b class='text-info'>Необязательное поле.</b>");
+echo $form->field($matrix, 'payerInfo', ['template' =>
+    '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
+									{error}{hint}</div><div class="col-lg-1"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="Тут вроде бы тоже объяснять нечего."></button></div>'])
+    ->textInput(['autocomplete' => 'off', 'placeholder' => 'Например, Брильц И. И.'])
+    ->label('Данные владельцев для квитанции.')
+    ->hint("<b class='text-info'>Необязательное поле.</b>");
 echo "</fieldset>";
 echo "<fieldset class='color-pinky'><legend>Почтовый адрес владельца</legend>";
 echo $form->field($matrix, 'ownerAddressIndex', ['template' =>

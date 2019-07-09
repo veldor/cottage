@@ -192,11 +192,15 @@ else {
 // ======================================================   ПЕНИ   ====================================================
 $fines = FinesHandler::getFines($matrix->cottageNumber);
 if($fines != null){
-    echo "<div class='col-sm-12'><h2 class='text-center'>Пени</h2><table class='table'><thead><tr><th>Оплачивать</th><th>Тип</th><th>Период</th><th>Сумма</th></tr></thead><tbody>";
+    echo "<div class='col-sm-12'><h2 class='text-center'>Пени</h2><table class='table'><thead><tr><th>Оплачивать</th><th>Тип</th><th>Период</th><th>Сумма</th><th>Дней</th><th>В день</th></tr></thead><tbody>";
     foreach ($fines as $fine) {
-        $summ = CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));
-        echo "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][{$fine->id}]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td></tr>";
-        $totalDutySumm += $summ;
+        if($fine->is_enabled){
+            $dayDifference = TimeHandler::checkDayDifference($fine->payUpLimit);
+            $daySumm = $fine->summ / (int) $dayDifference;
+            $summ = CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));
+            echo "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][{$fine->id}]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td><td>$dayDifference</td><td>" . CashHandler::toSmoothRubles($daySumm) . "</td></tr>";
+            $totalDutySumm += $summ;
+        }
     }
     echo "</tbody></table></div>";
 }

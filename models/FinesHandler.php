@@ -3,16 +3,18 @@
 namespace app\models;
 
 
+use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
+use app\models\tables\Table_view_fines_info;
 use yii\base\Model;
 
 class FinesHandler extends Model
 {
 
-    public static $types = ['membership' => 'членские', 'target' => 'целевые', 'power' => 'электроэнергия'];
+    public static $types = ['membership' => 'членские взносы', 'target' => 'целевые взносы', 'power' => 'электроэнергия'];
 
     private const PERCENT = 0.5;
-    private const START_POINT = 1559336400;
+    private const START_POINT = 1561939201;
 
     public static function getFines($cottageNumber)
     {
@@ -79,6 +81,7 @@ class FinesHandler extends Model
                         $existentFine->payed_summ = 0;
                         $existentFine->is_full_payed = 0;
                         $existentFine->is_partial_payed = 0;
+                        $existentFine->is_enabled = 1;
                     }
                     $existentFine->summ = $totalFines;
                     $existentFine->save();
@@ -108,6 +111,7 @@ class FinesHandler extends Model
                         $existentFine->payed_summ = 0;
                         $existentFine->is_full_payed = 0;
                         $existentFine->is_partial_payed = 0;
+                        $existentFine->is_enabled = 1;
                     }
                     $existentFine->summ = $totalFines;
                     $existentFine->save();
@@ -153,5 +157,47 @@ class FinesHandler extends Model
             }
         }
         return CashHandler::toRubles($summ);
+    }
+
+    /**
+     * @param Table_view_fines_info[] $fines
+     * @throws ExceptionWithStatus
+     */
+    public static function makePayed(array $fines, int $transactionId)
+    {
+        foreach ($fines as $fine) {
+            self::payFine($fine->fines_id, $fine->start_summ, $transactionId);
+        }
+    }
+
+    /**
+     * @param int $fines_id
+     * @param double $summ
+     * @param int $transactionId
+     * @throws ExceptionWithStatus
+     */
+    private static function payFine(int $fines_id, $summ, int $transactionId)
+    {
+        $fine = Table_penalties::findOne($fines_id);
+        $payLeft = $fine->summ - $fine->payed_summ;
+        if($summ > $payLeft){
+            throw new ExceptionWithStatus("Попытка заплатить за пени больше необходимого");
+        }
+        elseif($summ == $payLeft){
+            $fine->is_full_payed = 1;
+            $fine->is_partial_payed = 0;
+        }
+        else{
+            $fine->is_full_payed = 0;
+            $fine->is_partial_payed = 1;
+        }
+        $fine->payed_summ += $summ;
+        $fine->save();
+        $payed = new Table_payed_fines();
+        $payed->fine_id = $fine->id;
+        $payed->transaction_id = $transactionId;
+        $payed->summ = $summ;
+        $payed->pay_date = time();
+        $payed->save();
     }
 }

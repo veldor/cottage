@@ -87,6 +87,7 @@ function confirmChaining(data) {
             let attributes = {
                 'ComparisonHandler[billId]': $(this).attr('data-bill-id'),
                 'ComparisonHandler[transactionId]':$(this).attr('data-transaction-id'),
+                'ComparisonHandler[sendConfirmation]':$('input#sendConfirmation').prop('checked'),
             };
             sendAjax('post', url, simpleAnswerHandler, attributes);
         })

@@ -14,14 +14,15 @@ class ComparisonHandler extends Model
     const SCENARIO_MANUAL_COMPARISON = 'manual comparison';
     public $billId;
     public $transactionId;
+    public $sendConfirmation;
 
     const SCENARIO_COMPARISON = 'comparison';
 
     public function scenarios(): array
     {
         return [
-            self::SCENARIO_COMPARISON => ['billId', 'transactionId'],
-            self::SCENARIO_MANUAL_COMPARISON => ['billId', 'transactionId'],
+            self::SCENARIO_COMPARISON => ['billId', 'transactionId', 'sendConfirmation'],
+            self::SCENARIO_MANUAL_COMPARISON => ['billId', 'transactionId', 'sendConfirmation'],
         ];
     }
 
@@ -114,6 +115,9 @@ class ComparisonHandler extends Model
             }
             $cottageInfo->save();
             $transaction->commit();
+            if($this->sendConfirmation){
+                Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
+            }
             return ['status' => 1];
         } catch (Exception $e) {
             $transaction->rollBack();

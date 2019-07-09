@@ -10,6 +10,8 @@
 use app\assets\BankInvoiceAsset;
 use app\models\BankDetails;
 use app\models\CashHandler;
+use app\models\FinesHandler;
+use app\models\tables\Table_view_fines_info;
 use app\models\TargetHandler;
 use app\models\TimeHandler;
 use yii\helpers\Html;
@@ -40,6 +42,7 @@ $powerText = '';
 $memText = '';
 $tarText = '';
 $singleText = '';
+$finesText = '';
 
 $qr = $bankInfo->drawQR();
 
@@ -179,6 +182,25 @@ if(!empty($paymentContent['single'])){
     $singleText = "Дополнительно: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '<br/>';
 }
 
+$fines = Table_view_fines_info::find()->where(['bill_id' => $payInfo->id])->all();
+if(!empty($fines)){
+    $finesSumm = 0;
+    foreach ($fines as $fine) {
+        $finesSumm += $fine->start_summ;
+        if($fine->pay_type === 'membership'){
+            $fullPeriod = TimeHandler::getFullFromShortQuarter($fine->period);
+        }
+        else if($fine->pay_type === 'power'){
+            $fullPeriod = TimeHandler::getFullFromShotMonth($fine->period);
+        }
+        else{
+            $fullPeriod = $fine->period;
+        }
+        $finesText .= FinesHandler::$types[$fine->pay_type] . " за {$fullPeriod} просрочено на {$fine->start_days} дней на сумму " . CashHandler::toSmoothRubles($fine->start_summ) . ', ';
+    }
+    $finesText = "Пени: всего " . CashHandler::toSmoothRubles($finesSumm) . ", в том числе " . substr($finesText, 0, strlen($finesText) - 2);
+}
+
 $text = "
 <div class='description margened'><span>ПАО СБЕРБАНК</span><span class='pull-right''>Форма №ПД-4</span></div>
 
@@ -229,7 +251,7 @@ BankInvoiceAsset::register($this);
         <tr>
             <td class="leftSide">
                 <h3>Квитанция</h3>
-                <img class="qr-img" src="<?=$qr?>"/>
+                <img class="qr-img" src="<?=$qr?>" alt=""/>
             </td>
             <td class="rightSide">
                 <?=$text?>
@@ -243,6 +265,7 @@ BankInvoiceAsset::register($this);
         <?=$memText?>
         <?=$tarText?>
         <?=$singleText?>
+        <?=$finesText?>
         <?=$depositText?>
         <?=$discountText?>
     </div>

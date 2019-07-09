@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\tables\Table_view_fines_info;
 use ErrorException;
 use yii\base\Model;
 
@@ -285,6 +286,36 @@ class Filling extends Model
                 }
                 $content .= self::getEmptyRow();
             }
+        }
+        // пени
+        $fines = Table_view_fines_info::find()->where(['bill_id' => $billInfo->id])->all();
+        if(!empty($fines)) {
+            $content .= self::getSingleRow('<h3 style="text-align: center">Пени</h3>');
+            $totalSumm = 0;
+            foreach ($fines as $fine) {
+                $totalSumm += $fine->summ;
+                switch ($fine->pay_type) {
+                    case 'power':
+                        $type = 'Электроэнергия';
+                        $fullPeriod = TimeHandler::getFullFromShotMonth($fine->period);
+                        break;
+                    case 'membership':
+                        $type = 'Членские взносы';
+                        $fullPeriod = TimeHandler::getFullFromShortQuarter($fine->period);
+                        break;
+                    case 'target':
+                        $type = 'Целевые взносы';
+                        $fullPeriod = $fine->period;
+                        break;
+                }
+                $content .= self::getRow('Вид платежа', $type,Colors::COLOR_INFO);
+                $content .= self::getRow('Период платежа', $fullPeriod,Colors::COLOR_INFO);
+                $content .= self::getRow('Дней просрочено', $fine->start_days,Colors::COLOR_INFO);
+                $content .= self::getRow('К оплате', CashHandler::toSmoothRubles($fine->start_summ));
+                $content .= self::getEmptyRow();
+            }
+            $content .= self::getRow('Итого пени', CashHandler::toSmoothRubles($totalSumm));
+
         }
         return $content;
     }

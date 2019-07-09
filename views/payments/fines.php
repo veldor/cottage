@@ -4,6 +4,7 @@ use app\models\CashHandler;
 use app\models\Table_additional_cottages;
 use app\models\Table_cottages;
 use app\models\tables\Table_penalties;
+use app\models\TimeHandler;
 use yii\web\View;
 
 
@@ -13,7 +14,7 @@ use yii\web\View;
 
 
 if(!empty($info)){
-    echo "<table class='table table-striped table-condensed table-hover'>";
+    echo "<table class='table table-striped table-condensed table-hover'><tr><th>Тип</th><th>Период</th><th>Начислено</th><th>Оплачено</th><th>Дней</th><th>В день</th></tr>";
     foreach ($info as $item) {
         switch ($item->pay_type){
             case 'power':
@@ -26,13 +27,22 @@ if(!empty($info)){
                 $type = 'Целевые взносы';
                 break;
         }
+        if($item->payed_summ === $item->summ){
+            $text = "text-success";
+        }
+        else{
+            $text = "text-danger";
+        }
+        // расчитаю количество дней, за которые начисляются пени
+        $dayDifference = TimeHandler::checkDayDifference($item->payUpLimit);
+        $daySumm = $item->summ / (int) $dayDifference;
         if($item->is_enabled){
             $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default activator hidden'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default activator'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
         }
         else{
             $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default activator'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default activator hidden'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
         }
-        echo "<tr><td>$type</td><td>{$item->period}</td><td>" . CashHandler::toSmoothRubles($item->summ) . "</td><td>$controlItem</td></tr>";
+        echo "<tr><td>$type</td><td>{$item->period}</td><td><b class='text-info'>" . CashHandler::toSmoothRubles($item->summ) . "</b></td><td><b class='$text'>" . CashHandler::toSmoothRubles($item->payed_summ) . "</b></td><td>$dayDifference дней</td><td>" . CashHandler::toSmoothRubles($daySumm) . "</td><td>$controlItem</td></tr>";
     }
     echo "</table>";
 }

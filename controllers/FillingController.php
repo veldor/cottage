@@ -85,11 +85,9 @@ class FillingController extends Controller
     }
 
     /**
-     * @param $type string
      * @param $cottageNumber int|string
      * @return array
      * @throws NotFoundHttpException
-     * @throws \yii\base\ErrorException
      */
     public function actionFill($cottageNumber = null): array
     {

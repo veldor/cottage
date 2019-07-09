@@ -10,6 +10,9 @@ namespace app\widgets;
 
 
 use app\models\CashHandler;
+use app\models\FinesHandler;
+use app\models\tables\Table_penalties;
+use app\models\tables\Table_view_fines_info;
 use app\models\TimeHandler;
 use yii\base\Widget;
 
@@ -713,6 +716,53 @@ class PaymentDetailsWidget extends Widget
                             </tbody>
                             <?php
                         }
+                        ?>
+                    </table>
+                </div>
+            </div>
+            <div class="margened clearfix"></div>
+            <?php
+        }
+        if (!empty($this->info['fines'])) {
+            ?>
+            <div class="color-orange row">
+                <div class="col-lg-12">
+                    <h3>Пени</h3>
+                    <p> Платежей к оплате: <b
+                                class='text-success'><?= count($this->info['fines']) ?></b><br/>
+                </div>
+                <div class="col-lg-10">
+                    <table class="table table-condensed table-hover">
+                        <tr><th>Тип</th><th>Период</th><th>Стоимость</th><th>Дней</th><th>В день</th></tr>
+                        <?php
+                        $summ = 0;
+                        /** @var Table_view_fines_info $item */
+                        foreach ($this->info['fines'] as $item) {
+                            $summ += $item->start_summ;
+                            $forDay = CashHandler::toSmoothRubles($item->start_summ / $item->start_days);
+                            ?>
+                            <tr>
+                                <td>
+                                    <?=FinesHandler::$types[$item->pay_type]?>
+                                </td>
+                                <td>
+                                    <b class="text-primary"><?= $item->period ?></b>
+                                </td>
+                                <td class="text-left">
+                                    <b class="text-success"><?= CashHandler::toSmoothRubles($item->start_summ) ?></b>
+                                </td>
+                                <td class="text-left">
+                                    <?=$item->start_days?>
+                                </td>
+                                <td class="text-left">
+                                    <?=$forDay?>
+                                </td>
+                            </tr>
+                            <?php
+                        }
+                        echo "
+                    <p> Общая сумма: <b
+                                class='text-success'>" . CashHandler::toSmoothRubles($summ) . "</b><br/>";
                         ?>
                     </table>
                 </div>

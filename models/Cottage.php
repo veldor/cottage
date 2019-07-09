@@ -259,8 +259,15 @@ class Cottage extends Model
             }
         }
         // если не оплачен предыдущий месяц электроэнергии
-        if($cottage->powerDebt > 0 && $cottage->powerPayFor < TimeHandler::getPrevMonth(TimeHandler::getPreviousShortMonth())){
-            return true;
+        if($cottage->powerDebt > 0){
+            $months = Table_power_months::find()->where(['month' => $cottage->membershipPayFor])->all();
+            if(!empty($months)){
+                foreach ($months as $month) {
+                    if($month->difference > 0 && $month->month <= TimeHandler::getPreviousMonth()){
+                        return true;
+                    }
+                }
+            }
         }
         // если не оплачен текущий квартал
         if($cottage->membershipPayFor < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())){

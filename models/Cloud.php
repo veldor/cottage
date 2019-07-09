@@ -135,115 +135,38 @@ class Cloud extends Model
         return 0;
     }
 
+    /**
+     * @param $info
+     * @param $subject
+     * @param $body
+     * @return array
+     */
     public static function sendMessage($info, $subject, $body): array
     {
-        $results = [];
-        $mail = Yii::$app->mailer->compose()
-            ->setFrom([Info::MAIL_ADDRESS => Info::COTTAGE_NAME])
-            ->setSubject($subject);
-        $name = explode(' ', $info->cottageOwnerPersonals);
-        if (count($name) === 3) {
-            $username = "$name[1] $name[2]";
-        } else {
-            $username = $info->cottageOwnerPersonals;
+        $body = "<h1 class='text-center'>Добрый день, %USERNAME%</h1>" . $body;
+        $text = Yii::$app->controller->renderPartial('/mail/simple_template', ['text' => $body]);
+        $main = Cottage::isMain($info);
+        $ownerMail = $info->cottageOwnerEmail;
+        if($main){
+            $contacterEmail = $info->cottageContacterEmail;
         }
-        $sendTo = [];
-        if (!empty($info->cottageOwnerEmail)) {
-            $name = explode(' ', $info->cottageOwnerPersonals);
-            if (count($name) === 3) {
-                $username = "$name[1] $name[2]";
-            } else {
-                $username = $info->cottageOwnerPersonals;
+        try {
+            if (!empty($ownerMail)) {
+                $finalText = GrammarHandler::insertPersonalAppeal($text, $info->cottageOwnerPersonals);
+                self::send($ownerMail, GrammarHandler::handlePersonals($info->cottageOwnerPersonals), $subject, $finalText);
+                // отправлю письмо адресату
             }
-            $address = $info->cottageOwnerEmail;
-            $sendTo[] = [$address, $info->cottageOwnerPersonals];
-            $results['to-owner'] = true;
+            if (!empty($contacterEmail)) {
+                $finalText = GrammarHandler::insertPersonalAppeal($text, $info->cottageContacterPersonals);
+                self::send($contacterEmail, GrammarHandler::handlePersonals($info->cottageContacterPersonals), $subject, $finalText);
+                // отправлю письмо адресату
+            }
+            $finalText = GrammarHandler::insertPersonalAppeal($text, $info->cottageOwnerPersonals);
+            self::send(Info::MAIL_REPORTS_ADDRESS, GrammarHandler::handlePersonals($info->cottageOwnerPersonals), $subject, $finalText);
+            return ['status' => 1];
+        } catch (ExceptionWithStatus $e) {
+            die('dont send');
         }
-        if (!empty($info->cottageContacterEmail)) {
-            $name = explode(' ', $info->cottageContacterPersonals);
-            if (count($name) === 3) {
-                $username = "$name[1] $name[2]";
-            } else {
-                $username = $info->cottageContacterPersonals;
-            }
-            $address = $info->cottageContacterEmail;
-            $sendTo[] = [$address, $info->cottageContacterPersonals];
-            $results['to-contacter'] = true;
-        }
-
-        $sendTo[] = [Info::BOOKER_MAIL, Info::BOOKER_NAME];
-
-        foreach ($sendTo as $value) {
-            $name = GrammarHandler::handlePersonals($value[1]);
-            $text = "
-<html lang='ru-RU'>
-	<head>
-		<meta charset='UTF-8'/><title></title>
-	</head>
-	<body>
-		<table style='max-width: 600px; width: 100%; margin:0; padding: 0; text-align: center;'>
-			<tbody>
-				<tr>
-					<td colspan='2'><h2>Добрый день, $name!</h2></td>
-				</tr>
-				<tr>
-					<td colspan='2'>
-					<table style='max-width: 600px; width: 100%; margin:0; padding: 0;background-color: #fcfff6'>
-						<tbody>
-							$body
-						</tbody>
-					</table>
-					</td>
-				</tr>
-				<tr>
-					<td colspan='2'>
-						<table style='max-width: 600px; width: 100%; margin:0; padding: 0; text-align: center; background-color:#f9f7ff'>
-							<tbody>
-								<tr>
-									<td>
-										<h2>Контактная информация</h2>
-									</td>
-								</tr>
-								<tr>
-									<td>
-							Телефон бухгалтера: <a href='tel:" . Info::BOOKER_PHONE . "'>
-											<b>" . Info::BOOKER_SMOOTH_PHONE . "</b>
-										</a>
-									</td>
-								</tr>
-								<tr>
-									<td>
-							Официальная группа ВКонтакте: <a target='_blank' href='" . Info::VK_GROUP_URL . "'>Посетить</a>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-	</body>
-</html>
-";
-            $mail->setHtmlBody($text);
-            $mail->setTo([$value[0] => $value[1]]);
-            file_put_contents('Z:\\testmail.html', $text);
-            // проверю подключение к интернету
-            try {
-                $url = 'https://ya.ru/';
-                ini_set('default_socket_timeout', '2');
-                $fp = fopen($url, 'rb');
-                fclose($fp);
-            } catch (Exception $e) {
-                return ['status' => 2];
-            }
-            try {
-                $mail->send();
-            } catch (Exception $e) {
-                return ['status' => 2];
-            }
-        }
-        return ['status' => 1, 'results' => $results];
     }
 
     public static function sendInvoiceMail($text, $billInfo)

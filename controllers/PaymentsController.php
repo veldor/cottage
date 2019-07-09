@@ -420,10 +420,17 @@ class PaymentsController extends Controller
         $text = $this->renderAjax('fines', ['info' => $info]);
         return ['status' => 1, 'text' => $text];
     }
+
+    /**
+     * @param $billId
+     * @return array
+     * @throws NotFoundHttpException
+     */
     public function actionBillReopen($billId){
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             return Pay::reopenBill($billId);
         }
+        throw new NotFoundHttpException('Страница не найдена');
     }
 }

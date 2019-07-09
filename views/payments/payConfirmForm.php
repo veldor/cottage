@@ -9,6 +9,7 @@
 
 use app\models\CashHandler;
 use app\models\Pay;
+use app\models\tables\Table_view_fines_info;
 use app\models\TimeHandler;
 use yii\helpers\Html;
 use yii\web\View;
@@ -53,14 +54,14 @@ echo $form->field($model, 'totalSumm', ['template' => "{input}"])->hiddenInput()
 echo $form->field($model, 'change', ['template' => "{input}"])->hiddenInput()->label(false);
 echo $form->field($model, 'double', ['template' => "{input}"])->hiddenInput()->label(false);
 
-echo $form->field($model, 'payType', ['template' =>
+/*echo $form->field($model, 'payType', ['template' =>
     '<div class="col-sm-5">{label}</div><div class="col-sm-7"><div class="btn-group" data-toggle="buttons">{input}</div>
 									{error}{hint}</div>'])
     ->radioList(['cash' => 'Наличные', 'cashless' => 'Безналичный расчёт'], ['item' =>
         function ($index, $label, $name, $checked, $value) {
             $tagName = $index === 0 ? 'Наличные' : 'Безналичный расчёт';
             return "<label class='btn btn-info'><input name='$name' type='radio' value='$value'/>$tagName</label>";
-        }]);
+        }]);*/
 
 echo $form->field($model, 'payWholeness', ['template' =>
     '<div class="hidden"><div class="col-sm-5">{label}</div><div class="col-sm-7"><div class="btn-group" data-toggle="buttons">{input}</div>
@@ -290,7 +291,10 @@ if (!empty($model->billInfo['paymentContent']['single'])) {
         <div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="single">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="singleDistributed"><span class="input-group-addon">&#8381;</span></div>
 </div>';
 }
-
+$fines = Table_view_fines_info::find()->where(['bill_id' => $model->billIdentificator])->all();
+if(!empty($fines)){
+    echo "Частичная оплата пени в разработке :)";
+}
 // ===================================== END OF БЛОК ЧАСТИЧНОЙ ОПЛАТЫ================================
 
 echo "<h2>Сдача: <span id='change' data-change='0'>0</span> &#8381;</h2>";
@@ -305,7 +309,12 @@ echo $form->field($model, 'toDeposit', ['options' => ['class' => 'col-lg-8 form-
     ->hint('В рублях')
     ->label('Начислить на депозит');
 echo "<div class='clearfix'></div>";
-echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-5"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div>';
-echo "<div class='clearfix'></div></div>";
+echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-5"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div></div>';
+echo "<div class='margened'></div>";
+echo $form->field($model, 'sendConfirmation', ['template' =>
+    '<div class="col-sm-5">{label}</div><div class="col-sm-7">{input}{error}{hint}</div>'])
+    ->checkbox(['class' => "form-control"])
+    ->label("Отправить подтвержение на e-mail");
+echo "<div class='clearfix'></div>";
 echo Html::submitButton('Сохранить', ['class' => 'btn btn-success   ', 'id' => 'addSubmit', 'data-toggle' => 'tooltip', 'data-placement' => 'top', 'data-html' => 'true',]);
 ActiveForm::end();

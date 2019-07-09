@@ -46,7 +46,7 @@ class PersonalTariff extends Model
         if (!empty($lastFilled)) {
             $quarterList = TimeHandler::getQuarterList($lastFilled['quarter']);
         } else {
-            $quarterList = null;
+            $quarterList[TimeHandler::getCurrentQuarter()] = TimeHandler::getCurrentQuarter();
         }
         $cottageNumber = !empty($cottageInfo->cottageNumber) ? $cottageInfo->cottageNumber : $cottageInfo->masterId;
         return ['lastFilled' => $lastFilled, 'quarterList' => $quarterList, 'cottageNumber' => $cottageNumber];
