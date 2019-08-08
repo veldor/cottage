@@ -6,8 +6,9 @@ use yii\widgets\ActiveForm;
 
 echo '<div class=row>';
 /* @var $matrix SingleHandler */
-$form = ActiveForm::begin(['id' => 'singleHandler', 'options' => ['class' => 'form-horizontal bg-default'], 'enableAjaxValidation' => true, 'action'=>['/payment/validate/single']]);
+$form = ActiveForm::begin(['id' => 'singleHandler', 'options' => ['class' => 'form-horizontal bg-default'], 'enableAjaxValidation' => false, 'validateOnSubmit'  => false, 'action'=>['/payment/validate/single']]);
 echo $form->field($matrix, 'cottageNumber', ['template' => '{input}'])->hiddenInput()->label(false);
+echo $form->field($matrix, 'double', ['template' => '{input}'])->hiddenInput()->label(false);
 echo $form->field($matrix, 'summ', ['template' =>
     '<div class="col-lg-5">{label}</div><div class="col-lg-3">{input}{error}{hint}</div>'])
     ->textInput(['autocomplete' => 'off', 'type' => 'number'])

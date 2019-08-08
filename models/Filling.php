@@ -554,7 +554,7 @@ class Filling extends Model
                     if ($additionalCottage->powerDebt > 0) {
                         $power = '<tbody>';
                         $power .= '<tr><td colspan="2"><h2 style="color:#FF21A2">Электроэнергия (дополнительный участок)</h2></td></tr>';
-                        $debt = PowerHandler::getDebtReport($additionalCottage, true);
+                        $debt = PowerHandler::getDebtReport($additionalCottage);
                         foreach ($debt as $key => $value) {
                             if(!empty($value['totalPay'])){
                                 $totalPay = CashHandler::toRubles($value['totalPay']);
@@ -601,7 +601,7 @@ class Filling extends Model
                     if ($additionalCottage->membershipPayFor < TimeHandler::getCurrentQuarter()) {
                         $membership = '<tbody>';
                         $membership .= '<tr><td colspan="2"><h2 style="color: #007155">Членские взносы (дополнительный участок)</h2></td></tr>';
-                        $debt = MembershipHandler::getDebt($additionalCottage, true);
+                        $debt = MembershipHandler::getDebt($additionalCottage);
                         foreach ($debt as $key => $value) {
                             $totalSumm = CashHandler::toRubles($value['total_summ']);
                             $membershipCost += $totalSumm;
@@ -638,7 +638,7 @@ class Filling extends Model
                     if ($additionalCottage->targetDebt > 0) {
                         $target = '<tbody>';
                         $target .= '<tr><td colspan="2"><h2 style="color: #1E1470">Целевые взносы (дополнительный участок)</h2></td></tr>';
-                        $debt = TargetHandler::getDebt($additionalCottage, true);
+                        $debt = TargetHandler::getDebt($additionalCottage);
                         foreach ($debt as $key => $value){
                             $realSumm = CashHandler::toRubles($value['realSumm']);
                             $targetCost += $realSumm;

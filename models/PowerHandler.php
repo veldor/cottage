@@ -45,7 +45,7 @@ class PowerHandler extends Model
     {
         // найду все платежи данного счёта
         $pays = Table_payed_power::find()->where(['billId' => $id])->all();
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
                 /** @var Table_payed_power $pay */
                 $pay->paymentDate = $timestamp;
@@ -438,28 +438,22 @@ class PowerHandler extends Model
     }
 
     /**
-     * @param $cottage int|string|Table_cottages|Table_additional_cottages
-     * @param bool $additional
+     * @param $cottage Table_cottages|Table_additional_cottages
      * @return array
      * @throws ErrorException
      */
-    public static function getDebtReport($cottage, $additional = false): array
+    public static function getDebtReport($cottage): array
     {
         // получу данные о частично оплаченных месяцах
         $partialPayed = self::checkPartialPayedMonth($cottage);
+        $isMain = Cottage::isMain($cottage);
         $query = null;
-        if ($additional) {
-            if (!is_object($cottage)) {
-                $cottage = AdditionalCottage::getCottage($cottage);
-            }
-            if (!$cottage->isPower) {
+        if (!$isMain) {
+            if (empty($cottage->isPower)) {
                 return [];
             }
             $query = Table_additional_power_months::find()->where(['cottageNumber' => $cottage->masterId]);
         } else {
-            if (!is_object($cottage)) {
-                $cottage = Cottage::getCottageInfo($cottage);
-            }
             $query = Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber]);
         }
         $tariffs = self::getTariff(['start' => $cottage->powerPayFor]);
@@ -508,7 +502,7 @@ class PowerHandler extends Model
             $cottage = Cottage::getCottageInfo($cottage);
         }
         // получу все задолженности
-        $duty = self::getDebtReport($cottage, $additional);
+        $duty = self::getDebtReport($cottage);
         if (!empty($corrected)) {
             $noLimArr = array_flip(explode(' ', trim($corrected)));
         }
@@ -561,14 +555,15 @@ class PowerHandler extends Model
      * @param $cottageInfo Table_cottages|Table_additional_cottages
      * @param $billInfo Table_payment_bills
      * @param $payments array
+     * @param $transaction Table_transactions
      * @param $additional boolean
      */
-    public static function registerPayment($cottageInfo, $billInfo, $payments, $additional = false)
+    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false)
     {
         // зарегистрирую платежи
         $realSumm = 0;
         foreach ($payments['values'] as $payment) {
-            self::insertPayment($payment, $cottageInfo, $billInfo, $additional);
+            self::insertPayment($payment, $cottageInfo, $billInfo, $transaction, $additional);
             if (!empty($payment['corrected']) && $payment['corrected'] === '1') {
                 $realSumm += $payment['pay-with-limit'];
             } else {
@@ -579,7 +574,14 @@ class PowerHandler extends Model
         $cottageInfo->powerDebt -= CashHandler::rublesRound($realSumm);
     }
 
-    public static function insertSinglePayment($cottageInfo, $billId, $date, $summ, $time)
+    /**
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @param $bill Table_payment_bills|Table_payment_bills_double
+     * @param $date
+     * @param $summ
+     * @param $transaction Table_transactions|Table_transactions_double
+     */
+    public static function insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ)
     {
         // проверю тип участка
         if (Cottage::isMain($cottageInfo)) {
@@ -591,10 +593,11 @@ class PowerHandler extends Model
             $write = new Table_additional_payed_power();
             $write->cottageId = $cottageInfo->masterId;
         }
-        $write->billId = $billId;
+        $write->billId = $bill->id;
         $write->month = $date;
         $write->summ = $summ;
-        $write->paymentDate = $time;
+        $write->paymentDate = $transaction->bankDate;
+        $write->transactionId = $transaction->id;
         $write->save();
         $paymentMonth = self::getPaymentMonth($cottageId, $date, !Cottage::isMain($cottageInfo));
         $paymentMonth->payed = 'yes';
@@ -602,7 +605,14 @@ class PowerHandler extends Model
         self::recalculatePower($date);
     }
 
-    public static function insertPayment($payment, $cottageInfo, $billInfo, $additional = false)
+    /**
+     * @param $payment
+     * @param $cottageInfo
+     * @param $billInfo
+     * @param $transaction Table_transactions
+     * @param bool $additional
+     */
+    public static function insertPayment($payment, $cottageInfo, $billInfo, $transaction, $additional = false)
     {
         $partialPayed = self::checkPartialPayedMonth($cottageInfo);
         $summ = CashHandler::toRubles($payment['summ']);
@@ -622,9 +632,10 @@ class PowerHandler extends Model
                 $write->cottageId = $cottageInfo->cottageNumber;
             }
             $write->billId = $billInfo->id;
+            $write->transactionId = $transaction->id;
             $write->month = $payment['date'];
             $write->summ = $summ;
-            $write->paymentDate = $billInfo->paymentTime;
+            $write->paymentDate = $transaction->bankDate;
             $write->save();
             self::recalculatePower($payment['date']);
         } else if ($additional) {
@@ -735,54 +746,51 @@ class PowerHandler extends Model
     }
 
     /**
-     * @param $billDom DOMHandler
-     * @param $paymentSumm
-     * @param $cottageInfo
-     * @param $billId
-     * @param $paymentTime
+     * @param $bill Table_payment_bills|Table_payment_bills_double
+     * @param $paymentSumm double
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @param $transaction Table_transactions|Table_transactions_double
      */
-    public static function handlePartialPayment($billDom, $paymentSumm, $cottageInfo, $billId, $paymentTime)
+    public static function handlePartialPayment($bill, $paymentSumm, $cottageInfo, $transaction)
     {
         $main = Cottage::isMain($cottageInfo);
         $payedMonths = null;
         $partialPayedMonth = null;
-
-        /** @var DOMElement $powerContainer */
-        // добавлю оплаченную сумму в xml
-        if ($main) {
-            $powerContainer = $billDom->query('//power')->item(0);
-        } else {
-            $powerContainer = $billDom->query('//additional_power')->item(0);
-        }
-        // проверю, не оплачивалась ли часть платежа ранее
-        $payedBefore = CashHandler::toRubles(0 . $powerContainer->getAttribute('payed'));
-        $powerContainer->setAttribute('payed', $paymentSumm + $payedBefore);
+        $dom = new DOMHandler($bill->bill_content);
         // получу данные о полном счёте за электричество
         if ($main) {
-            $powerMonths = $billDom->query('//power/month');
+            $powerMonths = $dom->query('//power/month');
         } else {
-            $powerMonths = $billDom->query('//additional_power/month');
+            $powerMonths = $dom->query('//additional_power/month');
+        }
+        // если ранее производилась оплата электричества по данному счёту- посчитаю сумму оплаты
+        if($main){
+            $payedBefore = Table_payed_power::find()->where(['billId' => $bill->id])->all();
+        }
+        else{
+            $payedBefore = Table_additional_payed_power::find()->where(['billId' => $bill->id])->all();
+        }
+        $payedSumm = 0;
+        if (!empty($payedBefore)) {
+            foreach ($payedBefore as $item) {
+                $payedSumm += CashHandler::toRubles($item->summ);
+            }
         }
         /** @var DOMElement $month */
         foreach ($powerMonths as $month) {
-            $prepayed = 0;
             // получу сумму платежа
-            $summ = DOMHandler::getFloatAttribute($month, 'summ');
-            if ($summ <= $payedBefore) {
-                $payedBefore -= $summ;
+            $summ = CashHandler::toRubles(DOMHandler::getFloatAttribute($month, 'summ'));
+            // если предыдущей оплаты хватает на полную оплату месяца,считаю его оплаченным и пропускаю
+            if ($payedSumm >= $summ) {
+                $payedSumm -= $summ;
                 continue;
-            } elseif ($payedBefore > 0) {
-                $prepayed = $payedBefore;
-                $payedBefore = 0;
             }
-            if ($summ - $prepayed <= $paymentSumm) {
+            $summWithPrepay = $summ - $payedSumm;
+            if ($summWithPrepay <= $paymentSumm) {
                 // денег хватает на полую оплату месяца. Добавляю его в список полностью оплаченных и вычитаю из общей суммы стоимость месяца
-                $payedMonths [] = ['date' => $month->getAttribute('date'), 'summ' => $summ - $prepayed];
-                $paymentSumm -= $summ - $prepayed;
-                if ($prepayed > 0) {
-                    // ранее частично оплаченный квартал считаю полностью оплаченным
-                    $cottageInfo->partialPayedPower = null;
-                }
+                $payedMonths [] = ['date' => $month->getAttribute('date'), 'summ' => $summWithPrepay];
+                $paymentSumm -= $summWithPrepay;
+                $payedSumm = 0;
             } elseif ($paymentSumm > 0) {
                 // денег не хватает на полую оплату месяца, но ещё есть остаток- помечаю месяц как частично оплаченный
                 $partialPayedMonth = ['date' => $month->getAttribute('date'), 'summ' => $paymentSumm];
@@ -794,10 +802,11 @@ class PowerHandler extends Model
             foreach ($payedMonths as $payedMonth) {
                 $date = $payedMonth['date'];
                 $summ = $payedMonth['summ'];
-                self::insertSinglePayment($cottageInfo, $billId, $date, $summ, $paymentTime);
+                self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
                 // отмечу месяц последним оплаченным для участка
                 $cottageInfo->powerPayFor = $date;
                 $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
+                $cottageInfo->partialPayedPower = null;
             }
         }
         if (!empty($partialPayedMonth)) {
@@ -806,16 +815,20 @@ class PowerHandler extends Model
             $summForSave = $summ;
             // проверю существование частично оплаченного месяца у данного участка
             $savedPartial = self::checkPartialPayedMonth($cottageInfo);
-
             // проверю, хватит ли совместных средств для полной оплаты месяца
             if ($savedPartial) {
                 $prevPayment = CashHandler::toRubles($savedPartial['summ']);
                 // получу полную стоимость данного месяца
                 /** @var DOMElement $monthInfo */
-                $monthInfo = $billDom->query('//month[@date="' . $date . '"]')->item(0);
+                if($main){
+                    $monthInfo = $dom->query('//power/month[@date="' . $date . '"]')->item(0);
+                }
+                else{
+                    $monthInfo = $dom->query('//additional_power/month[@date="' . $date . '"]')->item(0);
+                }
                 $fullPaySumm = CashHandler::toRubles($monthInfo->getAttribute('summ'));
                 if ($prevPayment + $summ === $fullPaySumm) {
-                    self::insertSinglePayment($cottageInfo, $billId, $date, $summ - $prevPayment, $paymentTime);
+                    self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ - $prevPayment);
                     $cottageInfo->powerPayFor = $date;
                     $cottageInfo->partialPayedPower = null;
                     return;
@@ -834,72 +847,14 @@ class PowerHandler extends Model
             }
             // отмечу месяц как оплаченный частично
             $cottageInfo->partialPayedPower = "<partial date='$date' summ='$summForSave'/>";
-            $table->billId = $billId;
+            $table->billId = $bill->id;
             $table->month = $date;
             $table->summ = $summ;
-            $table->paymentDate = $paymentTime;
+            $table->paymentDate = $transaction->bankDate;
+            $table->transactionId = $transaction->id;
             $table->save();
         }
     }
-
-    /**
-     * @param $billDom DOMHandler
-     * @param $cottageInfo
-     * @param $billId
-     * @param $paymentTime
-     */
-    public static function finishPartialPayment($billDom, $cottageInfo, $billId, $paymentTime)
-    {
-        $main = Cottage::isMain($cottageInfo);
-        $payedMonths = null;
-        $partialPayedMonth = null;
-        // добавлю оплаченную сумму в xml
-        if ($main) {
-            /** @var DOMElement $powerContainer */
-            $powerContainer = $billDom->query('//power')->item(0);
-        } else {
-            $powerContainer = $billDom->query('//additional_power')->item(0);
-        }
-        // проверю, не оплачивалась ли часть платежа ранее
-        $payedBefore = CashHandler::toRubles(0 . $powerContainer->getAttribute('payed'));
-        // получу данные о полном счёте за электричество
-        if ($main) {
-            $powerMonths = $billDom->query('//power/month');
-        } else {
-            $powerMonths = $billDom->query('//additional_power/month');
-        }
-
-        /** @var DOMElement $month */
-        foreach ($powerMonths as $month) {
-            $prepayed = 0;
-            // получу сумму платежа
-            $summ = DOMHandler::getFloatAttribute($month, 'summ');
-            if ($summ <= $payedBefore) {
-                $payedBefore -= $summ;
-                continue;
-            } elseif ($payedBefore > 0) {
-                $prepayed = $payedBefore;
-                $payedBefore = 0;
-            }
-            if ($prepayed > 0) {
-                // часть месяца оплачена заранее
-                $date = $month->getAttribute('date');
-                self::insertSinglePayment($cottageInfo, $billId, $date, $summ - $prepayed, $paymentTime);
-                // отмечу месяц последним оплаченным для участка
-                $cottageInfo->powerPayFor = $date;
-                $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - ($summ - $prepayed));
-            } else {
-                // отмечу месяц как оплаченный полностью
-                $date = $month->getAttribute('date');
-                self::insertSinglePayment($cottageInfo, $billId, $date, $summ, $paymentTime);
-                // отмечу месяц последним оплаченным для участка
-                $cottageInfo->powerPayFor = $date;
-                $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
-            }
-        }
-        $cottageInfo->partialPayedPower = null;
-    }
-
 
     private static function checkPartialPayedMonth($cottageInfo)
     {

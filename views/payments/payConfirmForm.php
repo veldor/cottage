@@ -9,8 +9,15 @@
 
 use app\models\CashHandler;
 use app\models\Pay;
+use app\models\SingleHandler;
+use app\models\Table_additional_payed_membership;
+use app\models\Table_additional_payed_power;
+use app\models\Table_payed_membership;
+use app\models\Table_payed_power;
+use app\models\Table_payment_bills;
+use app\models\Table_payment_bills_double;
 use app\models\tables\Table_view_fines_info;
-use app\models\TimeHandler;
+use app\models\TargetHandler;
 use yii\helpers\Html;
 use yii\web\View;
 use yii\widgets\ActiveForm;
@@ -18,7 +25,9 @@ use yii\widgets\ActiveForm;
 /* @var $this View */
 /* @var $model Pay */
 
+/** @var Table_payment_bills_double|Table_payment_bills $billInfo */
 $billInfo = $model->billInfo['billInfo'];
+
 
 $form = ActiveForm::begin(['id' => 'confirmCash', 'options' => ['class' => 'form-horizontal bg-default'], 'enableAjaxValidation' => true, 'validateOnSubmit' => false, 'action' => ['/pay/confirm/check/' . $model->billIdentificator]]);
 
@@ -29,6 +38,14 @@ $fromDeposit = $model->fromDeposit ?? 0;
 $discount = $model->discount ?? 0;
 $payedBefore = $model->payedBefore ?? 0;
 
+// если платёж не оплачивался ранее, добавлю скидку и оплату с депозита как модификатор суммы для частичного платежа
+if (!$payedBefore) {
+    echo "<span class='hidden' id='partialSummModification' data-summ='" . CashHandler::toRubles($fromDeposit + $discount) . "'></span>";
+} else {
+    echo "<span class='hidden' id='partialSummModification' data-summ='0'></span>";
+}
+
+
 $summToPay = CashHandler::toRubles($fullSumm - $fromDeposit - $discount - $payedBefore);
 
 echo '
@@ -36,13 +53,13 @@ echo '
 
 if ($fullSumm != $summToPay) {
     $text = '<p> <b class="text-danger"> ' . CashHandler::toSmoothRubles($fullSumm) . ' (Полная сумма)</b><br/>';
-    if($fromDeposit){
+    if ($fromDeposit) {
         $text .= '<b class="text-success">-' . CashHandler::toSmoothRubles($fromDeposit) . ' (Оплачено с депозита)</b><br/>';
     }
-    if($discount){
+    if ($discount) {
         $text .= '<b class="text-success">-' . CashHandler::toSmoothRubles($discount) . ' (Скидка)</b><br/>';
     }
-    if($payedBefore){
+    if ($payedBefore) {
         $text .= '<b class="text-success">-' . CashHandler::toSmoothRubles($payedBefore) . ' (Оплачено ранее)</b><br/>';
     }
     // опишу модификаторы
@@ -54,23 +71,6 @@ echo $form->field($model, 'totalSumm', ['template' => "{input}"])->hiddenInput()
 echo $form->field($model, 'change', ['template' => "{input}"])->hiddenInput()->label(false);
 echo $form->field($model, 'double', ['template' => "{input}"])->hiddenInput()->label(false);
 
-/*echo $form->field($model, 'payType', ['template' =>
-    '<div class="col-sm-5">{label}</div><div class="col-sm-7"><div class="btn-group" data-toggle="buttons">{input}</div>
-									{error}{hint}</div>'])
-    ->radioList(['cash' => 'Наличные', 'cashless' => 'Безналичный расчёт'], ['item' =>
-        function ($index, $label, $name, $checked, $value) {
-            $tagName = $index === 0 ? 'Наличные' : 'Безналичный расчёт';
-            return "<label class='btn btn-info'><input name='$name' type='radio' value='$value'/>$tagName</label>";
-        }]);*/
-
-echo $form->field($model, 'payWholeness', ['template' =>
-    '<div class="hidden"><div class="col-sm-5">{label}</div><div class="col-sm-7"><div class="btn-group" data-toggle="buttons">{input}</div>
-									{error}{hint}</div></div> '])
-    ->radioList(['full' => 'Полностью', 'partial' => 'Частично'], ['item' =>
-        function ($index, $label, $name, $checked, $value) {
-            $tagName = $index === 0 ? 'Полностью' : 'Частично';
-            return "<label class='btn btn-info'><input name='$name' type='radio' value='$value'/>$tagName</label>";
-        }]);
 
 echo $form->field($model, 'rawSumm', ['template' =>
     '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group"><span id="roundSummGet" class="btn btn-success input-group-addon">Ровно</span>{input}<span class="input-group-addon">&#8381;</span></div>
@@ -80,236 +80,187 @@ echo $form->field($model, 'rawSumm', ['template' =>
     ->label('Получено средств');
 
 // ========================================БЛОК ЧАСТИЧНОЙ ОПЛАТЫ=====================================
-
-
-echo $form->field($model, 'power', ['template' => "{input}"])->hiddenInput(['class' => 'form-control divided-input'])->label(false);
-echo $form->field($model, 'additionalPower', ['template' => "{input}"])->hiddenInput(['class' => 'form-control divided-input'])->label(false);
-echo $form->field($model, 'membership', ['template' => "{input}"])->hiddenInput(['class' => 'form-control divided-input'])->label(false);
-echo $form->field($model, 'additionalMembership', ['template' => "{input}"])->hiddenInput(['class' => 'form-control divided-input'])->label(false);
-echo $form->field($model, 'target', ['template' => "{input}"])->hiddenInput(['class' => 'form-control divided-input'])->label(false);
-echo $form->field($model, 'additionalTarget', ['template' => "{input}"])->hiddenInput(['class' => 'form-control divided-input'])->label(false);
-echo $form->field($model, 'single', ['template' => "{input}"])->hiddenInput(['class' => 'form-control divided-input'])->label(false);
-
 // подробно распишу все входящие в счёт платежи
 
 if (!empty($model->billInfo['paymentContent']['power'])) {
-    $payedBefore = CashHandler::toRubles(($model->billInfo['paymentContent']['power']['payed'] ?? 0));
-    $payedBeforeBlock = $payedBefore ? '<h4 class="text-center">(Ранее оплачено: <b class="text-info">' . CashHandler::toSmoothRubles($payedBefore) . '</b>)</h4>': '';
-
-    echo '<div class="col-sm-12 payment-details hidden" data-summ="' . $model->billInfo['paymentContent']['power']['summ'] . '" data-payed="' . $model->billInfo['paymentContent']['power']['payed'] . '"><h3 class="text-center">Электроэнергия, всего <b id="fullPowerSumm" class="text-success">' . CashHandler::toSmoothRubles($model->billInfo['paymentContent']['power']['summ']) . '</b></h3> ' . $payedBeforeBlock . '<ol>';
-    foreach ($model->billInfo['paymentContent']['power']['values'] as $value) {
-        $payedBeforeBlock = '';
-        $payedBeforeSumm = 0;
-        // проверю, не оплачена ли часть платежа предварительно
-        if($payedBefore > 0){
-            $summ = CashHandler::toRubles($value['summ']);
-            if($payedBefore >= $summ){
-                $payedBeforeBlock = "<span class='btn btn-info prepayed'> Полностью оплачено ранее</span>";
-                $payedBeforeSumm = $summ;
-                $payedBefore -= $summ;
-            }
-            else{
-                $payedBeforeBlock = '<span class="btn btn-info prepayed"> Ранее оплачено ' . CashHandler::toSmoothRubles($payedBefore) . '</span>';
-                $payedBeforeSumm = $payedBefore;
-                $payedBefore = 0;
-            }
+    // найду оплаты электроэнергии по данному счёту
+    $fullPowerSumm = CashHandler::toRubles($model->billInfo['paymentContent']['power']['summ']);
+    $payedBefore = Table_payed_power::find()->where(['billId' => $billInfo->id])->all();
+    $previousPayedPower = 0;
+    if (!empty($payedBefore)) {
+        foreach ($payedBefore as $item) {
+            $previousPayedPower += CashHandler::toRubles($item->summ);
         }
-        echo '<li class="power-data" data-month="' . $value['date'] . '" data-summ="' . $value['summ'] . '" data-payed-before="' . $payedBeforeSumm . '">' . TimeHandler::getFullFromShotMonth($value['date']) . ' : <b class="text-info">' . CashHandler::toSmoothRubles($value['summ']) . '</b>' . $payedBeforeBlock . '</li>';
+        $powerSummToPay = $fullPowerSumm - $previousPayedPower;
+        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedPower) . ",осталось оплатить " . CashHandler::toSmoothRubles($powerSummToPay);
+    } else {
+        $powerSummToPay = $fullPowerSumm;
+        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullPowerSumm);
     }
-    echo '</ol>
-        <div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="power">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="powerDistributed"><span class="input-group-addon">&#8381;</span></div>
-</div>';
+    if ($powerSummToPay > 0) {
+        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Электроэнергия</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedPower' data-max-summ='{$powerSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[power]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+    }
 }
 if (!empty($model->billInfo['paymentContent']['additionalPower'])) {
-    $payedBefore = CashHandler::toRubles(($model->billInfo['paymentContent']['power']['additionalPower'] ?? 0));
-    $payedBeforeBlock = $payedBefore ? '<h4 class="text-center">(Ранее оплачено: <b class="text-info">' . CashHandler::toSmoothRubles($payedBefore) . '</b>)</h4>': '';
-
-    echo '<div class="col-sm-12 payment-details hidden" data-summ="' . $model->billInfo['paymentContent']['additionalPower']['summ'] . '" data-payed="' . $model->billInfo['paymentContent']['additionalPower']['payed'] . '"><h3 class="text-center">Электроэнергия (доп.), всего <b id="fullAdditionalPowerSumm" class="text-success">' . CashHandler::toSmoothRubles($model->billInfo['paymentContent']['additionalPower']['summ']) . '</b></h3> ' . $payedBeforeBlock . '<ol>';
-    foreach ($model->billInfo['paymentContent']['additionalPower']['values'] as $value) {
-        $payedBeforeBlock = '';
-        $payedBeforeSumm = 0;
-        // проверю, не оплачена ли часть платежа предварительно
-        if($payedBefore > 0){
-            $summ = CashHandler::toRubles($value['summ']);
-            if($payedBefore >= $summ){
-                $payedBeforeBlock = "<span class='btn btn-info prepayed'> Полностью оплачено ранее</span>";
-                $payedBeforeSumm = $summ;
-                $payedBefore -= $summ;
-            }
-            else{
-                $payedBeforeBlock = '<span class="btn btn-info prepayed"> Ранее оплачено ' . CashHandler::toSmoothRubles($payedBefore) . '</span>';
-                $payedBeforeSumm = $payedBefore;
-                $payedBefore = 0;
-            }
+// найду оплаты электроэнергии по данному счёту
+    $fullPowerSumm = CashHandler::toRubles($model->billInfo['paymentContent']['additionalPower']['summ']);
+    $payedBefore = Table_additional_payed_power::find()->where(['billId' => $billInfo->id])->all();
+    $previousPayedPower = 0;
+    if (!empty($payedBefore)) {
+        foreach ($payedBefore as $item) {
+            $previousPayedPower += CashHandler::toRubles($item->summ);
         }
-        echo '<li class="power-data" data-month="' . $value['date'] . '" data-summ="' . $value['summ'] . '" data-payed-before="' . $payedBeforeSumm . '">' . TimeHandler::getFullFromShotMonth($value['date']) . ' : <b class="text-info">' . CashHandler::toSmoothRubles($value['summ']) . '</b>' . $payedBeforeBlock . '</li>';
+        $powerSummToPay = $fullPowerSumm - $previousPayedPower;
+        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedPower) . ",осталось оплатить " . CashHandler::toSmoothRubles($powerSummToPay);
+    } else {
+        $powerSummToPay = $fullPowerSumm;
+        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullPowerSumm);
     }
-    echo '</ol>
-        <div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="additionalPower">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="additionalPowerDistributed"><span class="input-group-addon">&#8381;</span></div>
-</div>';
+    if ($powerSummToPay > 0) {
+        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Электроэнергия(доп.)</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedPower' data-max-summ='{$powerSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[additionalPower]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+    }
 }
 if (!empty($model->billInfo['paymentContent']['membership'])) {
-    $payedBefore = CashHandler::toRubles(($model->billInfo['paymentContent']['membership']['payed'] ?? 0));
-    $payedBeforeBlock = $payedBefore ? '<h4 class="text-center">(Ранее оплачено: <b class="text-info">' . CashHandler::toSmoothRubles($payedBefore) . '</b>)</h4>': '';
-
-    echo '<div class="col-sm-12 payment-details hidden" data-summ="' . $model->billInfo['paymentContent']['membership']['summ'] . '" data-payed="' . $model->billInfo['paymentContent']['membership']['payed'] . '"><h3 class="text-center">Членские, всего <b class="text-success" id="fullMembershipSumm">' . CashHandler::toSmoothRubles($model->billInfo['paymentContent']['membership']['summ']) . '</b></h3><ol>';
-
-    foreach ($model->billInfo['paymentContent']['membership']['values'] as $value) {
-        $payedBeforeBlock = '';
-        $payedBeforeSumm = 0;
-        // проверю, не оплачена ли часть платежа предварительно
-        if($payedBefore > 0){
-            $summ = CashHandler::toRubles($value['summ']);
-            if($payedBefore >= $summ){
-                $payedBeforeBlock = " <span class='btn btn-info prepayed'>Полностью оплачено ранее</span>";
-                $payedBeforeSumm = $summ;
-                $payedBefore -= $summ;
-            }
-            else{
-                $payedBeforeBlock = ' <span class="btn btn-info prepayed">Ранее оплачено ' . CashHandler::toSmoothRubles($payedBefore) . '</span>';
-                $payedBeforeSumm = $payedBefore;
-                $payedBefore = 0;
-            }
+    // найду оплаты электроэнергии по данному счёту
+    $fullMembershipSumm = CashHandler::toRubles($model->billInfo['paymentContent']['membership']['summ']);
+    $payedBefore = Table_payed_membership::find()->where(['billId' => $billInfo->id])->all();
+    $previousPayedMembership = 0;
+    if (!empty($payedBefore)) {
+        foreach ($payedBefore as $item) {
+            $previousPayedMembership += CashHandler::toRubles($item->summ);
         }
-        echo '<li class="membership-data" data-period="' . $value['date'] . '" data-summ="' . $value['summ'] . '" data-payed-before="' . $payedBeforeSumm . '">' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : <b class="text-info">' . CashHandler::toSmoothRubles($value['summ']) . '</b>' . $payedBeforeBlock . '</li>';
+        $previousPayedMembership = CashHandler::toRubles($previousPayedMembership);
+        $membershipSummToPay = CashHandler::toRubles($fullMembershipSumm - $previousPayedMembership);
+        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedMembership) . ",осталось оплатить " . CashHandler::toSmoothRubles($membershipSummToPay);
+    } else {
+        $membershipSummToPay = $fullMembershipSumm;
+        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullMembershipSumm);
     }
-    echo '</ol>
-<div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="membership">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="membershipDistributed"><span class="input-group-addon">&#8381;</span></div>
-</div>';
+    if ($membershipSummToPay > 0) {
+        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[membership]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+    }
 }
 if (!empty($model->billInfo['paymentContent']['additionalMembership'])) {
-
-    $payedBefore = CashHandler::toRubles(($model->billInfo['paymentContent']['additionalMembership']['payed'] ?? 0));
-    $payedBeforeBlock = $payedBefore ? '<h4 class="text-center">(Ранее оплачено: <b class="text-info">' . CashHandler::toSmoothRubles($payedBefore) . '</b>)</h4>': '';
-
-    echo '<div class="col-sm-12 payment-details hidden" data-summ="' . $model->billInfo['paymentContent']['additionalMembership']['summ'] . '" data-payed="' . $model->billInfo['paymentContent']['additionalMembership']['payed'] . '"><h3 class="text-center">Членские (доп.), всего <b class="text-success" id="fullMembershipSumm">' . CashHandler::toSmoothRubles($model->billInfo['paymentContent']['additionalMembership']['summ']) . '</b></h3><ol>';
-
-    foreach ($model->billInfo['paymentContent']['additionalMembership']['values'] as $value) {
-        $payedBeforeBlock = '';
-        $payedBeforeSumm = 0;
-        // проверю, не оплачена ли часть платежа предварительно
-        if($payedBefore > 0){
-            $summ = CashHandler::toRubles($value['summ']);
-            if($payedBefore >= $summ){
-                $payedBeforeBlock = " <span class='btn btn-info prepayed'>Полностью оплачено ранее</span>";
-                $payedBeforeSumm = $summ;
-                $payedBefore -= $summ;
-            }
-            else{
-                $payedBeforeBlock = ' <span class="btn btn-info prepayed">Ранее оплачено ' . CashHandler::toSmoothRubles($payedBefore) . '</span>';
-                $payedBeforeSumm = $payedBefore;
-                $payedBefore = 0;
-            }
+    // найду оплаты электроэнергии по данному счёту
+    $fullMembershipSumm = CashHandler::toRubles($model->billInfo['paymentContent']['additionalMembership']['summ']);
+    $payedBefore = Table_additional_payed_membership::find()->where(['billId' => $billInfo->id])->all();
+    $previousPayedMembership = 0;
+    if (!empty($payedBefore)) {
+        foreach ($payedBefore as $item) {
+            $previousPayedMembership += CashHandler::toRubles($item->summ);
         }
-        echo '<li class="additional-membership-data" data-period="' . $value['date'] . '" data-summ="' . $value['summ'] . '" data-payed-before="' . $payedBeforeSumm . '">' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : <b class="text-info">' . CashHandler::toSmoothRubles($value['summ']) . '</b>' . $payedBeforeBlock . '</li>';
+        $previousPayedMembership = CashHandler::toRubles($previousPayedMembership);
+        $membershipSummToPay = CashHandler::toRubles($fullMembershipSumm - $previousPayedMembership);
+        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedMembership) . ",осталось оплатить " . CashHandler::toSmoothRubles($membershipSummToPay);
+    } else {
+        $membershipSummToPay = $fullMembershipSumm;
+        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullMembershipSumm);
     }
-    echo '</ol>
-<div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="additionalMembership">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="additionalMembershipDistributed"><span class="input-group-addon">&#8381;</span></div>
-</div>';
+    if ($membershipSummToPay > 0) {
+        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские (доп.) </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[additionalMembership]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+    }
 }
 if (!empty($model->billInfo['paymentContent']['target'])) {
-    $payedBefore = CashHandler::toRubles(($model->billInfo['paymentContent']['target']['payed'] ?? 0));
-    $payedBeforeBlock = $payedBefore ? '<h4 class="text-center">(Ранее оплачено: <b class="text-info">' . CashHandler::toSmoothRubles($payedBefore) . '</b>)</h4>': '';
+    // получу информацию о задолженностях
+    $yearInfo = TargetHandler::getDebt($model->cottageInfo);
+    // для каждого года оплаты создам отдельное поле ввода
+    foreach ($model->billInfo['paymentContent']['target']['values'] as $item) {
+        // получу актуальную информацию о годе
+        if (!empty($yearInfo[$item['year']])) {
+            $info = $yearInfo[$item['year']];
+            $payed = CashHandler::toRubles($info['payed']);
+            $realSumm = CashHandler::toRubles($info['realSumm']);
+            if (!empty($payed)) {
+                $targetSummToPay = $realSumm;
+                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($realSumm);
+            } else {
+                $targetSummToPay = $realSumm;
+                $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($targetSummToPay);
+            }
+            echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Целевые {$item['year']}</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$targetSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[target][{$item['year']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
 
-    echo '<div class="col-sm-12 payment-details hidden" data-summ="' . $model->billInfo['paymentContent']['target']['summ'] . '" data-payed="' . $model->billInfo['paymentContent']['target']['payed'] . '"><h3 class="text-center">Целевые взносы, всего <b id="fullSingleSumm" class="text-success">' . CashHandler::toSmoothRubles($model->billInfo['paymentContent']['target']['summ']) . '</b></h3> ' . $payedBeforeBlock . '<ol>';
-    foreach ($model->billInfo['paymentContent']['target']['values'] as $value) {
-        $payedBeforeBlock = '';
-        $payedBeforeSumm = 0;
-        // проверю, не оплачена ли часть платежа предварительно
-        if($payedBefore > 0){
-            $summ = CashHandler::toRubles($value['summ']);
-            if($payedBefore >= $summ){
-                $payedBeforeBlock = "<span class='btn btn-info prepayed'> Полностью оплачено ранее</span>";
-                $payedBeforeSumm = $summ;
-                $payedBefore -= $summ;
-            }
-            else{
-                $payedBeforeBlock = '<span class="btn btn-info prepayed"> Ранее оплачено ' . CashHandler::toSmoothRubles($payedBefore) . '</span>';
-                $payedBeforeSumm = $payedBefore;
-                $payedBefore = 0;
-            }
         }
-        echo '<li class="target-data" data-time="' . $value['year'] . '" data-summ="' . $value['summ'] . '" data-payed-before="' . $payedBeforeSumm . '">' . $value['year'] . ' : <b class="text-info">' . CashHandler::toSmoothRubles($value['summ']) . '</b>' . $payedBeforeBlock . '</li>';
     }
-    echo '</ol>
-        <div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="target">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="targetDistributed"><span class="input-group-addon">&#8381;</span></div>
-</div>';
 }
 if (!empty($model->billInfo['paymentContent']['additionalTarget'])) {
-    $payedBefore = CashHandler::toRubles(($model->billInfo['paymentContent']['additionalTarget']['payed'] ?? 0));
-    $payedBeforeBlock = $payedBefore ? '<h4 class="text-center">(Ранее оплачено: <b class="text-info">' . CashHandler::toSmoothRubles($payedBefore) . '</b>)</h4>': '';
-
-    echo '<div class="col-sm-12 payment-details hidden" data-summ="' . $model->billInfo['paymentContent']['additionalTarget']['summ'] . '" data-payed="' . $model->billInfo['paymentContent']['additionalTarget']['payed'] . '"><h3 class="text-center">Целевые взносы(доп.), всего <b id="fullSingleSumm" class="text-success">' . CashHandler::toSmoothRubles($model->billInfo['paymentContent']['additionalTarget']['summ']) . '</b></h3> ' . $payedBeforeBlock . '<ol>';
-    foreach ($model->billInfo['paymentContent']['additionalTarget']['values'] as $value) {
-        $payedBeforeBlock = '';
-        $payedBeforeSumm = 0;
-        // проверю, не оплачена ли часть платежа предварительно
-        if($payedBefore > 0){
-            $summ = CashHandler::toRubles($value['summ']);
-            if($payedBefore >= $summ){
-                $payedBeforeBlock = "<span class='btn btn-info prepayed'> Полностью оплачено ранее</span>";
-                $payedBeforeSumm = $summ;
-                $payedBefore -= $summ;
-            }
-            else{
-                $payedBeforeBlock = '<span class="btn btn-info prepayed"> Ранее оплачено ' . CashHandler::toSmoothRubles($payedBefore) . '</span>';
-                $payedBeforeSumm = $payedBefore;
-                $payedBefore = 0;
-            }
-        }
-        echo '<li class="target-data" data-time="' . $value['year'] . '" data-summ="' . $value['summ'] . '" data-payed-before="' . $payedBeforeSumm . '">' . $value['year'] . ' : <b class="text-info">' . CashHandler::toSmoothRubles($value['summ']) . '</b>' . $payedBeforeBlock . '</li>';
+    // получу информацию о задолженностях
+    if($model->double){
+        $yearInfo = TargetHandler::getDebt($model->cottageInfo);
     }
-    echo '</ol>
-        <div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="additionalTarget">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="additionalTargetDistributed"><span class="input-group-addon">&#8381;</span></div>
-</div>';
+    else{
+        $yearInfo = TargetHandler::getDebt($model->additionalCottageInfo);
+    }
+    // для каждого года оплаты создам отдельное поле ввода
+    foreach ($model->billInfo['paymentContent']['additionalTarget']['values'] as $item) {
+        // получу актуальную информацию о годе
+        if (!empty($yearInfo[$item['year']])) {
+            $info = $yearInfo[$item['year']];
+            $payed = CashHandler::toRubles($info['payed']);
+            $realSumm = CashHandler::toRubles($info['realSumm']);
+            if (!empty($payed)) {
+                $targetSummToPay = $realSumm;
+                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($realSumm);
+            } else {
+                $targetSummToPay = $realSumm;
+                $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($targetSummToPay);
+            }
+            echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Целевые {$item['year']} (доп.)</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$targetSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[additionalTarget][{$item['year']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+
+        }
+    }
 }
 if (!empty($model->billInfo['paymentContent']['single'])) {
-    $payedBefore = CashHandler::toRubles(($model->billInfo['paymentContent']['single']['payed'] ?? 0));
-    $payedBeforeBlock = $payedBefore ? '<h4 class="text-center">(Ранее оплачено: <b class="text-info">' . CashHandler::toSmoothRubles($payedBefore) . '</b>)</h4>': '';
-
-    echo '<div class="col-sm-12 payment-details hidden" data-summ="' . $model->billInfo['paymentContent']['single']['summ'] . '" data-payed="' . $model->billInfo['paymentContent']['single']['payed'] . '"><h3 class="text-center">Разовые взносы, всего <b id="fullSingleSumm" class="text-success">' . CashHandler::toSmoothRubles($model->billInfo['paymentContent']['single']['summ']) . '</b></h3> ' . $payedBeforeBlock . '<ol>';
-    foreach ($model->billInfo['paymentContent']['single']['values'] as $value) {
-        $payedBeforeBlock = '';
-        $payedBeforeSumm = 0;
-        // проверю, не оплачена ли часть платежа предварительно
-        if($payedBefore > 0){
-            $summ = CashHandler::toRubles($value['summ']);
-            if($payedBefore >= $summ){
-                $payedBeforeBlock = "<span class='btn btn-info prepayed'> Полностью оплачено ранее</span>";
-                $payedBeforeSumm = $summ;
-                $payedBefore -= $summ;
+    // получу информацию о задолженностях
+    $singleInfo = SingleHandler::getDebtReport($model->cottageInfo);
+    // для каждого года оплаты создам отдельное поле ввода
+    foreach ($model->billInfo['paymentContent']['single']['values'] as $item) {
+        // получу актуальную информацию о платеже
+        if (!empty($singleInfo[$item['timestamp']])) {
+            $info = $singleInfo[$item['timestamp']];
+            $payed = CashHandler::toRubles($info['payed']);
+            $realSumm = CashHandler::toRubles($info['summ']);
+            if (!empty($payed)) {
+                $singleSummToPay = $realSumm - $payed;
+                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($singleSummToPay);
+            } else {
+                $singleSummToPay = $realSumm;
+                $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($singleSummToPay);
             }
-            else{
-                $payedBeforeBlock = '<span class="btn btn-info prepayed"> Ранее оплачено ' . CashHandler::toSmoothRubles($payedBefore) . '</span>';
-                $payedBeforeSumm = $payedBefore;
-                $payedBefore = 0;
-            }
+            echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Разовый: {$item['description']}</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$singleSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[single][{$item['timestamp']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
         }
-        echo '<li class="single-data" data-time="' . $value['timestamp'] . '" data-summ="' . $value['summ'] . '" data-payed-before="' . $payedBeforeSumm . '">' . $value['description'] . ' : <b class="text-info">' . CashHandler::toSmoothRubles($value['summ']) . '</b>' . $payedBeforeBlock . '</li>';
     }
-    echo '</ol>
-        <div class="input-group col-sm-5"><span class="btn btn-default input-group-addon all-distributed-button" data-category="single">Всё доступное</span><input type="number" step="0.01" class="form-control distributed-summ-input" id="singleDistributed"><span class="input-group-addon">&#8381;</span></div>
-</div>';
 }
 $fines = Table_view_fines_info::find()->where(['bill_id' => $model->billIdentificator])->all();
-if(!empty($fines)){
-    echo "Частичная оплата пени в разработке :)";
+if (!empty($fines)) {
+    $totalSumm = 0;
+    $payedSumm = 0;
+    // посчитаю общую сумму пени
+    foreach ($fines as $fine) {
+        $totalSumm += CashHandler::toRubles($fine->start_summ);
+        $payedSumm += CashHandler::toRubles($fine->payed_summ);
+    }
+    if (!empty($payedSumm)) {
+        $finesSummToPay = $totalSumm - $payedSumm;
+        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payedSumm) . ",осталось оплатить " . CashHandler::toSmoothRubles($finesSummToPay);
+    } else {
+        $finesSummToPay = $totalSumm;
+        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($finesSummToPay);
+    }
+    if ($finesSummToPay > 0) {
+        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Пени </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$finesSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[fines]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+    }
 }
 // ===================================== END OF БЛОК ЧАСТИЧНОЙ ОПЛАТЫ================================
 
-echo "<h2>Сдача: <span id='change' data-change='0'>0</span> &#8381;</h2>";
-echo $form->field($model, 'changeToDeposit', ['options' => ['class' => 'col-lg-4 form-group'], 'template' =>
-    '<button type="button" class="btn btn-info">{input}</button>
-									{error}{hint}'])
-    ->checkbox(['autocomplete' => 'off', 'class' => 'hidden']);
-echo $form->field($model, 'toDeposit', ['options' => ['class' => 'col-lg-8 form-group'], 'template' =>
-    '<div class="col-lg-5">{label}</div><div class="col-lg-5"><div class="input-group">{input}<span class="input-group-addon">&#8381;</span></div>
-									{error}{hint}</div><div class="col-lg-2"><button id="allChangeToDepositBtn" type="button" class="btn btn-info" disabled>Всё</button></div>'])
-    ->textInput(['autocomplete' => 'off', 'disabled' => true, 'type' => 'number', 'step' => '0.01'])
+echo $form->field($model, 'toDeposit', ['template' =>
+    '<div class="col-lg-5">{label}</div><div class="col-lg-4">{input}{error}{hint}</div>'])
+    ->textInput(['autocomplete' => 'off', 'readonly' => true, 'type' => 'number', 'step' => '0.01', 'value' => 0])
     ->hint('В рублях')
-    ->label('Начислить на депозит');
+    ->label('Будет зачислено на депозит');
 echo "<div class='clearfix'></div>";
-echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-5"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div></div>';
+echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div></div>';
+echo "<div class='margened'></div>";
+echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата поступления на счёт</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="getCustomDate" name="Pay[getCustomDate]"></div></div>';
 echo "<div class='margened'></div>";
 echo $form->field($model, 'sendConfirmation', ['template' =>
     '<div class="col-sm-5">{label}</div><div class="col-sm-7">{input}{error}{hint}</div>'])
@@ -318,3 +269,145 @@ echo $form->field($model, 'sendConfirmation', ['template' =>
 echo "<div class='clearfix'></div>";
 echo Html::submitButton('Сохранить', ['class' => 'btn btn-success   ', 'id' => 'addSubmit', 'data-toggle' => 'tooltip', 'data-placement' => 'top', 'data-html' => 'true',]);
 ActiveForm::end();
+
+?>
+
+<script>
+    function handleForm() {
+        let newModal = $('.modal');
+        let undistributedSumm = 0;
+        let frm = newModal.find('form');
+        // сумма-модификатор при частичной оплате
+        let partialModification = toRubles(newModal.find('span#partialSummModification').attr('data-summ'));
+        // поле ввода суммы платежа
+        let rawSumm = newModal.find('input#pay-rawsumm');
+        // сумма, необходимая для оплаты
+        let summToPay = toRubles(newModal.find('#paySumm').attr('data-summ'));
+        // кнопка зачисления суммы, необходимой для полного погашения
+        let roundSummGetBtn = newModal.find('span#roundSummGet');
+        // поле суммы, уходящей на депозит
+        let toDepositInput = newModal.find('input#pay-todeposit');
+        // элементы частичной оплаты
+        let paymentDetailsParts = newModal.find('div.payment-details');
+
+        let undistributedSummContainer;
+
+        // обработаю ввод распределённой суммы в поле ввода
+        let distributeInputs = $('.distributed-summ-input');
+
+
+        // при клике на кнопку- вставляю в поле ввода суммы сумму, равную необходимой для полного погашения платежа
+        roundSummGetBtn.on('click.all', function () {
+            rawSumm.val(summToPay);
+            rawSumm.trigger('change');
+        });
+
+        // при изменении суммы общей оплаты- расчитаю результат
+        rawSumm.on('change.calculate', function () {
+            let value = toRubles($(this).val());
+            // если введённая сумма больше необходимого- зачислю сдачу на депозит. Если меньше- посчитаю частичную
+            // оплату. Если равна- счёт полностью оплачен
+            if (value > summToPay) {
+                makeInformer('info', 'информация', "Сумма больше необходимой");
+                // перечислю остаток на депозит
+                toDepositInput.val(toRubles(value - summToPay));
+                paymentDetailsParts.addClass('hidden');
+                // помещу в поля ввода детализации максимальные значения
+                distributeInputs.each(function () {
+                    $(this).val(toRubles($(this).attr('data-max-summ')));
+                });
+                $('.field-pay-todeposit').removeClass('hidden');
+            } else if (value === summToPay) {
+                makeInformer('info', 'информация', "Сумма равна необходимой");
+                toDepositInput.val(0);
+                paymentDetailsParts.addClass('hidden');
+                $('.field-pay-todeposit').addClass('hidden');
+                // помещу в поля ввода детализации максимальные значения
+                distributeInputs.each(function () {
+                    $(this).val(toRubles($(this).attr('data-max-summ')));
+                });
+            } else {
+                makeInformer('info', 'информация', "Сумма меньше необходимой");
+                toDepositInput.val(0);
+                // запишу значение в переменную суммы
+                undistributedSumm = toRubles(value + partialModification);
+                // покажу параметры частичной оплаты
+                distributeInputs.val(0).attr('data-previous-value', 0);
+                enablePartial();
+            }
+        });
+
+        function enablePartial() {
+            // скрою ячейку зачисления на депозит, тут она не понадобится
+            $('.field-pay-todeposit').addClass('hidden');
+            paymentDetailsParts.removeClass('hidden');
+            let undistributedWindow = $('<div class="left-float-window">Не распределено<br/><b id="undistributedSumm"></b>&#8381;<br/><div class="btn-group-vertical"><button type="button" class="btn btn-warning" id="resetDistributeActivator">Сбросить</button><button type="button" class="btn btn-success" id="savePayActivator">Сохранить</button></div></div>');
+            $('body').append(undistributedWindow);
+            newModal.on('hidden.bs.modal', function () {
+                undistributedWindow.remove();
+            });
+            undistributedSummContainer = undistributedWindow.find('#undistributedSumm');
+            undistributedSummContainer.html(undistributedSumm);
+        }
+
+        // обработаю кнопки раскидывания денежных средств
+        let distributeActivators = $('.all-distributed-button');
+        distributeActivators.on('click.fill', function () {
+            // найду поле ввода, в которое будет распределяться сумма
+            let targetInput = $(this).parent().find('input.distributed-summ-input');
+            // если в поле уже есть значение- перед распределением средств плюсую его к нераспределённой части
+            let previousVal = targetInput.val();
+            if (previousVal) {
+                undistributedSumm += toRubles(previousVal);
+            }
+            let summ = toRubles(targetInput.attr('data-max-summ'));
+            // если значение суммы больше оставшихся нераспределённых средств- она проставляется как значение поля
+            // и вычитается из общей суммы. Если меньше- общая сумма приравнивается к нулю и выставляется в значение поля
+            if (summ >= undistributedSumm) {
+                targetInput.val(toRubles(undistributedSumm));
+                targetInput.attr('data-previous-value', undistributedSumm);
+                undistributedSumm = 0;
+            } else {
+                targetInput.val(toRubles(summ));
+                undistributedSumm -= summ;
+                targetInput.attr('data-previous-value', summ);
+            }
+            undistributedSummContainer.html(toRubles(undistributedSumm));
+        });
+        distributeInputs.on('change.pay', function () {
+            // если есть предыдущее значение- выведу его в консоль
+            let previousValue = $(this).attr('data-previous-value');
+            if (previousValue) {
+                // Добавлю предыдущее значение к нераспределённой сумме
+                undistributedSumm += toRubles(previousValue);
+            }
+            let currentValue = toRubles($(this).val());
+            if (!currentValue) {
+                currentValue = 0;
+                $(this).val(0);
+            }
+            let maxSumm = toRubles($(this).attr('data-max-summ'));
+            // если введённое значение больше максимально доступного- сброшу значение поля в ноль и выведу предупреждение
+            if (currentValue > maxSumm) {
+                $(this).val(0);
+                makeInformer('danger', 'Ошибка распределения', 'Введенное значение больше чем сумма оплаты');
+            }
+            if (currentValue > undistributedSumm) {
+                $(this).val(0);
+                makeInformer('danger', 'Ошибка распределения', 'Введенное значение больше нераспределённого остатка');
+            }
+            $(this).attr('data-previous-value', toRubles($(this).val()));
+            undistributedSumm -= toRubles($(this).val());
+            undistributedSummContainer.html(toRubles(undistributedSumm));
+
+        });
+
+        // отправлю форму
+        frm.on('submit', function (e) {
+            e.preventDefault();
+            sendAjax('post', "/pay/confirm", simpleAnswerHandler, frm, true);
+        });
+    }
+
+    handleForm();
+</script>

@@ -39,37 +39,36 @@ class DepositHandler extends Model {
             ['summ', CashValidator::class],
         ];
     }
-	/**
-	 * @param $billInfo Table_payment_bills
-	 * @param $cottageInfo Table_cottages
-	 * @param $way 'in'|'out'
-	 */
 
+    /**
+     * @param $billInfo Table_payment_bills
+     * @param $cottageInfo Table_cottages
+     * @param $way 'in'|'out'
+     * @param null|Table_transactions $transaction
+     */
 
-
-	public static function registerDeposit($billInfo, $cottageInfo, $way){
-		$depositIo = new Table_deposit_io();
-		$depositIo->cottageNumber = $billInfo->cottageNumber;
-		$depositIo->billId = $billInfo->id;
-		$depositIo->destination = $way;
-		$depositIo->summBefore = $cottageInfo->deposit;
-		if($way === 'out'){
-			$depositIo->summ = $billInfo->depositUsed;
-			$cottageInfo->deposit = CashHandler::rublesMath($cottageInfo->deposit - $billInfo->depositUsed);
-			$depositIo->summAfter = $cottageInfo->deposit;
-		}
-		else{
-			$depositIo->summ = $billInfo->toDeposit;
-            $cottageInfo->deposit = CashHandler::rublesMath(CashHandler::toRubles($cottageInfo->deposit) + CashHandler::toRubles($billInfo->toDeposit));
-			$depositIo->summAfter = $cottageInfo->deposit;
-		}
-		if(!empty($billInfo->paymentTime)){
-            $depositIo->actionDate = $billInfo->paymentTime;
+	public static function registerDeposit($billInfo, $cottageInfo, $way, $transaction = null){
+	    if(!empty($transaction)){
+            $depositIo = new Table_deposit_io();
+            $depositIo->cottageNumber = $billInfo->cottageNumber;
+            $depositIo->transactionId = $transaction->id;
+            $depositIo->billId = $billInfo->id;
+            $depositIo->destination = $way;
+            $depositIo->summBefore = $cottageInfo->deposit;
+            if($way === 'out'){
+                $depositIo->summ = $billInfo->depositUsed;
+                $cottageInfo->deposit = CashHandler::rublesMath($cottageInfo->deposit - $billInfo->depositUsed);
+                $depositIo->summAfter = $cottageInfo->deposit;
+            }
+            else{
+                $depositIo->summ = $billInfo->toDeposit;
+                $cottageInfo->deposit = CashHandler::rublesMath(CashHandler::toRubles($cottageInfo->deposit) + CashHandler::toRubles($billInfo->toDeposit));
+                $depositIo->summAfter = $cottageInfo->deposit;
+            }
+            $depositIo->actionDate = $transaction->bankDate;
+            $depositIo->save();
+            $cottageInfo->save();
         }
-		else{
-            $depositIo->actionDate = time();
-        }
-		$depositIo->save();
 	}
 
     public function save()

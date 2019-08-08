@@ -20,6 +20,7 @@ use yii\db\ActiveRecord;
  * @property int $year [int(4) unsigned]
  * @property string $summ [float unsigned]
  * @property int $paymentDate [int(20) unsigned]
+ * @property int $transactionId [int(10) unsigned]
  */
 
 class Table_additional_payed_target extends ActiveRecord

@@ -9,10 +9,9 @@
 namespace app\models;
 
 
+use app\models\tables\Table_payed_fines;
+use app\models\tables\Table_penalties;
 use DateTime;
-use DOMDocument;
-use DOMElement;
-use DOMXPath;
 use InvalidArgumentException;
 use yii\base\Model;
 
@@ -24,6 +23,30 @@ class Search extends Model
     public $searchTypeList = ['routine' => 'Обычный', 'summary' => 'Суммарный', 'report' => 'Отчёт'];
 
     const SCENARIO_BILLS_SEARCH = 'bills-search';
+
+    /**
+     * @param Table_transactions[]|Table_transactions_double[] $results
+     * @return array
+     */
+    private static function handleTransactions(array $results)
+    {
+        $totalSumm = 0;
+        $text = '';
+        if (!empty($results)) {
+            foreach ($results as $result) {
+                $totalSumm += CashHandler::toRubles($result->transactionSumm);
+                $date = TimeHandler::getDateFromTimestamp($result->transactionDate);
+                $summ = CashHandler::toShortSmoothRubles($result->transactionSumm);
+                if ($result instanceof Table_transactions) {
+                    $text .= "<tr><td>$date</td><td><a href='#' class='bill-info' data-bill-id='{$result->billId}'>{$result->billId}</a></td><td><a href='/show-cottage/{$result->cottageNumber}'>{$result->cottageNumber}</a></td></td><td><b class='text-info'>{$summ}</b></td><td><button type='button' data-transaction-id='{$result->id}' class='btn btn-danger change-date'>Изменить</button></td></tr>";
+                } else {
+                    $text .= "<tr><td>$date</td><td><a href='#' class='bill-info' data-bill-id='{$result->billId}-a'>{$result->billId}-a</a></td><td><a href='/show-cottage/{$result->cottageNumber}'>{$result->cottageNumber}-a</a></td><td><b class='text-info'>{$summ}</b></td><td><button type='button' data-transaction-id='{$result->id}' class='btn btn-danger change-date'>Изменить</button></td></tr>";
+                }
+            }
+        }
+        return ['text' => $text, 'summ' => $totalSumm];
+
+    }
 
     public function scenarios(): array
     {
@@ -69,54 +92,22 @@ class Search extends Model
 
     private function getTransactions($interval): array
     {
-        $totalSumm = 0;
-        $content = "<table class='table table-striped'><thead><th>Дата платежа</th><th>№</th><th>Сумма</th><th>Тип</th><th>Вид</th><th>Дата</th></thead><tbody>";
-        $results = Table_transactions::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
-        if (!empty($results)) {
-            foreach ($results as $result) {
-                $totalSumm += $result->transactionSumm;
-                $date = TimeHandler::getDateFromTimestamp($result->transactionDate);
-                if ($result->transactionWay === 'in') {
-                    $way = "<b class='text-success'>Поступление</b>";
-                } else {
-                    $way = "<b class='text-danger'>Списание</b>";
-                }
-                if ($result->transactionType === 'cash') {
-                    $type = "<b class='text-success'>Наличные</b>";
-                } else {
-                    $type = "<b class='text-primary'>Безналичный расчёт</b>";
-                }
-                $summ = CashHandler::toShortSmoothRubles($result->transactionSumm);
-                $content .= "<tr><td>$date</td><td><a href='#' class='bill-info' data-bill-id='{$result->billId}'>{$result->billId}</a></td><td><b class='text-info'>{$summ}</b></td><td>$way</td><td>$type</td><td><button type='button' data-transaction-id='{$result->id}' class='btn btn-danger change-date'>Изменить</button></td></tr>";
-            }
-        }
-
-        $doubleResults = Table_transactions_double::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->andWhere(['transactionType' => 'cash'])->all();
-        if (!empty($doubleResults)) {
-            foreach ($doubleResults as $result) {
-                $totalSumm += $result->transactionSumm;
-                $date = TimeHandler::getDateFromTimestamp($result->transactionDate);
-                if ($result->transactionWay === 'in') {
-                    $way = "<b class='text-success'>Поступление</b>";
-                } else {
-                    $way = "<b class='text-danger'>Списание</b>";
-                }
-                if ($result->transactionType === 'cash') {
-                    $type = "<b class='text-success'>Наличные</b>";
-                } else {
-                    $type = "<b class='text-primary'>Безналичный расчёт</b>";
-                }
-                $summ = CashHandler::toShortSmoothRubles($result->transactionSumm);
-                $content .= "<tr><td>$date</td><td><a href='#' class='bill-info' data-bill-id='{$result->billId}' data-double='yes'>{$result->billId}-a</a></td><td><b class='text-info'>{$summ}</b></td><td>$way</td><td>$type</td></tr>";
-            }
-        }
-        if (empty($result) && empty($doubleResults)) {
-            $content .= '</tbody></table>';
-            $content .= '<h3>Транзакций за данный период не найдено</h3>';
+        $results = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
+        $doubleResults = Table_transactions_double::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
+        if (!empty($results || !empty($doubleResults))) {
+            $totalSumm = 0;
+            $content = "<table class='table table-striped'><thead><th>Дата платежа</th><th>№</th><th>Участок</th><th>Сумма</th><th>Дата</th></thead><tbody>";
+            $data = self::handleTransactions($results);
+            $content .= $data['text'];
+            $totalSumm += $data['summ'];
+            $data = self::handleTransactions($doubleResults);
+            $content .= $data['text'];
+            $totalSumm += $data['summ'];
+            $content .= "</tbody></table>";
+            return ['status' => 1, 'data' => $content, 'totalSumm' => $totalSumm];
         } else {
-            $content .= '</tbody></table>';
+            return ['status' => 1, 'data' => "<h2>Транзакций за период не было</h2>", 'totalSumm' => 0];
         }
-        return ['status' => 1, 'data' => $content, 'totalSumm' => $totalSumm];
     }
 
     private function getSummary($interval): array
@@ -125,94 +116,86 @@ class Search extends Model
         $totalMemSumm = 0;
         $totalTargetSumm = 0;
         $totalSingleSumm = 0;
-        $content = "<table class='table table-striped'><thead><th>Электроэнергия</th><th>Членские</th><th>Целевые</th><th>Разовые</th><th>С депозита</th><th>На депозит</th><th>Скидка</th></thead><tbody>";
-        $powers = Table_payed_power::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($powers)) {
-            foreach ($powers as $power) {
-                $totalPowerSumm += $power->summ;
-            }
-        }
-        $additionalPowers = Table_additional_payed_power::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($additionalPowers)) {
-            foreach ($additionalPowers as $power) {
-                $totalPowerSumm += $power->summ;
-            }
-        }
-        $mems = Table_payed_membership::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($mems)) {
-            foreach ($mems as $mem) {
-                $totalMemSumm += $mem->summ;
-            }
-        }
-        $additionalMems = Table_additional_payed_membership::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($additionalMems)) {
-            foreach ($additionalMems as $mem) {
-                $totalMemSumm += $mem->summ;
-            }
-        }
-        $targets = Table_payed_target::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($targets)) {
-            foreach ($targets as $target) {
-                $totalTargetSumm += $target->summ;
-            }
-        }
-        $additionalTargets = Table_additional_payed_target::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($additionalTargets)) {
-            foreach ($additionalTargets as $target) {
-                $totalTargetSumm += $target->summ;
-            }
-        }
-        $singls = Table_payed_single::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($singls)) {
-            foreach ($singls as $single) {
-                $totalSingleSumm += $single->summ;
-            }
-        }
-        $additonalSingls = Table_additional_payed_single::find()->where(['>=', 'paymentDate', $interval['start']])->andWhere(['<=', 'paymentDate', $interval['finish']])->all();
-        if (!empty($additonalSingls)) {
-            foreach ($additonalSingls as $single) {
-                $totalSingleSumm += $single->summ;
-            }
-        }
+        $totalFinesSumm = 0;
+        $discountsSumm = 0;
+        $toDepositSumm = 0;
+        $fromDepositSumm = 0;
 
-        $fromDeposit = 0;
-        $toDeposit = 0;
-        $discount = 0;
-
-        // рассчитаю движения по депозиту и скидкам за этот период
-        $results = Table_fulltransactioninfo::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
-        $additionalResults = Table_fulladditionaltransactioninfo::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
-        if (!empty($results)) {
-            /** @var Table_fulltransactioninfo $result */
+        // найду транзакции за день
+        $results = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
+        $doubleResults = Table_transactions_double::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
+        $results = array_merge($results, $doubleResults);
+        if(!empty($results)){
             foreach ($results as $result) {
-                $fromDeposit += $result->usedDeposit;
-                $toDeposit += $result->gainedDeposit;
-                $discount += $result->discount;
+                // найду все сущности, привязанные к транзакции
+                if($result instanceof Table_transactions){
+                    $powers = array_merge(Table_payed_power::find()->where(['transactionId' => $result->id])->all(), Table_additional_payed_power::find()->where(['transactionId' => $result->id])->all());
+                    $memberships = array_merge(Table_payed_membership::find()->where(['transactionId' => $result->id])->all(), Table_additional_payed_membership::find()->where(['transactionId' => $result->id])->all());
+                    $targets = array_merge(Table_payed_target::find()->where(['transactionId' => $result->id])->all(), Table_additional_payed_target::find()->where(['transactionId' => $result->id])->all());
+                    $singles = Table_payed_single::find()->where(['transactionId' => $result->id])->all();
+                    $fines = Table_payed_fines::find()->where(['transaction_id' => $result->id])->all();
+                    $discounts = Table_discounts::find()->where(['transactionId' => $result->id])->all();
+                    $toDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id, 'destination' => 'in'])->all();
+                    $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id, 'destination' => 'out'])->all();
+                }
+                else{
+                    $powers = Table_additional_payed_power::find()->where(['transactionId' => $result->id])->all();
+                    $memberships = Table_additional_payed_membership::find()->where(['transactionId' => $result->id])->all();
+                    $targets = Table_additional_payed_target::find()->where(['transactionId' => $result->id])->all();
+                    $singles = Table_additional_payed_single::find()->where(['transactionId' => $result->id])->all();
+                    $fines = Table_payed_fines::find()->where(['transaction_id' => $result->id . '-a'])->all();
+                    $discounts = Table_discounts::find()->where(['transactionId' => $result->id . '-a'])->all();
+                    $toDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id . '-a', 'destination' => 'in'])->all();
+                    $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id . '-a', 'destination' => 'out'])->all();
+                }
+                if(!empty($powers)){
+                    foreach ($powers as $p){
+                        $totalPowerSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
+                if(!empty($memberships)){
+                    foreach ($memberships as $p){
+                        $totalMemSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
+                if(!empty($targets)){
+                    foreach ($targets as $p){
+                        $totalTargetSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
+                if(!empty($singles)){
+                    foreach ($singles as $p){
+                        $totalSingleSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
+                if(!empty($fines)){
+                    foreach ($fines as $p){
+                        $totalFinesSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
+                if(!empty($discounts)){
+                    foreach ($discounts as $p){
+                        $discountsSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
+                if(!empty($toDeposit)){
+                    foreach ($toDeposit as $p){
+                        $toDepositSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
+                if(!empty($fromDeposit)){
+                    foreach ($fromDeposit as $p){
+                        $fromDepositSumm += CashHandler::toRubles($p->summ);
+                    }
+                }
             }
-        }
-        if (!empty($additionalResults)) {
-            /** @var Table_fulladditionaltransactioninfo $result */
-            foreach ($additionalResults as $result) {
-                $fromDeposit += $result->usedDeposit;
-                $toDeposit += $result->gainedDeposit;
-                $discount += $result->discount;
-            }
-        }
+            $content = "<table class='table table-striped'><thead><th>Электроэнергия</th><th>Членские</th><th>Целевые</th><th>Разовые</th><th>Пени</th><th>С депозита</th><th>На депозит</th><th>Скидка</th></thead><tbody>";
 
-        $totalPowerSumm = CashHandler::toRubles($totalPowerSumm);
-        $totalMemSumm = CashHandler::toRubles($totalMemSumm);
-        $totalTargetSumm = CashHandler::toRubles($totalTargetSumm);
-        $totalSingleSumm = CashHandler::toRubles($totalSingleSumm);
-        $fromDeposit = CashHandler::toRubles($fromDeposit);
-        if ($toDeposit > 0) {
-            $toDeposit = CashHandler::toRubles($toDeposit);
-        } else {
-            $toDeposit = 0;
+            $content .= "<tr><td>" . CashHandler::toShortSmoothRubles($totalPowerSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalMemSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalTargetSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalSingleSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalFinesSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($fromDepositSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($toDepositSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($discountsSumm) . "</td></tr></tbody></table>";
+            $total = CashHandler::toRubles($totalSingleSumm + $totalPowerSumm + $totalTargetSumm + $totalFinesSumm + $totalMemSumm - $discountsSumm - $fromDepositSumm + $toDepositSumm, true);
+            return ['status' => 1, 'data' => $content, 'totalSumm' => $total];
         }
-        $discount = CashHandler::toRubles($discount);
-        $total = CashHandler::toRubles($totalSingleSumm + $totalPowerSumm + $totalTargetSumm + $totalMemSumm - $discount - $fromDeposit + $toDeposit, true);
-        $content .= "<tr><td>" . CashHandler::toShortSmoothRubles($totalPowerSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalMemSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalTargetSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalSingleSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($fromDeposit) . "</td><td>" . CashHandler::toShortSmoothRubles($toDeposit) . "</td><td>" . CashHandler::toShortSmoothRubles($discount) . "</td></tr></tbody></table>";
-        return ['status' => 1, 'data' => $content, 'totalSumm' => $total];
+        return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0];
     }
 
     /**
@@ -221,363 +204,294 @@ class Search extends Model
      */
     private function getReport($interval)
     {
+        $wholePower = 0;
+        $wholeTarget = 0;
+        $wholeMembership = 0;
+        $wholeSingle = 0;
+        $wholeFines = 0;
+        $wholeDiscount = 0;
+        $wholeDeposit = 0;
+        $wholeSumm = 0;
         $fullSumm = 0;
-        $totalSumm = 0;
-        $trs = Table_fulltransactioninfo::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
-        $content = [];
-        if (!empty($trs)) {
-            foreach ($trs as $item) {
-                /** @var Table_fulltransactioninfo $item */
-                $fullSumm += CashHandler::toRubles($item->transactionSumm);
-                // членские взносы
-                $memList = '--';
-                $memSumm = '--';
-                $payedSumm = 0;
-                $partial = $item->partial;
-                $date = TimeHandler::getDateFromTimestamp($item->transactionDate);
-                $type = $item->transactionType === 'cash' ? 'Нал' : 'Безнал';
-                if(!empty($item->billCast)){
-                    $dom = new DOMHandler($item->billCast);
-                }
-                else{
-                    $dom = new DOMHandler($item->bill_content);
-                }
-                $mem = $dom->query('/payment/membership');
-                if ($mem->length === 1) {
-                    /** @var DOMElement $memItem */
-                    $memItem = $mem->item(0);
-                    if ($partial) {
-                        $payedSumm = $memItem->getAttribute('payed');
-                        if(!empty($payedSumm)){
-                            $payedSumm = CashHandler::toRubles($payedSumm);
-                        }
-                        else{
-                            $payedSumm = 0;
-                        }
-                        if ($payedSumm > 0) {
-                            $memSumm = $payedSumm;
-                        } else {
-                            $memSumm = 0;
-                        }
-                    } else {
-                        $memSumm = CashHandler::toRubles($memItem->getAttribute('cost'));
-                    }
-                    $quarters = $dom->query('/payment/membership/quarter');
-                    if ($memList === '--') {
+        // найду транзакции за день по банковскому отчёту
+        $transactions = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
+        $trs = Table_transactions_double::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
+        $transactions = array_merge($transactions, $trs);
+
+        if(!empty($transactions)){
+            $content = [];
+            foreach ($transactions as $transaction) {
+                $wholeSumm += CashHandler::toRubles($transaction->transactionSumm);
+                $fullSumm += CashHandler::toRubles($transaction->transactionSumm);
+                if($transaction instanceof Table_transactions){
+                    $date = TimeHandler::getDateFromTimestamp($transaction->bankDate);
+
+                    // получу оплаченные сущности
+                    $powers = array_merge(Table_payed_power::find()->where(['transactionId' => $transaction->id])->all(), Table_additional_payed_power::find()->where(['transactionId' => $transaction->id])->all());
+                    $memberships = array_merge(Table_payed_membership::find()->where(['transactionId' => $transaction->id])->all(), Table_additional_payed_membership::find()->where(['transactionId' => $transaction->id])->all());
+                    $targets = array_merge(Table_payed_target::find()->where(['transactionId' => $transaction->id])->all(), Table_additional_payed_target::find()->where(['transactionId' => $transaction->id])->all());
+                    $singles = Table_payed_single::find()->where(['transactionId' => $transaction->id])->all();
+                    $fines = Table_payed_fines::find()->where(['transaction_id' => $transaction->id])->all();
+                    $discount = Table_discounts::find()->where(['transactionId' => $transaction->id])->one();
+                    $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->one();
+                    $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'out'])->one();
+                    if(!empty($memberships)){
+                        $memSumm = 0;
                         $memList = '';
-                    }
-                    foreach ($quarters as $quarter) {
-                        /** @var DOMElement $quarter */
-                        $summ = CashHandler::toRubles($quarter->getAttribute('summ'));
-                        $totalSumm += $summ;
-                        if ($partial) {
-                            // если оплата частичная- сверю сумму с полной оплатой раздела.
-                            if ($payedSumm > 0) {
-                                if ($summ > $payedSumm) {
-                                    $payedSumm -= CashHandler::toRubles($summ);
-                                } else {
-                                    $summ = $payedSumm;
-                                    $payedSumm = 0;
-                                }
-                            } else {
-                                $summ = 0;
-                            }
-                        }
-                        $memList .= $quarter->getAttribute('date') . ' - ' . $summ . '<br>';
-                    }
-                }
-                $memAdd = $dom->query('/payment/additional_membership');
-                if ($memAdd->length === 1) {
-                    $payedSumm = 0;
-                    $additionalSumm = 0;
-                    $memItem = $memAdd->item(0);
-                    if ($partial) {
-                        $payedSumm = $memItem->getAttribute('payed');
-                        if ($payedSumm > 0) {
-                            $additionalSumm = $payedSumm;
-                        } else {
-                            $additionalSumm = 0;
-                        }
-                    }
-
-                    if ($memSumm === '--') {
-                        $memSumm = $additionalSumm;
-                    } else {
-                        $memSumm += $additionalSumm;
-                    }
-                    $quarters = $dom->query('/payment/additional_membership/quarter');
-                    if ($memList === '--') {
-                        $memList = '';
-                    }
-                    foreach ($quarters as $quarter) {
-                        /** @var DOMElement $quarter */
-                        $summ = CashHandler::toRubles($quarter->getAttribute('summ'));
-                        $totalSumm += $summ;
-
-                        if ($partial) {
-                            // если оплата частичная- сверю сумму с полной оплатой раздела.
-                            if ($payedSumm > 0) {
-                                if ($summ > $payedSumm) {
-                                    $payedSumm -= $summ;
-                                } else {
-                                    $summ = $payedSumm;
-                                    $payedSumm = 0;
-                                }
-                            } else {
-                                $summ = 0;
-                            }
-                        }
-
-                        $memList .= $quarter->getAttribute('date') . '(д) - ' . $summ . '<br>';
-                    }
-                }
-                // электричество
-                $powCounterValue = '--';
-                $powUsed = '--';
-                $powSumm = '--';
-                $power = $dom->query('/payment/power');
-                if ($power->length === 1) {
-                    /** @var DOMElement $powerItem */
-                    $powerItem = $power->item(0);
-                    if ($partial) {
-                        $payedSumm = $powerItem->getAttribute('payed');
-                        if ($payedSumm > 0) {
-                            $powSumm = CashHandler::toRubles($payedSumm);
-                        } else {
-                            $powSumm = 0;
-                        }
-                    } else {
-                        $powSumm = CashHandler::toRubles($powerItem->getAttribute('cost'));
-                    }
-                    $totalSumm = CashHandler::toRubles($totalSumm + $powSumm);
-                    $months = $dom->query('/payment/power/month');
-                    $powCounterValue = '';
-                    $powUsed = '';
-                    foreach ($months as $month) {
-                        /** @var DOMElement $month */
-                        $powCounterValue .= $month->getAttribute('date') . ': ' . $month->getAttribute('new-data') . '<br>';
-                        $powUsed .= $month->getAttribute('difference') . '<br>';
-                    }
-                }
-                $additional = $dom->query('/payment/additional_power');
-                if ($additional->length === 1) {
-                    /** @var DOMElement $powerItem */
-                    $powerItem = $additional->item(0);
-                    $summ = CashHandler::toRubles($powerItem->getAttribute('cost'));
-                    $totalSumm = CashHandler::toRubles($totalSumm + $summ);
-                    if ($powSumm === '--') {
-                        $powSumm = CashHandler::toRubles($summ);
-                    } else {
-                        $powSumm += $summ;
-                    }
-                    $months = $dom->query('/payment/additional_power/month');
-                    $powCounterValue = '';
-                    $powUsed = '';
-                    foreach ($months as $month) {
-                        /** @var DOMElement $month */
-                        $powCounterValue .= $month->getAttribute('date') . ': ' . $month->getAttribute('new-data') . '<br>';
-                        $powUsed .= $month->getAttribute('difference') . '<br>';
-                    }
-                }
-                // целевые взносы
-                $tarList = '--';
-                $tarSumm = '--';
-                $tar = $dom->query('/payment/target/pay');
-                if ($tar->length > 0) {
-                    // проверю, не оплачена ли часть платежа ранее
-                    $pay = $dom->query('/payment/target')->item(0);
-                    /** @var DOMElement $pay */
-                    $payedBefore = $pay->getAttribute('payed');
-                    if($payedBefore > 0){
-                        $payedBefore = CashHandler::toRubles($payedBefore);
-                    }
-                    /** @var DOMElement $targetItem */
-                    $targetItem = $tar->item(0);
-                    $payedSumm = 0;
-                    $tarList = '';
-                    if ($partial) {
-                        $payedSumm = $targetItem->parentNode->getAttribute('payed');
-                        if ($payedSumm > 0) {
-                            $payedSumm = CashHandler::toRubles($payedSumm);
-                            $tarSumm = $payedSumm;
-                        } else {
-                            $tarSumm = 0;
-                        }
-                    }
-                    else if($payedBefore > 0){
-                        // это завершающий платёж частичной оплаты
-                        $tarSumm = CashHandler::toRubles($targetItem->parentNode->getAttribute('cost')) - $payedBefore;
-                    }
-                    else {
-                        $tarSumm = CashHandler::toRubles($targetItem->parentNode->getAttribute('cost'));
-                    }
-                    $totalSumm += CashHandler::toRubles($tarSumm);
-                    foreach ($tar as $value) {
-                        /** @var DOMElement $value */
-                        $summ = CashHandler::toRubles($value->getAttribute('summ'));
-                        if ($partial) {
-                            // если оплата частичная- сверю сумму с полной оплатой раздела.
-                            if ($payedSumm > 0) {
-                                if ($payedSumm >= $summ) {
-                                    $payedSumm -= $summ;
-                                }
-                                else {
-                                    $summ = $payedSumm;
-                                    $payedSumm = 0;
-                                }
-                            } else {
-                                $summ = 0;
-                            }
-                        }
-                        elseif($payedBefore > 0){
-                            if($payedBefore >= $summ){
-                                $payedBefore -= $summ;
-                                continue;
+                        foreach ($memberships as $membership) {
+                            if($membership instanceof Table_payed_membership){
+                                $memList .= $membership->quarter . ': <b>' . CashHandler::toShortSmoothRubles($membership->summ) . '</b><br/>';
                             }
                             else{
-                                $summ -= $payedBefore;
-                                $payedBefore = 0;
+                                $memList .= '(Доп) ' . $membership->quarter . ':  <b>'  . CashHandler::toShortSmoothRubles($membership->summ) . '</b><br/>';
+                            }
+                            $memSumm += $membership->summ;
+                            $wholeMembership += CashHandler::toRubles($membership->summ);
+                        }
+                        $memSumm = CashHandler::toShortSmoothRubles($memSumm);
+                    }
+                    else{
+                        $memList = '--';
+                        $memSumm = '--';
+                    }
+                    if(!empty($powers)){
+                        $powCounterValue = '';
+                        $powUsed = '';
+                        $powSumm = 0;
+                        foreach ($powers as $power) {
+                            if($power instanceof Table_payed_power){
+                                // найду данные о показаниях
+                                $powData = Table_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
+                                if(empty($powData)){
+                                    echo $transaction->id . ' ' . ' ' . $transaction->cottageNumber . ' ' . $power->month;
+                                    die;
+                                }
+                                $powCounterValue .= $power->month . ': ' . $powData->newPowerData . '<br/>';
+                                $powUsed .= $powData->difference . '<br/>';
+                                $powSumm += $power->summ;
+                            }
+                            else{
+                                // найду данные о показаниях
+                                $powData = Table_additional_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
+                                $powCounterValue .='(Доп) ' . $power->month . ': ' . $powData->newPowerData . '<br/>';
+                                $powUsed .= $powData->difference . '<br/>';
+                                $powSumm += $power->summ;
                             }
                         }
-                        $tarList .= $value->getAttribute('year') . ' - ' . $summ . '<br/>';
+                        $powSumm = CashHandler::toShortSmoothRubles($powSumm);
+                        $wholePower += CashHandler::toRubles($power->summ);
                     }
+                    else{
+                        $powCounterValue = '--';
+                        $powUsed = '--';
+                        $powSumm = '--';
+                    }
+                    if(!empty($targets)){
+                        $tarSumm = 0;
+                        $tarList = '';
+                        foreach ($targets as $target) {
+                            if($target instanceof Table_payed_target){
+                                $tarList .= $target->year . ': <b>' . CashHandler::toShortSmoothRubles($target->summ) . '</b><br/>';
+                            }
+                            else{
+                                $tarList .= '(Доп) ' . $target->year . ': <b>'  . CashHandler::toShortSmoothRubles($target->summ) . '</b><br/>';
+                            }
+                            $tarSumm += $target->summ;
+                            $wholeTarget += CashHandler::toRubles($target->summ);
+                        }
+                        $tarSumm = CashHandler::toShortSmoothRubles($tarSumm);
+                    }
+                    else{
+                        $tarList = '--';
+                        $tarSumm = '--';
+                    }
+                    if(!empty($singles)){
+                        $singleSumm = 0;
+                        $singleList = '';
+                        foreach ($singles as $single) {
+                            $singleList .= CashHandler::toShortSmoothRubles($single->summ) . '<br/>';
+                            $singleSumm += $single->summ;
+                        }
+                        $singleSumm = CashHandler::toShortSmoothRubles($singleSumm);
+                    }
+                    else{
+                        $singleSumm = '--';
+                        $singleList = '--';
+                    }
+                    if(!empty($fines)){
+                        $finesSumm = 0;
+                        $finesList = '';
+                        foreach ($fines as $fine) {
+                            // найду информацию о пени
+                            $fineInfo = Table_penalties::findOne($fine->fine_id);
+                            $finesList .= $fineInfo->period . ': <b>' . CashHandler::toShortSmoothRubles($fine->summ) . '</b><br/>';
+                            $finesSumm += $fine->summ;
+                            $wholeFines += CashHandler::toRubles($fine->summ);
+                        }
+                        $finesSumm = CashHandler::toShortSmoothRubles($finesSumm);
+                    }
+                    else{
+                        $finesSumm = '--';
+                        $finesList = '--';
+                    }
+                    if(!empty($discount)){
+                        $discountSumm = CashHandler::toShortSmoothRubles($discount->summ);
+                    }
+                    else{
+                        $discountSumm = '--';
+                    }
+                    if(!empty($fromDeposit)){
+                        $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
+                    }
+                    else{
+                        $fromDepositSumm = 0;
+                    }
+                    if(!empty($toDeposit)){
+                        $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
+                    }
+                    else{
+                        $toDepositSumm = 0;
+                    }
+                    $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
+                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}</td><td class='cottage-number-cell'>{$transaction->cottageNumber}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$discountSumm</td><td>$totalDeposit</td><td>" . CashHandler::toShortSmoothRubles($transaction->transactionSumm) . "</td></tr>";
                 }
-                $additionalTar = $dom->query('/payment/additional_target/pay');
-                if ($additionalTar->length > 0) {
-                    /** @var DOMElement $parent */
-                    $parent = $additionalTar->item(0)->parentNode;
-                    $summ = CashHandler::toRubles($parent->getAttribute('cost'));
-                    if ($tarSumm === '--') {
-                        $tarSumm = $summ;
-                    } else {
-                        $tarSumm += $summ;
+                else{
+                    $date = TimeHandler::getDateFromTimestamp($transaction->bankDate);
+                    // получу оплаченные сущности
+                    $powers = Table_additional_payed_power::find()->where(['transactionId' => $transaction->id])->all();
+                    $memberships = Table_additional_payed_membership::find()->where(['transactionId' => $transaction->id])->all();
+                    $targets = Table_additional_payed_target::find()->where(['transactionId' => $transaction->id])->all();
+                    $singles = Table_additional_payed_single::find()->where(['transactionId' => $transaction->id])->all();
+                    $fines = Table_payed_fines::find()->where(['transaction_id' => $transaction->id])->all();
+                    $discount = Table_discounts::find()->where(['transactionId' => $transaction->id])->one();
+                    $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->one();
+                    $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'out'])->one();
+                    if(!empty($memberships)){
+                        $memSumm = 0;
+                        $memList = '';
+                        foreach ($memberships as $membership) {
+                            if($membership instanceof Table_payed_membership){
+                                $memList .= $membership->quarter . ': <b>' . CashHandler::toShortSmoothRubles($membership->summ) . '</b><br/>';
+                            }
+                            else{
+                                $memList .= '(Доп) ' . $membership->quarter . ':  <b>'  . CashHandler::toShortSmoothRubles($membership->summ) . '</b><br/>';
+                            }
+                            $wholeMembership += CashHandler::toRubles($membership->summ);
+                            $memSumm += $membership->summ;
+                        }
+                        $memSumm = CashHandler::toShortSmoothRubles($memSumm);
                     }
-                    $totalSumm += $summ;
-                    foreach ($additionalTar as $value) {
-                        /** @var DOMElement $value */
-                        $tarList .= $value->getAttribute('year') . ' - ' . CashHandler::toRubles($value->getAttribute('summ')) . '<br/>';
+                    else{
+                        $memList = '--';
+                        $memSumm = '--';
                     }
+                    if(!empty($powers)){
+                        $powCounterValue = '';
+                        $powUsed = '';
+                        $powSumm = 0;
+                        foreach ($powers as $power) {
+                            if($power instanceof Table_payed_power){
+                                // найду данные о показаниях
+                                $powData = Table_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
+                                if(empty($powData)){
+                                    echo $transaction->id . ' ' . ' ' . $transaction->cottageNumber . ' ' . $power->month;
+                                    die;
+                                }
+                                $powCounterValue .= $power->month . ': ' . $powData->newPowerData . '<br/>';
+                                $powUsed .= $powData->difference . '<br/>';
+                                $powSumm += $power->summ;
+                            }
+                            else{
+                                // найду данные о показаниях
+                                $powData = Table_additional_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
+                                $powCounterValue .='(Доп) ' . $power->month . ': ' . $powData->newPowerData . '<br/>';
+                                $powUsed .= $powData->difference . '<br/>';
+                                $powSumm += $power->summ;
+                            }
+                            $wholePower += CashHandler::toRubles($power->summ);
+                        }
+                        $powSumm = CashHandler::toShortSmoothRubles($powSumm);
+                    }
+                    else{
+                        $powCounterValue = '--';
+                        $powUsed = '--';
+                        $powSumm = '--';
+                    }
+                    if(!empty($targets)){
+                        $tarSumm = 0;
+                        $tarList = '';
+                        foreach ($targets as $target) {
+                            if($target instanceof Table_payed_target){
+                                $tarList .= $target->year . ': <b>' . CashHandler::toShortSmoothRubles($target->summ) . '</b><br/>';
+                            }
+                            else{
+                                $tarList .= '(Доп) ' . $target->year . ': <b>'  . CashHandler::toShortSmoothRubles($target->summ) . '</b><br/>';
+                            }
+                            $tarSumm += $target->summ;
+                            $wholeTarget += CashHandler::toRubles($target->summ);
+                        }
+                        $tarSumm = CashHandler::toShortSmoothRubles($tarSumm);
+                    }
+                    else{
+                        $tarList = '--';
+                        $tarSumm = '--';
+                    }
+                    if(!empty($singles)){
+                        $singleSumm = 0;
+                        $singleList = '';
+                        foreach ($singles as $single) {
+                            $singleList .= CashHandler::toShortSmoothRubles($single->summ) . '<br/>';
+                            $singleSumm += $single->summ;
+                        }
+                        $singleSumm = CashHandler::toShortSmoothRubles($singleSumm);
+                    }
+                    else{
+                        $singleSumm = '--';
+                        $singleList = '--';
+                    }
+                    if(!empty($fines)){
+                        $finesSumm = 0;
+                        $finesList = '';
+                        foreach ($fines as $fine) {
+                            // найду информацию о пени
+                            $fineInfo = Table_penalties::findOne($fine->fine_id);
+                            $finesList .= $fineInfo->period . ': <b>' . CashHandler::toShortSmoothRubles($fine->summ) . '</b><br/>';
+                            $finesSumm += $fine->summ;
+                            $wholeFines += CashHandler::toRubles($fine->summ);
+                        }
+                        $finesSumm = CashHandler::toShortSmoothRubles($finesSumm);
+                    }
+                    else{
+                        $finesSumm = '--';
+                        $finesList = '--';
+                    }
+                    if(!empty($discount)){
+                        $discountSumm = CashHandler::toShortSmoothRubles($discount->summ);
+                    }
+                    else{
+                        $discountSumm = '--';
+                    }
+                    if(!empty($fromDeposit)){
+                        $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
+                    }
+                    else{
+                        $fromDepositSumm = 0;
+                    }
+                    if(!empty($toDeposit)){
+                        $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
+                    }
+                    else{
+                        $toDepositSumm = 0;
+                    }
+                    $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
+                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}-a</td><td class='cottage-number-cell'>{$transaction->cottageNumber}-a</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$discountSumm</td><td>$totalDeposit</td><td>" . CashHandler::toShortSmoothRubles($transaction->transactionSumm) . "</td></tr>";
                 }
-                // разовые взносы
-                $singleList = '--';
-                $singleSumm = '--';
-                $singles = $dom->query('/payment/single/pay');
-                if ($singles->length > 0) {
-                    $singleList = '';
-                    $parent = $singles->item(0)->parentNode;
-                    $singleSumm = CashHandler::toRubles($parent->getAttribute('cost'));
-                    $totalSumm += $singleSumm;
-                    foreach ($singles as $value) {
-                        $singleList .= $value->getAttribute('timestamp') . ' - ' . CashHandler::toRubles($value->getAttribute('summ')) . '<br/>';
-                    }
-                }
-                $toDeposit = $item->gainedDeposit ?: 0;
-                $deposit = CashHandler::toRubles($toDeposit - $item->usedDeposit, true);
-
-                $totalSumm += ($item->toDeposit - $item->depositUsed + $item->discount);
-
-
-                $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$item->bill_id}</td><td class='cottage-number-cell'>{$item->cottage_number}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>" . CashHandler::toRubles($item->transactionSumm) . "</td><td class='text-primary'>$type</td></tr>";
             }
+            $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td></td><td></td><td>$wholeFines</td><td></td><td></td><td>$wholeSumm</td></tr>";
+            return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm];
         }
-        $additionalTrs = Table_fulladditionaltransactioninfo::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
-        if (!empty($additionalTrs)) {
-            foreach ($additionalTrs as $item) {
-                $fullSumm += CashHandler::toRubles($item->transactionSumm);
-                $date = TimeHandler::getDateFromTimestamp($item->transactionDate);
-                $type = $item->transactionType === 'cash' ? 'Нал' : 'Безнал';
-                $dom = new DOMDocument('1.0', 'UTF-8');
-                $dom->loadXML($item->bill_content);
-                $xpath = new DOMXPath($dom);
-                // членские взносы
-                $memList = '--';
-                $memSumm = '--';
-                $additionalMem = $xpath->query('/payment/additional_membership');
-                if ($additionalMem->length === 1) {
-                    if ($memSumm === '--') {
-                        /** @var DOMElement $mi */
-                        $mi = $additionalMem->item(0);
-                        $memSumm = CashHandler::toRubles($mi->getAttribute('cost'));
-                    } else {
-                        /** @var DOMElement $mi */
-                        $mi = $additionalMem->item(0);
-                        $memSumm += CashHandler::toRubles($mi->getAttribute('cost'));
-                    }
-                    $quarters = $xpath->query('/payment/additional_membership/quarter');
-                    $memList = '';
-                    foreach ($quarters as $quarter) {
-                        /** @var DOMElement $quarter */
-                        $memList .= $quarter->getAttribute('date') . ' - ' . CashHandler::toRubles($quarter->getAttribute('summ')) . '<br>';
-                    }
-                }
-                // электричество
-                $powCounterValue = '--';
-                $powUsed = '--';
-                $powSumm = '--';
-                $power = $xpath->query('/payment/power');
-                if ($power->length === 1) {
-                    /** @var DOMElement $pi */
-                    $pi = $power->item(0);
-                    $powSumm = CashHandler::toRubles($pi->getAttribute('cost')) . '</b>';
-                    $months = $xpath->query('/payment/power/month');
-                    $powCounterValue = '';
-                    $powUsed = '';
-                    foreach ($months as $month) {
-                        /** @var DOMElement $month */
-                        $powCounterValue .= $month->getAttribute('date') . ': ' . $month->getAttribute('new-data') . '<br>';
-                        $powUsed .= $month->getAttribute('difference') . '<br>';
-                    }
-                }
-                $additonalPower = $xpath->query('/payment/additonal_power');
-                if ($additonalPower->length === 1) {
-                    if ($powSumm === '--') {
-                        $pi = $additonalPower->item(0);
-                        $powSumm = CashHandler::toRubles($pi->getAttribute('cost'));
-                    } else {
-                        $pi = $additonalPower->item(0);
-                        $powSumm += CashHandler::toRubles($pi->getAttribute('cost'));
-                    }
-                    $months = $xpath->query('/payment/power/month');
-                    $powCounterValue = '';
-                    $powUsed = '';
-                    foreach ($months as $month) {
-                        /** @var DOMElement $month */
-                        $powCounterValue .= $month->getAttribute('date') . ': ' . $month->getAttribute('new-data') . '<br>';
-                        $powUsed .= $month->getAttribute('difference') . '<br>';
-                    }
-                }
-                // целевые взносы
-                $tarList = '--';
-                $tarSumm = '--';
-                $tar = $xpath->query('/payment/additional_target/pay');
-                if ($tar->length > 0) {
-                    $tarList = '';
-                    /** @var DOMElement $parent */
-                    $parent = $tar->item(0)->parentNode;
-                    $tarSumm = CashHandler::toRubles($parent->getAttribute('cost'));
-                    foreach ($tar as $value) {
-                        /** @var DOMElement $value */
-                        $tarList .= $value->getAttribute('year') . ' - ' . CashHandler::toRubles($value->getAttribute('summ')) . '<br/>';
-                    }
-                }
-                // разовые взносы
-                $singleList = '--';
-                $singleSumm = '--';
-                $singles = $xpath->query('/payment/single/pay');
-                if ($singles->length > 0) {
-                    $singleList = '';
-                    /** @var DOMElement $parent */
-                    $parent = $singles->item(0)->parentNode;
-                    $singleSumm = CashHandler::toRubles($parent->getAttribute('cost'));
-                    foreach ($singles as $value) {
-                        $singleList .= $value->getAttribute('timestamp') . ' - ' . CashHandler::toRubles($value->getAttribute('payed')) . '<br/>';
-                    }
-                }
-                $toDeposit = $item->toDeposit ?: 0;
-                $deposit = CashHandler::toRubles($toDeposit - $item->depositUsed, true);
-                $content[] = "<tr><td>$date</td><td>{$item->bill_id}-a</td><td>{$item->cottage_number}-a</td><td>$memList</td><td>$memSumm</td><td>$powCounterValue</td><td>$powUsed</td><td>$powSumm</td><td>$tarList</td><td>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>{$item->discount}</td><td>{$deposit}</td></td><td>{$item->transactionSumm}</td><td class='text-primary'>$type</td></tr>";
-            }
+        else{
+            return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0];
         }
-        return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm];
     }
 }

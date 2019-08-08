@@ -19,6 +19,7 @@ use yii\db\ActiveRecord;
  * @property string $summBefore [float unsigned]
  * @property string $summAfter [float unsigned]
  * @property int $actionDate [int(20) unsigned]
+ * @property int $transactionId [int(10) unsigned]
  */
 class Table_deposit_io extends ActiveRecord
 {

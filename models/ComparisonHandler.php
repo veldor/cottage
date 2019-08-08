@@ -103,6 +103,11 @@ class ComparisonHandler extends Model
             }
             $t->usedDeposit = $billInfo->depositUsed;
             $t->transactionWay = 'in';
+            // заполню даты
+            $paymentTime = TimeHandler::getCustomTimestamp($transactionInfo->real_pay_date, $transactionInfo->pay_time);
+            $bankTime = TimeHandler::getCustomTimestamp($transactionInfo->pay_date);
+            $t->bankDate = $bankTime;
+            $t->payDate = $paymentTime;
             $t->partial = 0;
             $t->transactionReason = 'Оплата';
             $t->save();

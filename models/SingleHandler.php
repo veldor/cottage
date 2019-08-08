@@ -9,8 +9,10 @@
 namespace app\models;
 
 
+use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use DOMElement;
+use Exception;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
 
@@ -52,6 +54,7 @@ class SingleHandler extends Model
         parent::__construct($config);
         if (!empty($config['attributes'])) {
             $this->cottageNumber = $config['attributes']['cottageNumber'];
+            $this->double = $config['attributes']['double'];
         }
     }
 
@@ -69,7 +72,6 @@ class SingleHandler extends Model
             [['cottageNumber', 'summ'], 'required', 'on' => self::SCENARIO_NEW_DUTY],
             ['summ', CashValidator::class],
             ['description', 'string', 'max' => 500],
-            ['double', 'boolean'],
         ];
     }
 
@@ -138,36 +140,45 @@ class SingleHandler extends Model
 
     /**
      * @return array
+     * @throws Exception
      */
     public function insert(): array
     {
-        $description = urlencode($this->description);
-        $time = time();
-        if ($this->double) {
-            $cottage = AdditionalCottage::getCottage($this->cottageNumber);
-        } else {
-            $cottage = Cottage::getCottageInfo($this->cottageNumber);
+        $transaction = new DbTransaction();
+        try{
+            $description = urlencode($this->description);
+            $time = time();
+            if ($this->double) {
+                $cottage = AdditionalCottage::getCottage($this->cottageNumber);
+            } else {
+                $cottage = Cottage::getCottageInfo($this->cottageNumber);
+            }
+            // добавлю сведения о платеже в поле;
+            if (!empty($cottage->singlePaysDuty)) {
+                // если уже есть платежи- добавлю ещё один
+                $dom = new DOMHandler($cottage->singlePaysDuty);
+                $elem = $dom->createElement('singlePayment');
+                $elem->setAttribute('time', $time);
+                $elem->setAttribute('payed', '0');
+                $elem->setAttribute('summ', $this->summ);
+                $elem->setAttribute('description', $description);
+                $dom->appendToRoot($elem);
+                $data = $dom->save();
+                $cottage->singlePaysDuty = $data;
+            } else {
+                // если платежей нет- создам
+                $content = "<singlePayments><singlePayment time='{$time}' payed='0' summ='{$this->summ}' description='{$description}'/></singlePayments>";
+                $cottage->singlePaysDuty = $content;
+            }
+            $cottage->singleDebt += $this->summ;
+            $cottage->save();
+            $transaction->commitTransaction();
+            return ['status' => 1];
         }
-        // добавлю сведения о платеже в поле;
-        if (!empty($cottage->singlePaysDuty)) {
-            // если уже есть платежи- добавлю ещё один
-            $dom = new DOMHandler($cottage->singlePaysDuty);
-            $elem = $dom->createElement('singlePayment');
-            $elem->setAttribute('time', $time);
-            $elem->setAttribute('payed', '0');
-            $elem->setAttribute('summ', $this->summ);
-            $elem->setAttribute('description', $description);
-            $dom->dom->appendChild($elem);
-            $data = $dom->save();
-            $cottage->singlePaysDuty = $data;
-        } else {
-            // если платежей нет- создам
-            $content = "<singlePayments><singlePayment time='{$time}' payed='0' summ='{$this->summ}' description='{$description}'/></singlePayments>";
-            $cottage->singlePaysDuty = $content;
+        catch (Exception $e){
+            $transaction->rollbackTransaction();
+            throw $e;
         }
-        $cottage->singleDebt += $this->summ;
-        $cottage->save();
-        return ['status' => 1];
     }
 
     /**
@@ -234,7 +245,14 @@ class SingleHandler extends Model
         return ['text' => $answer, 'summ' => $summ];
     }
 
-    public static function registerPayment($cottageInfo, $billInfo, $payments, $additional = false)
+    /**
+     * @param $cottageInfo
+     * @param $billInfo
+     * @param $payments
+     * @param $transaction Table_transactions
+     * @param bool $additional
+     */
+    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false)
     {
         $dom = DOMHandler::getDom($cottageInfo->singlePaysDuty);
         $xpath = DOMHandler::getXpath($dom);
@@ -254,11 +272,18 @@ class SingleHandler extends Model
             }
             $cottageInfo->singleDebt -= $summ;
             $cottageInfo->singlePaysDuty = DOMHandler::saveXML($dom);
-            self::insertPayment($cottageInfo, $billInfo, $payment, $additional);
+            self::insertPayment($cottageInfo, $billInfo, $payment, $transaction, $additional);
         }
     }
 
-    public static function insertSinglePayment($cottageInfo, $billId, $date, $summ, $paymentTime)
+    /**
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @param $bill Table_payment_bills|Table_payment_bills_double
+     * @param $date
+     * @param $summ
+     * @param $transaction Table_transactions|Table_transactions_double
+     */
+    public static function insertSinglePayment($cottageInfo, $bill, $date, $summ, $transaction)
     {
         $main = Cottage::isMain($cottageInfo);
         // получу информацию о задолженностях
@@ -285,14 +310,22 @@ class SingleHandler extends Model
             $write = new Table_additional_payed_single();
             $write->cottageId = $cottageInfo->masterId;
         }
-        $write->billId = $billId;
+        $write->billId = $bill->id;
         $write->time = $date;
         $write->summ = $summ;
-        $write->paymentDate = $paymentTime;
+        $write->paymentDate = $transaction->bankDate;
+        $write->transactionId = $transaction->id;
         $write->save();
     }
 
-    public static function insertPayment($cottageInfo, $billInfo, $payment, $additional = false)
+    /**
+     * @param $cottageInfo
+     * @param $billInfo
+     * @param $payment
+     * @param $transaction Table_transactions
+     * @param bool $additional
+     */
+    public static function insertPayment($cottageInfo, $billInfo, $payment, $transaction, $additional = false)
     {
         $summ = CashHandler::toRubles($payment['summ']);
         if ($summ > 0) {
@@ -305,8 +338,9 @@ class SingleHandler extends Model
             }
             $write->billId = $billInfo->id;
             $write->time = $payment['timestamp'];
+            $write->transactionId = $transaction->id;
             $write->summ =$summ;
-            $write->paymentDate = $billInfo->paymentTime;
+            $write->paymentDate = $transaction->bankDate;
             $write->save();
         }
     }
@@ -372,42 +406,11 @@ class SingleHandler extends Model
         throw new ExceptionWithStatus('Платёж с данным идентификатором не найден', '3');
     }
 
-    public static function handlePartialPayment(DOMHandler $billDom, float $paymentSumm, $cottageInfo, $billId, int $paymentTime)
+    public static function handlePartialPayment($bill, $paymentInfo, $cottageInfo, $transaction)
     {
-        /** @var DOMElement $PayContainer */
-        $PayContainer = $billDom->query('//single')->item(0);
-        // проверка на предыдущую неполную оплату категории
-        $payedBefore = CashHandler::toRubles(0 . $PayContainer->getAttribute('payed'));
-        // записываю сумму прошлой и текущей оплаты в xml
-        $PayContainer->setAttribute('payed', $paymentSumm + $payedBefore);
-        // получу данные о полном счёте за членские взносы
-        $singlePays = $billDom->query('//single/pay');
-        /** @var DOMElement $pay */
-        foreach ($singlePays as $pay) {
-            // переменная для хранения суммы, предоплаченной за платёж в прошлый раз
-            $prepayed = 0;
-            // получу сумму платежа
-            $summ = DOMHandler::getFloatAttribute($pay, 'summ');
-            $date = $pay->getAttribute('timestamp');
-            // отсекаю платежи, полностью оплаченные в прошлый раз
-            if ($summ <= $payedBefore) {
-                $payedBefore -= $summ;
-                continue;
-            } elseif ($payedBefore > 0) {
-                // это сумма, которая была предоплачена по кварталу в прошлый раз
-                $prepayed = $payedBefore;
-                $payedBefore = 0;
-            }
-            if ($summ - $prepayed <= $paymentSumm) {
-                // денег хватает на полную оплату платежа. Плачу за него
-                // сумма платежа учитывается с вычетом ранее оплаченного
-                self::insertSinglePayment($cottageInfo, $billId, $date, $summ - $prepayed, $paymentTime);
-                // корректирую сумму текущего платежа с учётом предыдущего
-                $paymentSumm -= $summ - $prepayed;
-            } elseif ($paymentSumm > 0) {
-                // денег не хватает на полую оплату месяца, но ещё есть остаток- помечаю месяц как частично оплаченный
-                self::insertSinglePayment($cottageInfo, $billId, $date, $paymentSumm, $paymentTime);
-                break;
+        foreach($paymentInfo as $key=>$value){
+            if($value > 0){
+                self::insertSinglePayment($cottageInfo, $bill, $key, $value, $transaction);
             }
         }
     }

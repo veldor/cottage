@@ -559,10 +559,16 @@ class TimeHandler extends Model {
         $date = DateTime::createFromFormat('j-m-Y H-i-s', "$pay_date $pay_time");
         return $date->getTimestamp();
     }
-    public static function getCustomTimestamp(string $pay_date)
+    public static function getCustomTimestamp(string $pay_date, string $payTime = null)
     {
         $dates = explode('-', $pay_date);
         $date = new DateTime();
+        $times = explode('-', $payTime);
+        if(!empty($payTime)){
+            $date->setDate($dates[2],$dates[1],$dates[0]);
+            $date->setTime($times[0],$times[1],$times[2]);
+            return $date->getTimestamp();
+        }
         $date->setDate($dates[0],$dates[1],$dates[2]);
         return $date->getTimestamp();
     }
@@ -652,5 +658,10 @@ class TimeHandler extends Model {
             --$info['quarter'];
         }
         return "{$info['year']}-{$info['quarter']}";
+    }
+
+    public static function dateInputDateFromTimestamp(int $timestamp)
+    {
+        return strftime('%Y-%m-%d', $timestamp);
     }
 }

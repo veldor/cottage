@@ -63,25 +63,25 @@ class AddCottage extends Model
     }
 
 
-    public function attributeLabels(): array
-    {
-        return [
-            'cottageNumber' => 'Номер участка',
-            'cottageOwnerPersonals' => 'Фамилия имя и отчество владельца',
-            'cottageOwnerPhone' => 'Контактный номер телефона владельца',
-            'cottageContacterPersonals' => 'Фамилия имя и отчество контактного лица',
-            'cottageContacterPhone' => 'Номер телефона контактного лица',
-            'cottageOwnerEmail' => 'Адрес электронной почты владельца',
-            'haveRights' => 'Справка в наличии',
-            'cottageRegisterData' => 'Наличие данных для реестра',
-            'hasContacter' => 'Добавить контакт ',
-            'cottageSquare' => 'Площадь участка',
-            'currentPowerData' => 'Текущие показания счётчика электроэнергии',
-            'membershipPayFor' => 'Месяц, по который оплачены членские взносы',
-            'targetPayFor' => 'Месяц, по который оплачены целевые взносы',
-            'payerInfo' => 'Имена плательщиков для квитанции',
-        ];
-    }
+        public function attributeLabels(): array
+        {
+            return [
+                'cottageNumber' => 'Номер участка',
+                'cottageOwnerPersonals' => 'Фамилия имя и отчество владельца',
+                'cottageOwnerPhone' => 'Контактный номер телефона владельца',
+                'cottageContacterPersonals' => 'Фамилия имя и отчество контактного лица',
+                'cottageContacterPhone' => 'Номер телефона контактного лица',
+                'cottageOwnerEmail' => 'Адрес электронной почты владельца',
+                'haveRights' => 'Справка в наличии',
+                'cottageRegisterData' => 'Наличие данных для реестра',
+                'hasContacter' => 'Добавить контакт ',
+                'cottageSquare' => 'Площадь участка',
+                'currentPowerData' => 'Текущие показания счётчика электроэнергии',
+                'membershipPayFor' => 'Месяц, по который оплачены членские взносы',
+                'targetPayFor' => 'Месяц, по который оплачены целевые взносы',
+                'payerInfo' => 'Имена плательщиков для квитанции',
+            ];
+        }
 
     const SCENARIO_ADD = 'add';
     const SCENARIO_CHANGE = 'change';

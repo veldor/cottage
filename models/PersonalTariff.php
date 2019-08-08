@@ -652,13 +652,18 @@ class PersonalTariff extends Model
                         $float = CashHandler::toRubles($this->target[$year]['float']);
                         $payed = CashHandler::toRubles($this->target[$year]['payed-before']);
                         $summ = Calculator::countFixedFloat($fixed, $float, $this->currentCondition->cottageSquare);
-                        $targetDebtSumm += $summ - $payed;
-                        // пересчитаю тариф
-                        $debt->setAttribute('fixed', $fixed);
-                        $debt->setAttribute('float', $float);
-                        $debt->setAttribute('payed', $payed);
-                        $debt->setAttribute('summ', $summ);
-                        unset ($this->target[$year]);
+                        if($summ > 0){
+                            $targetDebtSumm += $summ - $payed;
+                            // пересчитаю тариф
+                            $debt->setAttribute('fixed', $fixed);
+                            $debt->setAttribute('float', $float);
+                            $debt->setAttribute('payed', $payed);
+                            $debt->setAttribute('summ', $summ);
+                            unset ($this->target[$year]);
+                        }
+                        else{
+                            $debt->parentNode->removeChild($debt);
+                        }
                     } else {
                         $summ = CashHandler::toRubles($debt->getAttribute('summ'));
                         $payed = CashHandler::toRubles($debt->getAttribute('payed'));
@@ -671,16 +676,18 @@ class PersonalTariff extends Model
                 $float = CashHandler::toRubles($value['float']);
                 $payed = CashHandler::toRubles($value['payed-before']);
                 $summ = Calculator::countFixedFloat($fixed, $float, $this->currentCondition->cottageSquare);
-                if ($payed < $summ) {
-                    $elem = $targetDom->createElement('target');
-                    $elem->setAttribute('year', $key);
-                    $elem->setAttribute('fixed', $fixed);
-                    $elem->setAttribute('float', $float);
-                    $elem->setAttribute('payed', $payed);
-                    $elem->setAttribute('square', $this->currentCondition->cottageSquare);
-                    $elem->setAttribute('summ', $summ);
-                    $targetDom->documentElement->appendChild($elem);
-                    $targetDebtSumm += $summ - $payed;
+                if($summ > 0){
+                    if ($payed < $summ) {
+                        $elem = $targetDom->createElement('target');
+                        $elem->setAttribute('year', $key);
+                        $elem->setAttribute('fixed', $fixed);
+                        $elem->setAttribute('float', $float);
+                        $elem->setAttribute('payed', $payed);
+                        $elem->setAttribute('square', $this->currentCondition->cottageSquare);
+                        $elem->setAttribute('summ', $summ);
+                        $targetDom->documentElement->appendChild($elem);
+                        $targetDebtSumm += $summ - $payed;
+                    }
                 }
             }
             $this->currentCondition->targetDebt = CashHandler::rublesRound($targetDebtSumm);

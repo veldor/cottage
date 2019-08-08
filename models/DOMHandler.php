@@ -162,4 +162,9 @@ class DOMHandler extends Model
     {
         return $this->dom->createElement($string);
     }
+
+    public function appendToRoot(DOMElement $elem)
+    {
+        $this->dom->documentElement->appendChild($elem);
+    }
 }

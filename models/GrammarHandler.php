@@ -155,4 +155,18 @@ class GrammarHandler extends Model
         }
         return $text;
     }
+
+    public static function isMain($id)
+    {
+        if(is_string($id)){
+            $strlen = strlen($id);
+            if($strlen > 3 && substr($id, $strlen - 3, 2) === '-a'){
+                return false;
+            }
+        }
+        return true;
+    }
+    public static function getNumber($id){
+        return (int) $id;
+    }
 }

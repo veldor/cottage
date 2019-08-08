@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\tables\Table_penalties;
 use app\validators\CheckCottageNoRegistred;
 use app\validators\CheckMonthValidator;
 use app\validators\CheckPhoneNumberValidator;
@@ -274,7 +275,8 @@ class AdditionalCottage extends Model
                 if($cottageInfo->hasDifferentOwner){
                     $unpayedBills = Table_payment_bills_double::findOne(['cottageNumber' => $cottageInfo->masterId, 'isPayed' => 0]);
                 }
-                return ['cottageInfo' => $cottageInfo, 'powerStatus' => $powerStatus, 'totalDebt' => $totalDebt, 'membershipDebt' => $membershipDebt, 'targetDebt' => $targetDebt, 'unpayedBills' => $unpayedBills];
+                $fines = Table_penalties::find()->where(['cottage_number' => $cottageId . '-a' ])->all();
+                return ['cottageInfo' => $cottageInfo, 'powerStatus' => $powerStatus, 'totalDebt' => $totalDebt, 'membershipDebt' => $membershipDebt, 'targetDebt' => $targetDebt, 'unpayedBills' => $unpayedBills, 'fines' => $fines];
             }
         }
         throw new InvalidArgumentException('Ошибка получения информации о дополнительном участке');

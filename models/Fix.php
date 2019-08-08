@@ -227,14 +227,317 @@ class Fix extends Model
         // для каждого получу последний платёж
         foreach ($results as $result) {
             $bill = Table_payment_bills::find()->where(['cottageNumber' => $result->cottageNumber])->orderBy('creationTime DESC')->one();
-            if(!empty($bill)){
-                if(!$bill->isMessageSend && !$bill->isInvoicePrinted){
+            if (!empty($bill)) {
+                if (!$bill->isMessageSend && !$bill->isInvoicePrinted) {
                     echo "$result->cottageNumber <br/>";
                 }
-            }
-            else{
+            } else {
                 echo "$result->cottageNumber <br/>";
             }
         }
+    }
+
+    public static function fix()
+    {
+        $partial = [];
+        // найду все транзакции
+        $transactions = Table_transactions::find()->all();
+        foreach ($transactions as $transaction) {
+            // если не заполнена дата транзакции- проставляю её
+            if ($transaction->bankDate === 0) {
+                $transaction->bankDate = $transaction->transactionDate;
+                $transaction->payDate = $transaction->transactionDate;
+                $transaction->save();
+            }
+            // найду счёт, к которому привязана транзакция
+            $bill = Table_payment_bills::findOne($transaction->billId);
+            // если сумма транзакции полностью покрывает счёт- он считается полностью оплаченным
+            $billSumm = CashHandler::toRubles(CashHandler::toRubles($bill->totalSumm) - CashHandler::toRubles($bill->depositUsed) - CashHandler::toRubles($bill->discount));
+            if (CashHandler::toRubles($transaction->transactionSumm) >= CashHandler::toRubles($billSumm)) {
+                // если есть скидка- привязываю к номеру транзакции
+                if ($bill->discount > 0) {
+                    $discount = Table_discounts::findOne(['billId' => $bill->id]);
+                    if (!empty($discount)) {
+                        if (empty($discount->transactionId)) {
+                            $discount->transactionId = $transaction->id;
+                            $discount->save();
+                        }
+                    } else {
+                        $discount = new Table_discounts();
+                        $discount->billId = $bill->id;
+                        $discount->transactionId = $transaction->id;
+                        $discount->summ = $bill->discount;
+                        $discount->reason = $bill->discountReason;
+                        $discount->actionDate = $transaction->bankDate;
+                        $discount->save();
+                    }
+                }
+                if ($bill->depositUsed > 0) {
+                    $transaction->usedDeposit = $bill->depositUsed;
+                    $transaction->save();
+                    $dep = Table_deposit_io::findOne(['billId' => $bill->id, 'destination' => 'out']);
+                    if (!empty($dep)) {
+                        if (empty($dep->transactionId)) {
+                            $dep->transactionId = $transaction->id;
+                            $dep->save();
+                        }
+                    }
+                }
+                if ($bill->toDeposit > 0) {
+                    $transaction->gainedDeposit = $bill->toDeposit;
+                    $transaction->save();
+                    $dep = Table_deposit_io::findOne(['billId' => $bill->id, 'destination' => 'in']);
+                    if (!empty($dep)) {
+                        if (empty($dep->transactionId)) {
+                            $dep->transactionId = $transaction->id;
+                            $dep->save();
+                        }
+                    }
+                }
+                $transaction->transactionReason = 'полная оплата по счёту ' . $bill->id;
+                $transaction->save();
+                // найду все оплаты по данному счёту, выставлю в них номер данной транзакции
+                $power = Table_payed_power::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_payed_target::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_payed_membership::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_payed_single::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                // проверю, не оплачивались ли в транзакции счета по дополнительному участку
+                $power = Table_additional_payed_power::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if ((empty($item->transactionId) || $item->transactionId === 0) && $item->cottageId === $bill->cottageNumber) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_additional_payed_target::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if ((empty($item->transactionId) || $item->transactionId === 0) && $item->cottageId === $bill->cottageNumber) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_additional_payed_membership::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if ((empty($item->transactionId) || $item->transactionId === 0) && $item->cottageId === $bill->cottageNumber) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+            } else {
+                $transaction->transactionReason = 'полная оплата по счёту ' . $bill->id;
+                $transaction->save();
+                // Добавлю транзакцию в список транзакций по счетам
+                $partial[$bill->id][] = $transaction->id;
+            }
+        }
+        // теперь обработаю частичные оплаты счётов
+        foreach ($partial as $key => $value) {
+            $bill = Table_payment_bills::findOne($key);
+            if (count($value) > 1) {
+                // так, тут хитрее. Скидка и потраченный депозит прицепляются к первой транзакции
+                $transaction = Table_transactions::findOne($value[0]);
+                $transaction->partial = 1;
+                if ($bill->discount > 0) {
+                    $discount = Table_discounts::findOne(['billId' => $bill->id]);
+                    if (!empty($discount)) {
+                        if (empty($discount->transactionId)) {
+                            $discount->transactionId = $transaction->id;
+                            $discount->save();
+                        }
+                    } else {
+                        $discount = new Table_discounts();
+                        $discount->billId = $bill->id;
+                        $discount->cottageNumber = $bill->cottageNumber;
+                        $discount->transactionId = $transaction->id;
+                        $discount->summ = $bill->discount;
+                        $discount->reason = $bill->discountReason;
+                        $discount->actionDate = $transaction->bankDate;
+                        $discount->save();
+                    }
+                }
+                if ($bill->depositUsed > 0) {
+                    $transaction->usedDeposit = $bill->depositUsed;
+                    $dep = Table_deposit_io::findOne(['billId' => $bill->id, 'destination' => 'out']);
+                    if (!empty($dep)) {
+                        if (empty($dep->transactionId)) {
+                            $dep->transactionId = $transaction->id;
+                            $dep->save();
+                        }
+                    }
+                }
+                $transaction->save();
+                // полученный депозит привязывается к последней транзакции
+                if($bill->toDeposit > 0){
+                    $transaction = Table_transactions::findOne($value[count($value) - 1]);
+                    $transaction->gainedDeposit = $bill->toDeposit;
+                    $transaction->save();
+                    $dep = Table_deposit_io::findOne(['billId' => $bill->id, 'destination' => 'in']);
+                    if (!empty($dep)) {
+                        if (empty($dep->transactionId)) {
+                            $dep->transactionId = $transaction->id;
+                            $dep->save();
+                        }
+                    }
+                }
+                // теперь привяжу все оплаченные сущности к транзакциям
+                foreach ($value as $transactionNumber) {
+                    $transaction = Table_transactions::findOne($transactionNumber);
+                    // если время проведения транзакции совпадает со временем оплаты- привязываю платёж
+                    // найду все оплаты по данному счёту, выставлю в них номер данной транзакции
+                    $power = Table_payed_power::find()->where(['billId' => $bill->id])->all();
+                    if (!empty($power)) {
+                        foreach ($power as $item) {
+                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                                $item->transactionId = $transaction->id;
+                                $item->save();
+                            }
+                        }
+                    }
+                    $power = Table_payed_target::find()->where(['billId' => $bill->id])->all();
+                    if (!empty($power)) {
+                        foreach ($power as $item) {
+                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                                $item->transactionId = $transaction->id;
+                                $item->save();
+                            }
+                        }
+                    }
+                    $power = Table_payed_membership::find()->where(['billId' => $bill->id])->all();
+                    if (!empty($power)) {
+                        foreach ($power as $item) {
+                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                                $item->transactionId = $transaction->id;
+                                $item->save();
+                            }
+                        }
+                    }
+                    $power = Table_payed_single::find()->where(['billId' => $bill->id])->all();
+                    if (!empty($power)) {
+                        foreach ($power as $item) {
+                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                                $item->transactionId = $transaction->id;
+                                $item->save();
+                            }
+                        }
+                    }
+                }
+            } else {
+                // снова найду информацию о счёте
+                $bill = Table_payment_bills::findOne($key);
+                // найду транзакцию
+                $transaction = Table_transactions::findOne($value[0]);
+                $transaction->partial = 1;
+                // все оплаты, потраченный депозит и скидка привязываются к данной транзакции
+                // если есть скидка- привязываю к номеру транзакции
+                if ($bill->discount > 0) {
+                    $discount = Table_discounts::findOne(['billId' => $bill->id]);
+                    if (!empty($discount)) {
+                        if (empty($discount->transactionId)) {
+                            $discount->transactionId = $transaction->id;
+                            $discount->save();
+                        }
+                    } else {
+                        $discount = new Table_discounts();
+                        $discount->billId = $bill->id;
+                        $discount->transactionId = $transaction->id;
+                        $discount->summ = $bill->discount;
+                        $discount->reason = $bill->discountReason;
+                        $discount->actionDate = $transaction->bankDate;
+                        $discount->save();
+                    }
+                }
+                if ($bill->depositUsed > 0) {
+                    $transaction->usedDeposit = $bill->depositUsed;
+                    $dep = Table_deposit_io::findOne(['billId' => $bill->id, 'destination' => 'out']);
+                    if (!empty($dep)) {
+                        if (empty($dep->transactionId)) {
+                            $dep->transactionId = $transaction->id;
+                            $dep->save();
+                        }
+                    }
+                }
+                if ($bill->toDeposit > 0) {
+                    die('частичная оплата с депозитом');
+                }
+                $transaction->save();
+                // все оплаченные сущности по счёту считаются оплаченными этой транзакцией
+                // найду все оплаты по данному счёту, выставлю в них номер данной транзакции
+                $power = Table_payed_power::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_payed_target::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_payed_membership::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+                $power = Table_payed_single::find()->where(['billId' => $bill->id])->all();
+                if (!empty($power)) {
+                    foreach ($power as $item) {
+                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                            $item->transactionId = $transaction->id;
+                            $item->save();
+                        }
+                    }
+                }
+            }
+        }
+        die();
     }
 }

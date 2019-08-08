@@ -74,7 +74,7 @@ if (!empty($activeSearch)) {
 			echo '</div>';
 			if ($result !== null && $activeSearch === 'cashSearch' && $result['status'] === 1) {
 				if (!empty($result['totalSumm'])) {
-					$summ = CashHandler::toShortSmoothRubles($result['totalSumm']);
+					$summ = CashHandler::toSmoothRubles($result['totalSumm']);
 					echo "<h4>Всего: <span class='text-info'>{$summ}</span></h4>";
 				}
 				if (is_string($result['data'])) {
@@ -97,10 +97,10 @@ if (!empty($activeSearch)) {
                             <th colspan="3" class="text-center">Электричество</th>
                             <th colspan="2" class="text-center">Целевые</th>
                             <th colspan="2" class="text-center">Разовые</th>
+                            <th colspan="2" class="text-center">Пени</th>
                             <th rowspan="2" class="text-center vertical-top">Скидка</th>
                             <th rowspan="2" class="text-center vertical-top">Депозит</th>
                             <th rowspan="2" class="text-center vertical-top">Итого</th>
-                            <th rowspan="2" class="text-center vertical-top">Вид</th>
                         </tr>
                         <tr>
                             <th class="text-center">Поквартально</th>
@@ -109,6 +109,8 @@ if (!empty($activeSearch)) {
                             <th class="text-center">Всего</th>
                             <th class="text-center">Оплачено</th>
                             <th class="text-center">По годам</th>
+                            <th class="text-center">Итого</th>
+                            <th class="text-center">Отдельно</th>
                             <th class="text-center">Итого</th>
                             <th class="text-center">Отдельно</th>
                             <th class="text-center">Итого</th>

@@ -128,8 +128,11 @@ return [
     'check/individual' => 'checks/individual',
     'individual/fill' => 'filling/fill-missing-individuals',
     'change/transaction-time' => 'payments/change-transaction-date',
-    'fines/count/<cottageNumber:[0-9]+>' => 'payments/count-fines',
+    'fines/count/<cottageNumber:[0-9]+(-a)?>' => 'payments/count-fines',
     'bill/reopen/<billId:[0-9]+>' => 'payments/bill-reopen',
 //    FINES ==================================================================================
-    'fines/<action:enable|disable>/<finesId:[0-9]+>' => 'fines/change'
+    'fines/<action:enable|disable>/<finesId:[0-9]+>' => 'fines/change',
+    'transaction/change-date/<id:[0-9]+(-a)?>' => 'payments/change-transaction-date',
+    'transaction/change-date' => 'payments/change-transaction-date',
+    'pay/confirm' => 'payments/confirm-payment'
 ];

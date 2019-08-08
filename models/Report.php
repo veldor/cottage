@@ -352,10 +352,8 @@ class Report extends Model
 
             $content = "<table class='table table-hover table-striped'><thead><tr><th>Месяц</th><th>Данные</th><th>Потрачено</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead>
 <tbody>";
-            $info = PowerHandler::getDebtReport($cottageNumber);
+            $info = PowerHandler::getDebtReport(Cottage::getCottageByLiteral($cottageNumber));
             foreach ($info as $item) {
-
-
                 $inLimitPay = CashHandler::toShortSmoothRubles($item['inLimitPay']);
                 $overLimitPay = CashHandler::toShortSmoothRubles($item['overLimitPay']);
                 $totalPay = CashHandler::toShortSmoothRubles($item['totalPay']);
@@ -372,7 +370,7 @@ class Report extends Model
             $content = "<table class='table table-hover table-striped'><thead><tr><th>Месяц</th><th>Данные</th><th>Потрачено</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead>
 <tbody>";
             $cottageInfo = AdditionalCottage::getCottage($cottageNumber);
-            $info = PowerHandler::getDebtReport($cottageInfo, true);
+            $info = PowerHandler::getDebtReport($cottageInfo);
             foreach ($info as $item) {
 	            $date = TimeHandler::getFullFromShotMonth($item['month']);
 	            $content .= "<tr><td>$date</td><td>{$item['newPowerData']} кВт.ч</td><td>{$item['difference']} кВт.ч</td><td>{$item['inLimitPay']} &#8381;</td><td>{$item['overLimitPay']} &#8381;</td><td>{$item['totalPay']} &#8381;</td></tr>";

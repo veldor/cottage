@@ -8,44 +8,52 @@
 
 namespace app\models;
 
-use app\models\tables\Table_view_fines_info;
+use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use Exception;
-use Yii;
 use yii\base\Model;
 
 
-class Pay extends Model {
-	public $billIdentificator; // Идентификатор платежа
-	public $rawSumm = 0; // фактическое количество наличных
-	public $totalSumm; // Общая сумма оплаты
-	public $fromDeposit = 0;
-	public $toDeposit = 0; // Начисление средств на депозит
-	public $realSumm; // Фактическая сумма поступившив в кассу средств
-	public $changeToDeposit = 0; // зачислить сдачу на депозин
-	public $change = 0;
-	public $discount = 0;
-	public $payType = 'cashless';// тип оплаты: наличный\безналичный
-	public $payWholeness;// целостность оплаты: полная\частичная
+class Pay extends Model
+{
+    public $billIdentificator; // Идентификатор платежа
+    public $rawSumm = 0; // фактическое количество наличных
+    public $totalSumm; // Общая сумма оплаты
+    public $fromDeposit = 0;
+    public $toDeposit = 0; // Начисление средств на депозит
+    public $realSumm; // Фактическая сумма поступившив в кассу средств
+    public $changeToDeposit = 0; // зачислить сдачу на депозин
+    public $change = 0;
+    public $discount = 0;
     public $double;
     public $customDate;
+    public $getCustomDate;
     public $sendConfirmation = true;
 
     public $power = 0;
     public $additionalPower = 0;
     public $membership = 0;
     public $additionalMembership = 0;
-    public $target = 0;
-    public $additionalTarget = 0;
-    public $single = 0;
+    public $target;
+    public $additionalTarget;
+    public $single;
+    public $fines = 0;
 
     public $payedBefore;
-	/**
-	 * @var $billInfo Table_payment_bills
-	 */
-	public $billInfo;
+    /**
+     * @var $billInfo Table_payment_bills
+     */
+    public $billInfo;
 
-	const SCENARIO_PAY = 'pay';
+    const SCENARIO_PAY = 'pay';
+    /**
+     * @var Table_additional_cottages|Table_cottages
+     */
+    public $cottageInfo;
+    /**
+     * @var Table_additional_cottages
+     */
+    public $additionalCottageInfo;
 
     /**
      * @param $payId
@@ -56,20 +64,18 @@ class Pay extends Model {
     public static function closeBill($payId, $double)
     {
         // найду платёж
-        if($double){
+        if ($double) {
             $bill = Table_payment_bills_double::findOne($payId);
-        }
-        else{
+        } else {
             $bill = Table_payment_bills::findOne($payId);
         }
-        if(!empty($bill)){
+        if (!empty($bill)) {
             // проверю, счёт должен быть частично оплачен
-            if($bill->isPartialPayed){
+            if ($bill->isPartialPayed) {
                 $bill->isPayed = 1;
                 $bill->save();
                 return ['status' => 1, 'message' => 'Счёт успешно закрыт.'];
-            }
-            else{
+            } else {
                 throw new ExceptionWithStatus('Счёт должен быть частично оплачен', 2);
             }
         }
@@ -79,13 +85,13 @@ class Pay extends Model {
     public static function reopenBill($billId)
     {
         $billInfo = ComplexPayment::getBill($billId);
-        if(!empty($billInfo)){
+        if (!empty($billInfo)) {
             // если счёт открыт- пишу, что он открыт
-            if($billInfo->isPayed === 0){
+            if ($billInfo->isPayed === 0) {
                 return ['status' => 2, 'message' => 'Счёт ещё открыт!'];
             }
             // проверю, не открыт ли счёт у данного участка
-            if(!empty(Pay::getUnpayedBill(Cottage::getCottageByLiteral($billInfo->cottageNumber)))){
+            if (!empty(Pay::getUnpayedBill(Cottage::getCottageByLiteral($billInfo->cottageNumber)))) {
                 return ['status' => 4, 'message' => 'Сначала нужно закрыть все открытые счета участка!'];
             }
             $billInfo->isPayed = 0;
@@ -96,393 +102,318 @@ class Pay extends Model {
     }
 
     public function scenarios(): array
-	{
-		return [
-			self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'payWholeness', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single', 'customDate', 'sendConfirmation'],
-		];
-	}
-
-	public function attributeLabels(): array
-	{
-		return [
-			'changeToDeposit' => 'Зачислить сдачу на депозит',
-			'rawSumm' => 'Сумма наличных',
-			'toDeposit' => 'Сумма, зачисляемая на депозит',
-			'payType' => 'Вариант оплаты',
-			'payWholeness' => 'Целостность оплаты',
-            'sendConfirmation' => 'Отправить'
-		];
-	}
-
-	/**
-	 * @return array
-	 */
-	public function rules(): array
-	{
-		return [
-			[['totalSumm', 'rawSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'change', 'changeToDeposit', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single'], CashValidator::class],
-			[['billIdentificator', 'totalSumm', 'rawSumm', 'change', 'payWholeness'], 'required', 'on' => self::SCENARIO_PAY],
-			[['toDeposit'], 'required', 'when' => function () {
-				return $this->changeToDeposit;
-			}, 'whenClient' => "function () {return $('input#pay-changetodeposit').prop('checked');}"],
-			['changeToDeposit', 'in', 'range' => [1, 0]],
-			['payType', 'in', 'range' => ['cash', 'cashless']],
-			['payWholeness', 'in', 'range' => ['full', 'partial']],
-			['toDeposit', 'checkToDeposit'],
-			['rawSumm', 'checkRawSumm'],
-		];
-	}
-
-	public function checkRawSumm($attribute){
-	    if($this->payWholeness === 'full'){
-            $totalSumm = CashHandler::rublesMath($this->totalSumm - $this->fromDeposit - $this->discount - $this->payedBefore + $this->toDeposit);
-            if(CashHandler::rublesMore($totalSumm, $this->$attribute)){
-                $this->addError($attribute, "Сумма наличных не может быть меньше суммы к оплате");
-            }
-        }
+    {
+        return [
+            self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single', 'customDate', 'getCustomDate', 'sendConfirmation', 'fines'],
+        ];
     }
 
-	public function checkToDeposit($attribute)
-	{
-	    if($this->payWholeness === 'full'){
-            // сумма, зачисляемая на депозит не должна превышать сумму потенциальной сдачи
-            $totalSumm =CashHandler::rublesMath($this->totalSumm - $this->fromDeposit - $this->discount) ;
-            $changeSumm = CashHandler::rublesMath($this->rawSumm - $totalSumm + $this->payedBefore);
+    public function attributeLabels(): array
+    {
+        return [
+            'changeToDeposit' => 'Зачислить сдачу на депозит',
+            'rawSumm' => 'Сумма наличных',
+            'toDeposit' => 'Сумма, зачисляемая на депозит',
+            'payType' => 'Вариант оплаты',
+            'sendConfirmation' => 'Отправить'
+        ];
+    }
 
-            if (CashHandler::rublesMore($this->$attribute, $changeSumm)) {
-                $this->addError($attribute, 'Сумма слишком велика');
-            }
-            if (!CashHandler::rublesComparison(($this->$attribute + $this->change), $changeSumm)) {
-                $this->addError($attribute, 'Не сходится сумма сдачи и зачисления (' . $changeSumm . ' != ' . ($this->$attribute + $this->change)  . ')');
-            }
-        }
-	}
+    /**
+     * @return array
+     */
+    public function rules(): array
+    {
+        return [
+            [['totalSumm', 'rawSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'change', 'changeToDeposit', 'membership', 'additionalMembership', 'power', 'additionalPower'], CashValidator::class],
+            [['billIdentificator', 'totalSumm', 'rawSumm'], 'required', 'on' => self::SCENARIO_PAY],
+            [['toDeposit'], 'required', 'when' => function () {
+                return $this->changeToDeposit;
+            }, 'whenClient' => "function () {return $('input#pay-changetodeposit').prop('checked');}"],
+            ['changeToDeposit', 'in', 'range' => [1, 0]],
+        ];
+    }
 
-	public function fillInfo($identificator, $double = false): bool
-	{
-	    if(!$this->double){
+    public function fillInfo($identificator, $double = false): bool
+    {
+        if (!$this->double) {
             $this->double = $double;
+        } else {
+            $double = true;
         }
-	    else{
-	        $double = true;
+        $this->billInfo = ComplexPayment::getBillInfo($identificator, $double);
+        $billInfo = $this->billInfo['billInfo'];
+        if ($billInfo->isPayed === 1) {
+            throw new ExceptionWithStatus('Счёт уже оплачен!', 3);
         }
-		$this->billInfo = ComplexPayment::getBillInfo($identificator, $double);
-		$billInfo = $this->billInfo['billInfo'];
-		if ($billInfo->isPayed === 1) {
-			throw new ExceptionWithStatus('Счёт уже оплачен!', 3);
-		}
-		$this->billIdentificator = $identificator;
-		$this->totalSumm = $billInfo->totalSumm;
-		$this->fromDeposit = $billInfo->depositUsed;
-		$this->discount = $billInfo->discount;
-		$this->payedBefore = $billInfo->payedSumm;
-		return true;
-	}
+        $this->billIdentificator = $identificator;
+        $this->totalSumm = $billInfo->totalSumm;
+        $this->fromDeposit = $billInfo->depositUsed;
+        $this->discount = $billInfo->discount;
+        $this->payedBefore = $billInfo->payedSumm;
+        if ($double) {
+            $this->cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
+        } else {
+            $this->cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber);
+            if ($this->cottageInfo->haveAdditional) {
+                $this->additionalCottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
+            }
+        }
+        return true;
+    }
 
-	public function confirm()
-	{
-        $cottageInfo = $this->billInfo['cottageInfo'];
-        $additionalCottageInfo = null;
-        if($this->double){
-            $additionalCottageInfo = $this->billInfo['cottageInfo'];
-        }
-        elseif(!empty($cottageInfo->haveAdditional)) {
-            $additionalCottageInfo = Cottage::getCottageInfo($cottageInfo->cottageNumber, true);
-        }
+    public function confirm()
+    {
+        $transaction = new DbTransaction();
+        try {
+            // обработаю дату платежа
+            if (!empty($this->customDate)) {
+                $paymentTime = TimeHandler::getCustomTimestamp($this->customDate);
+            } else {
+                $paymentTime = time();
+            }
+            // обработаю дату поступления средств ра счёт
+            if (!empty($this->getCustomDate)) {
+                $getTime = TimeHandler::getCustomTimestamp($this->getCustomDate);
+            } else {
+                $getTime = time();
+            }
+            $additionalCottageInfo = null;
+            // найду информацию о счёте
+            if ($this->double) {
+                $billInfo = Table_payment_bills_double::findOne($this->billIdentificator);
+                $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
+            } else {
+                $billInfo = Table_payment_bills::findOne($this->billIdentificator);
+                $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber);
+                if ($cottageInfo->haveAdditional) {
+                    $additionalCottageInfo = Cottage::getCottageByLiteral($cottageInfo->cottageNumber . '-a');
+                }
+            }
 
+            // проверю тип оплаты
+            $payType = null;
+            // Расчитаю необходимую для оплаты сумму
+            if ($billInfo->isPartialPayed) {
+                $neededSumm = CashHandler::toRubles($billInfo->totalSumm - $billInfo->discount - $billInfo->depositUsed - $billInfo->payedSumm);
+                if ($this->rawSumm >= $neededSumm) {
+                    $payType = 'partial-finish';
+                } else {
+                    $payType = 'partial';
+                }
+            } else {
+                $neededSumm = CashHandler::toRubles(CashHandler::toRubles($billInfo->totalSumm) - CashHandler::toRubles($billInfo->discount) - CashHandler::toRubles($billInfo->depositUsed));
+                if ($this->rawSumm >= $neededSumm) {
+                    $payType = 'full';
+                } else {
+                    $payType = 'partial';
+                }
+            }
 
-        if($this->payWholeness=== 'full' && $this->billInfo['billInfo']->isPartialPayed){
-            // завершающая оплата
-            $this->payWholeness = 'partial-finish';
-        }
-	    if($this->payWholeness === 'partial'){
-            $db = Yii::$app->db;
-            $transaction = $db->beginTransaction();
-	        try{
-	            if(!empty($this->customDate)){
-	                $paymentTime = TimeHandler::getCustomTimestamp($this->customDate);
-                }
-                else{
-                    $paymentTime = time();
-                }
-	            $billInfo = $this->billInfo['billInfo'];
-	            $cottageInfo = $this->billInfo['cottageInfo'];
-                // проверю, сумма внесённых средств должна соответствовать раскладке по категориям
-                if($this->rawSumm != ($this->power + $this->additionalPower + $this->membership + $this->additionalMembership + $this->target + $this->additionalTarget + $this->single)){
-                    $this->addError('rawSumm', 'Распределены не все средства');
-                }
-                // буду работать с xml счёта
-                $dom = new DOMHandler($this->billInfo['billInfo']->bill_content);
-                // дальше, отмечу оплаченными периоды, на которые хватает средств
-                if($this->power > 0){
-                    PowerHandler::handlePartialPayment($dom, $this->power, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if($this->additionalPower > 0){
-                    PowerHandler::handlePartialPayment($dom, $this->additionalPower, $additionalCottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if($this->membership > 0){
-                    MembershipHandler::handlePartialPayment($dom, $this->membership, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if($this->additionalMembership > 0){
-                    MembershipHandler::handlePartialPayment($dom, $this->additionalMembership, $additionalCottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if($this->target > 0){
-                    TargetHandler::handlePartialPayment($dom, $this->target, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if($this->additionalTarget > 0){
-                    TargetHandler::handlePartialPayment($dom, $this->additionalTarget, $additionalCottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if($this->single){
-                    SingleHandler::handlePartialPayment($dom, $this->single, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                $previousPayed = $billInfo->isPartialPayed;
-                $billInfo->isPartialPayed = 1;
-                $billInfo->payedSumm += $this->rawSumm;
-                // сохраню изменения в xml платежа
-                $billInfo->bill_content = $dom->save();
-                if(!empty($additionalCottageInfo)){
-                    $additionalCottageInfo->save();
-                }
-                // регистрирую транзакцию
-                // проверю, не является ли участок дополнительным с вторым владельцем
-                if($this->double){
-                    $billTransaction = new Table_transactions_double();
-                    $billTransaction->cottageNumber = $this->billInfo['cottageInfo']->masterId;
-                }
-                else{
-                    $billTransaction = new Table_transactions();
-                    $billTransaction->cottageNumber = $this->billInfo['cottageInfo']->cottageNumber;
-                }
-                $billTransaction->billId = $billInfo->id;
-                $billTransaction->transactionDate = $paymentTime;
-                // если используются средства с депозита и это первый платёж по данному счёту- списываю средства
-                $fromDeposit = $this->fromDeposit;
-                if($fromDeposit > 0 && $previousPayed === 0){
-                    DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'out');
-                    $billTransaction->usedDeposit = $fromDeposit;
-                }
-                else{
-                    $billTransaction->usedDeposit = 0;
-                }
+            $billInfo->payedSumm += CashHandler::toRubles($this->rawSumm);
+
+            // создам шаблон денежной транзакции, чтобы использовать его номер в отчётах
+            if ($this->double) {
+                $billTransaction = new Table_transactions_double();
+            } else {
+                $billTransaction = new Table_transactions();
+            }
+            if ($this->double) {
+                $billTransaction->cottageNumber = $cottageInfo->masterId;
+            } else {
+                $billTransaction->cottageNumber = $cottageInfo->cottageNumber;
+            }
+            $billTransaction->payDate = $paymentTime;
+            $billTransaction->bankDate = $getTime;
+            $billTransaction->billId = $this->billIdentificator;
+            $billTransaction->transactionDate = time();
+            $billTransaction->transactionType = 'no-cash';
+            $billTransaction->transactionSumm = CashHandler::toRubles($this->rawSumm);
+            $billTransaction->transactionWay = 'in';
+            $billTransaction->usedDeposit = 0;
+            $billTransaction->gainedDeposit = 0;
+            $billTransaction->save();
+            if ($payType === 'partial') {
                 $billTransaction->gainedDeposit = 0;
                 $billTransaction->partial = 1;
-                $billTransaction->billCast = $billInfo->bill_content;
-                $billTransaction->transactionType = $this->payType === 'cash' ? 'cash' : 'no-cash';
-                $billTransaction->transactionSumm = $this->rawSumm;
-                $billTransaction->transactionWay = 'in';
-                $billTransaction->transactionReason = 'Частичная оплата счёта';
-                $billTransaction->save();
-                $billInfo->save();
-                $cottageInfo->save();
-                $transaction->commit();
-                if($this->sendConfirmation){
-                    Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($billTransaction->transactionSumm) . ". Благодарим за оплату.");
+                if (!$billInfo->isPartialPayed) {
+                    $billTransaction->usedDeposit = $billInfo->depositUsed;
                 }
-                return ['status' => 1, 'message' => 'Частичная оплата успешна'];
-            }
-            catch (Exception $e){
-	            $transaction->rollBack();
-	            throw $e;
-            }
-        }
-	    elseif($this->payWholeness === 'partial-finish'){
-	        // завершение оплаты счёта
-            $db = Yii::$app->db;
-            $transaction = $db->beginTransaction();
-            try{
-                // отмечу все категории счёта полностью оплаченными
-                if(!empty($this->customDate)){
-                    $paymentTime = TimeHandler::getCustomTimestamp($this->customDate);
+
+                // проверю, сумма внесённых средств должна соответствовать раскладке по категориям
+                // если это первый платёж, учитываю скидку и использованный депозит
+                $gainedSumm = CashHandler::toRubles($this->rawSumm);
+                if (!$billInfo->isPartialPayed) {
+                    $gainedSumm += CashHandler::toRubles($billInfo->depositUsed);
+                    $gainedSumm += CashHandler::toRubles($billInfo->discount);
+                    $gainedSumm = CashHandler::toRubles($gainedSumm);
+
+                    $fromDeposit = CashHandler::toRubles($billInfo->depositUsed);
+                    if ($fromDeposit > 0) {
+                        DepositHandler::registerDeposit($billInfo, $cottageInfo, 'out', $billTransaction);
+                        $billTransaction->usedDeposit = $fromDeposit;
+                    } else {
+                        $billTransaction->usedDeposit = 0;
+                    }
+                    if($billInfo->discount > 0){
+                        DiscountHandler::registerDiscount($billInfo, $billTransaction);
+                    }
                 }
-                else{
-                    $paymentTime = time();
+                $neededSumm = 0;
+                $neededSumm += CashHandler::toRubles($this->power);
+                $neededSumm += CashHandler::toRubles($this->additionalPower);
+                $neededSumm += CashHandler::toRubles($this->membership);
+                $neededSumm += CashHandler::toRubles($this->additionalMembership);
+                $neededSumm += CashHandler::toRubles($this->fines);
+                if (!empty($this->target)) {
+                    foreach ($this->target as $item) {
+                        if (!empty($item)) {
+                            $neededSumm += CashHandler::toRubles($item);
+                        }
+                    }
                 }
-                $billInfo = $this->billInfo['billInfo'];
-                $billInfo->paymentTime = $paymentTime;
-                $billInfo->toDeposit = $this->toDeposit;
-                $dom = new DOMHandler($this->billInfo['billInfo']->bill_content);
-                // данные о оплате электроэнергии
-                if (!empty($this->billInfo['paymentContent']['power'])) {
-                    PowerHandler::finishPartialPayment($dom, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
+                if (!empty($this->additionalTarget)) {
+                    foreach ($this->additionalTarget as $item) {
+                        if (!empty($item)) {
+                            $neededSumm += CashHandler::toRubles($item);
+                        }
+                    }
                 }
-                if (!empty($this->billInfo['paymentContent']['additionalPower'])) {
-                    PowerHandler::finishPartialPayment($dom, $additionalCottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
+                if (!empty($this->single)) {
+                    foreach ($this->single as $item) {
+                        if (!empty($item)) {
+                            $neededSumm += CashHandler::toRubles($item);
+                        }
+                    }
                 }
-                if (!empty($this->billInfo['paymentContent']['membership'])) {
-                    MembershipHandler::finishPartialPayment($dom, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
+                if ($gainedSumm != $neededSumm) {
+                    throw new ExceptionWithStatus('Не сходится сумма');
                 }
-                if (!empty($this->billInfo['paymentContent']['additionalMembership'])) {
-                    MembershipHandler::finishPartialPayment($dom, $additionalCottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if (!empty($this->billInfo['paymentContent']['target'])) {
-                    TargetHandler::finishPartialPayment($dom, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if (!empty($this->billInfo['paymentContent']['additionalTarget'])) {
-                    TargetHandler::finishPartialPayment($dom, $additionalCottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                if (!empty($this->billInfo['paymentContent']['single'])) {
-                    SingleHandler::finishPartialPayment($dom, $cottageInfo, $this->billInfo['billInfo']->id, $paymentTime);
-                }
-                $billInfo->isPartialPayed = 0;
+
+                // отмечу счёт частично оплаченным
+                $billInfo->isPartialPayed = 1;
+            } elseif ($payType === 'full') {
+                $billTransaction->partial = 0;
+                $billTransaction->usedDeposit = $billInfo->depositUsed;
+                $billTransaction->gainedDeposit = $this->toDeposit;
+
+                // отмечу счёт полностью оплаченным
                 $billInfo->isPayed = 1;
-                $billInfo->payedSumm += $this->rawSumm;
-                // сохраню изменения в xml платежа
-                $billInfo->bill_content = $dom->save();
+                $billInfo->isPartialPayed = 0;
+            } elseif ($payType === 'partial-finish') {
+                $billTransaction->partial = 1;
+                $billTransaction->usedDeposit = 0;
+                $billTransaction->gainedDeposit = $this->toDeposit;
+                if($this->toDeposit > 0){
+                    $billInfo->toDeposit = CashHandler::toRubles($this->toDeposit);
+                    DepositHandler::registerDeposit($billInfo, $cottageInfo, 'in', $billTransaction);
+                }
+                // отмечу счёт полностью оплаченным
+                $billInfo->isPayed = 1;
+                $billInfo->isPartialPayed = 0;
 
-                // зачислю остаток платежа на депозит
-                DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'in');
-                $billInfo->save();
-                $cottageInfo->save();
-                if(!empty($additionalCottageInfo)){
-                    $additionalCottageInfo->save();
+            }
+            $billTransaction->save();
+            if ($payType === 'full') {
+                // проверю сумму начисления на депозит
+                $neededDeposit = CashHandler::toRubles(CashHandler::toRubles($this->rawSumm) - CashHandler::toRubles($neededSumm));
+                if ($neededDeposit != $this->toDeposit) {
+                    throw new ExceptionWithStatus('Не сходится сумма начисления на депозит');
                 }
 
+                // обработаю депозит и скидки
+                if($billInfo->depositUsed > 0){
+                    DepositHandler::registerDeposit($billInfo, $cottageInfo, 'out', $billTransaction);
+                }
+                if($this->toDeposit > 0){
+                    $billInfo->toDeposit = CashHandler::toRubles($this->toDeposit);
+                    DepositHandler::registerDeposit($billInfo, $cottageInfo, 'in', $billTransaction);
+                }
+                if($billInfo->discount > 0){
+                    DiscountHandler::registerDiscount($billInfo, $billTransaction);
+                }
+            }
+            if ($this->power > 0) {
+                PowerHandler::handlePartialPayment($billInfo, $this->power, $cottageInfo, $billTransaction);
+            }
+            if ($this->additionalPower > 0) {
                 if($this->double){
-                    $t = new Table_transactions_double();
-                    $t->cottageNumber = $this->billInfo['cottageInfo']->masterId;
+                    PowerHandler::handlePartialPayment($billInfo, $this->additionalPower, $cottageInfo, $billTransaction);
                 }
                 else{
-                    $t = new Table_transactions();
-                    $t->cottageNumber = $this->billInfo['cottageInfo']->cottageNumber;
+                    PowerHandler::handlePartialPayment($billInfo, $this->additionalPower, $additionalCottageInfo, $billTransaction);
                 }
 
-                $t->billId = $billInfo->id;
-                $t->transactionDate = $billInfo->paymentTime;
-                if($this->payType === 'cash'){
-                    $t->transactionType = 'cash';
+            }
+            if ($this->membership > 0) {
+                MembershipHandler::handlePartialPayment($billInfo, $this->membership, $cottageInfo, $billTransaction);
+            }
+            if ($this->additionalMembership > 0) {
+                if($this->double){
+                    MembershipHandler::handlePartialPayment($billInfo, $this->additionalMembership, $cottageInfo, $billTransaction);
                 }
                 else{
-                    $t->transactionType = 'no-cash';
+                    MembershipHandler::handlePartialPayment($billInfo, $this->additionalMembership, $additionalCottageInfo, $billTransaction);
                 }
-                $t->gainedDeposit = $this->toDeposit;
-                $t->usedDeposit = 0;
-                $t->partial = 0;
-                $t->transactionSumm = $this->rawSumm;
-                $t->transactionWay = 'in';
-                $t->transactionReason = 'Оплата';
-                $t->save();
-                $transaction->commit();
-                if($this->sendConfirmation) {
-                    Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
-                    return ['status' => 1, 'message' => 'Платёж полностью оплачен'];
-                }
-            }
-            catch (Exception $e){
-                $transaction->rollBack();
-                throw $e;
-            }
-        }
-        $db = Yii::$app->db;
-        $transaction = $db->beginTransaction();
-        try {
-            $billInfo = $this->billInfo['billInfo'];
-            if(!empty($this->customDate)){
-                $billInfo->paymentTime = TimeHandler::getCustomTimestamp($this->customDate);
-            }
-            else{
-                $billInfo->paymentTime = time();
-            }
-            $payedSumm = $billInfo->totalSumm - $this->discount - $this->fromDeposit + $this->toDeposit;
-            if($this->double){
-                $t = new Table_transactions_double();
-                $t->cottageNumber = $this->billInfo['cottageInfo']->masterId;
-            }
-            else{
-                $t = new Table_transactions();
-                $t->cottageNumber = $this->billInfo['cottageInfo']->cottageNumber;
-            }
 
-            $t->billId = $billInfo->id;
-            $t->transactionDate = $billInfo->paymentTime;
-            if($this->payType === 'cash'){
-                $t->transactionType = 'cash';
             }
-            else{
-                $t->transactionType = 'no-cash';
+            if (!empty($this->target)) {
+                TargetHandler::handlePartialPayment($billInfo, $this->target, $cottageInfo, $billTransaction);
             }
-            $t->transactionSumm = $payedSumm;
-            $t->gainedDeposit = $this->toDeposit;
-            $t->usedDeposit = $this->fromDeposit;
-            $t->transactionWay = 'in';
-            $t->partial = 0;
-            $t->transactionReason = 'Оплата';
-            $t->save();
-            $billInfo->toDeposit = $this->toDeposit;
-            // теперь нужно отметить платёж как оплаченный, создать денежную транзакцию, сохранить её, сохранить в данных участка изменения связанные с оплатой
-            // ищу информацию по каждому платежу
-            // данные о оплате электроэнергии
-            if (!empty($this->billInfo['paymentContent']['power'])) {
-                PowerHandler::registerPayment($cottageInfo, $billInfo, $this->billInfo['paymentContent']['power']);
+            if (!empty($this->additionalTarget)) {
+                if($this->double){
+                    TargetHandler::handlePartialPayment($billInfo, $this->additionalTarget, $cottageInfo, $billTransaction);
+                }
+                else {
+                    TargetHandler::handlePartialPayment($billInfo, $this->additionalTarget, $additionalCottageInfo, $billTransaction);
+                }
             }
-            if (!empty($this->billInfo['paymentContent']['additionalPower'])) {
-                PowerHandler::registerPayment($additionalCottageInfo, $billInfo, $this->billInfo['paymentContent']['additionalPower'], true);
+            if (!empty($this->single)) {
+                SingleHandler::handlePartialPayment($billInfo, $this->single, $cottageInfo, $billTransaction);
             }
-            if (!empty($this->billInfo['paymentContent']['membership'])) {
-                MembershipHandler::registerPayment($cottageInfo, $billInfo, $this->billInfo['paymentContent']['membership']);
+            if ($this->fines > 0) {
+                FinesHandler::handlePartialPayment($billInfo, $this->fines, $cottageInfo, $billTransaction);
             }
-            if (!empty($this->billInfo['paymentContent']['additionalMembership'])) {
-                MembershipHandler::registerPayment($additionalCottageInfo, $billInfo, $this->billInfo['paymentContent']['additionalMembership'], true);
-            }
-            if (!empty($this->billInfo['paymentContent']['target'])) {
-                TargetHandler::registerPayment($cottageInfo, $billInfo, $this->billInfo['paymentContent']['target']);
-            }
-            if (!empty($this->billInfo['paymentContent']['additionalTarget'])) {
-                TargetHandler::registerPayment($additionalCottageInfo, $billInfo, $this->billInfo['paymentContent']['additionalTarget'], true);
-            }
-            if (!empty($this->billInfo['paymentContent']['single'])) {
-                SingleHandler::registerPayment($cottageInfo, $billInfo, $this->billInfo['paymentContent']['single'], $this->double);
-            }
-            $fines = Table_view_fines_info::find()->where(['bill_id' => $this->billIdentificator])->all();
-            if(!empty($fines)){
-                FinesHandler::makePayed($fines, $t->id);
-            }
-            if ($this->fromDeposit > 0) {
-                DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'out');
-            }
-            if ($this->discount > 0) {
-                DiscountHandler::registerDiscount($billInfo);
-            }
-            if ($this->changeToDeposit && $this->toDeposit > 0) {
-                DepositHandler::registerDeposit($billInfo, $this->billInfo['cottageInfo'], 'in');
-            }
-            $billInfo->isPayed = 1;
-            $billInfo->payedSumm = $payedSumm;
+            $billInfo->isPartialPayed = 1;
+            // регистрирую транзакцию
+            $billTransaction->transactionSumm = CashHandler::toRubles($this->rawSumm);
+            // если используются средства с депозита и это первый платёж по данному счёту- списываю средства
+            $billTransaction->transactionReason = 'Частичная оплата по счёту № ' . $billInfo->id;
+            $billTransaction->save();
             $billInfo->save();
-            // обновлю информацию о балансе садоводства на этот месяц
-            Balance::toBalance($t->transactionSumm, 'cash');
-            /** @var Table_cottages $cottageInfo */
             $cottageInfo->save();
-            if ($additionalCottageInfo !== null) {
+            if(!empty($additionalCottageInfo)){
                 $additionalCottageInfo->save();
             }
-            $transaction->commit();
-            if($this->sendConfirmation) {
-                Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
-                return ['status' => 1, 'message' => 'Платёж полностью оплачен'];
+            if ($this->sendConfirmation) {
+                Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($billTransaction->transactionSumm) . ". Благодарим за оплату.");
             }
-            return ['status' => 1];
-        }
-        catch (Exception $e){
-            $transaction->rollBack();
+            $transaction->commitTransaction();
+            return ['status' => 1, 'message' => 'Счёт успешно оплачен'];
+        } catch (Exception $e) {
+            $transaction->rollbackTransaction();
             throw $e;
         }
-	}
-	public static function getUnpayedBillId($cottageNumber){
-		$info = Table_payment_bills::find()->where(['cottageNumber' => $cottageNumber, 'isPayed' => false])->select('id')->one();
-		return $info;
-	}
+
+    }
+
+    public static function getUnpayedBillId($cottageNumber)
+    {
+        $info = Table_payment_bills::find()->where(['cottageNumber' => $cottageNumber, 'isPayed' => false])->select('id')->one();
+        return $info;
+    }
 
     /**
      * @param $cottage Table_cottages|Table_additional_cottages
      * @return Table_payment_bills|Table_payment_bills_double
      */
-    public static function getUnpayedBill($cottage){
-        if(Cottage::isMain($cottage)){
+    public static function getUnpayedBill($cottage)
+    {
+        if (Cottage::isMain($cottage)) {
             return Table_payment_bills::find()->where(['cottageNumber' => $cottage->cottageNumber, 'isPayed' => false])->select('creationTime')->one();
-        }
-        else{
+        } else {
             return Table_payment_bills_double::find()->where(['cottageNumber' => $cottage->masterId, 'isPayed' => false])->select('creationTime')->one();
         }
-	}
+    }
 
 }

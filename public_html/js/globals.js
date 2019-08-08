@@ -187,14 +187,14 @@ function checkSoftwareUpdates() {
     check();
     setInterval(function () {
         check()
-    }, 60000);
+    }, 600000);
 }
 
 function checkUnsendedMessages() {
     checkMessages();
     setInterval(function () {
         checkMessages()
-    }, 60000);
+    }, 600000);
 }
 
 function checkMessages() {

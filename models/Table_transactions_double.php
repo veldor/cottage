@@ -25,6 +25,8 @@ use yii\db\ActiveRecord;
  * @property float $usedDeposit [double]  Использованный депозит
  * @property float $gainedDeposit [double]  Зачислено на депозит
  * @property bool $partial [tinyint(1)]
+ * @property int $payDate [int(10) unsigned]  Дата проведения платежа
+ * @property int $bankDate [int(10) unsigned]  Дата поступления средств на счёт
  */
 
 class Table_transactions_double extends ActiveRecord

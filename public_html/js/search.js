@@ -173,25 +173,7 @@ function baseFunctional() {
         let changeDateActivators = $('button.change-date');
         changeDateActivators.on('click.change', function () {
             let transactionId = $(this).attr('data-transaction-id');
-           let modal = makeModal('Изменить дату', '<form id="changeData" class="form-horizontal bg-default no-print" method="post">\n' +
-               '<div class="form-group col-sm-12 col-lg-6"><div class="col-lg-6 col-sm-5 text-right"><label class="control-label" for="change-date">Дата</label></div><div class="col-lg-6 col-sm-7"> <input type="date" id="change-date" class="form-control" name="Search[date]" aria-required="true" aria-invalid="false"><div class="help-block"></div></div></div><div class="form-group col-sm-6 col-lg-5"><div class="col-lg-6 col-sm-5 text-right"><label class="control-label" for="change-time">Время</label></div><div class="col-lg-6 col-sm-7"> <input type="time" id="change-time" class="form-control" value="12:00" name="Search[time]" aria-required="true" aria-invalid="false"><div class="help-block"></div></div></div><button type="submit" id="addSubmit" class="btn btn-success btn-lg margened" data-toggle="tooltip" data-placement="top" data-html="true">Изменить</button></div></form>');
-
-            let form = modal.find('form');
-            let dateInput = modal.find('input#change-date');
-            let timeInput = modal.find('input#change-time');
-           form.on('submit.send', function (e) {
-               e.preventDefault();
-               let dateValue = dateInput.val().split('-');
-               let timeValue = timeInput.val().split(':');
-               if(dateValue.length === 3 && timeValue.length === 2){
-                   let date = new Date(dateValue[0], dateValue[1] - 1, dateValue[2], timeValue[0], timeValue[1]);
-                   let attributes = {
-                       'timestamp': date.getTime(),
-                       'transactionId': transactionId,
-                   };
-                   sendAjax('post', '/change/transaction-time', simpleAnswerHandler, attributes);
-               }
-           })
+            sendAjax('get', '/transaction/change-date/' + transactionId, simpleModalHandler);
         });
 
         let conditionsSelector = elem.parents('div.inputs-group').eq(0).find('select.cottage-conditions');

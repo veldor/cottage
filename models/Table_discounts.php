@@ -19,6 +19,7 @@ use yii\db\ActiveRecord;
  * @property string $summ [float unsigned]
  * @property string $reason
  * @property int $actionDate [int(20) unsigned]
+ * @property int $transactionId [int(10) unsigned]
  */
 
 class Table_discounts extends ActiveRecord

@@ -179,12 +179,12 @@ class TargetHandler extends Model
 
     /**
      * @param $cottageInfo Table_additional_cottages|Table_cottages
-     * @param $additional boolean
      * @return array
      */
-    public static function getDebt($cottageInfo, $additional = false): array
+    public static function getDebt($cottageInfo): array
     {
-        if ($additional && !$cottageInfo->isTarget) {
+        $isMain = Cottage::isMain($cottageInfo);
+        if (!$isMain && !$cottageInfo->isTarget) {
             return [];
         }
         $targetDom = new DOMHandler($cottageInfo->targetPaysDuty);
@@ -246,7 +246,14 @@ class TargetHandler extends Model
         return ['text' => $answer, 'summ' => $summ];
     }
 
-    public static function registerPayment($cottageInfo, $billInfo, $payments, $additional = false)
+    /**
+     * @param $cottageInfo
+     * @param $billInfo
+     * @param $payments
+     * @param $transaction Table_transactions
+     * @param bool $additional
+     */
+    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false)
     {
         $dom = DOMHandler::getDom($cottageInfo->targetPaysDuty);
         $xpath = DOMHandler::getXpath($dom);
@@ -266,12 +273,20 @@ class TargetHandler extends Model
             }
             $cottageInfo->targetDebt -= $summ;
             $cottageInfo->targetPaysDuty = DOMHandler::saveXML($dom);
-            self::insertPayment($cottageInfo, $billInfo, $payment, $additional);
+            self::insertPayment($cottageInfo, $billInfo, $payment, $transaction, $additional);
             //self::insertPayment($payment, $cottageInfo, $billInfo, $additional);
         }
     }
 
-    public static function insertSinglePayment($cottageInfo, $billId, $date, $summ, $paymentTime)
+    /**
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @param $bill Table_payment_bills|Table_payment_bills_double
+     * @param $date
+     * @param $summ
+     * @param $transaction Table_transactions|Table_transactions_double
+     */
+
+    public static function insertSinglePayment($cottageInfo, $bill, $date, $summ, $transaction)
     {
         $main = Cottage::isMain($cottageInfo);
         // получу информацию о задолженностях
@@ -298,15 +313,23 @@ class TargetHandler extends Model
             $write = new Table_additional_payed_target();
             $write->cottageId = $cottageInfo->masterId;
         }
-        $write->billId = $billId;
+        $write->billId = $bill->id;
         $write->year = $date;
         $write->summ = $summ;
-        $write->paymentDate = $paymentTime;
+        $write->paymentDate = $transaction->bankDate;
+        $write->transactionId = $transaction->id;
         $write->save();
         self::recalculateTarget($date);
     }
 
-    public static function insertPayment($cottageInfo, $billInfo, $payment, $additional = false)
+    /**
+     * @param $cottageInfo
+     * @param $billInfo
+     * @param $payment
+     * @param $transaction Table_transactions
+     * @param bool $additional
+     */
+    public static function insertPayment($cottageInfo, $billInfo, $payment, $transaction, $additional = false)
     {
         $summ = CashHandler::toRubles($payment['summ']);
         if ($summ > 0) {
@@ -319,8 +342,9 @@ class TargetHandler extends Model
             }
             $write->billId = $billInfo->id;
             $write->year = $payment['year'];
+            $write->transactionId = $transaction->id;
             $write->summ = $summ;
-            $write->paymentDate = $billInfo->paymentTime;
+            $write->paymentDate = $transaction->bankDate;
             $write->save();
             self::recalculateTarget($payment['year']);
         }
@@ -490,55 +514,17 @@ class TargetHandler extends Model
         throw new \yii\base\InvalidArgumentException('Ошибка в введённых данных!');
     }
 
-    public static function handlePartialPayment(DOMHandler $billDom, float $paymentSumm, $cottageInfo, $billId, int $paymentTime)
+    /**
+     * @param $bill Table_payment_bills|Table_payment_bills_double
+     * @param $paymentInfo []
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @param $transaction Table_transactions|Table_transactions_double
+     */
+    public static function handlePartialPayment($bill, $paymentInfo, $cottageInfo, $transaction)
     {
-        $main = Cottage::isMain($cottageInfo);
-        /** @var DOMElement $PayContainer */
-
-        if($main){
-            $PayContainer = $billDom->query('//target')->item(0);
-        }
-        else{
-            $PayContainer = $billDom->query('//additional_target')->item(0);
-        }
-
-        // проверка на предыдущую неполную оплату категории
-        $payedBefore = CashHandler::toRubles(0 . $PayContainer->getAttribute('payed'));
-        // записываю сумму прошлой и текущей оплаты в xml
-        $PayContainer->setAttribute('payed', $paymentSumm + $payedBefore);
-        // получу данные о полном счёте за членские взносы
-        if($main){
-            $pays = $billDom->query('//target/pay');
-        }
-        else{
-            $pays = $billDom->query('//additional_target/pay');
-        }
-        /** @var DOMElement $pay */
-        foreach ($pays as $pay) {
-            // переменная для хранения суммы, предоплаченной за платёж в прошлый раз
-            $prepayed = 0;
-            // получу сумму платежа
-            $summ = DOMHandler::getFloatAttribute($pay, 'summ');
-            $date = $pay->getAttribute('year');
-            // отсекаю платежи, полностью оплаченные в прошлый раз
-            if ($summ <= $payedBefore) {
-                $payedBefore -= $summ;
-                continue;
-            } elseif ($payedBefore > 0) {
-                // это сумма, которая была предоплачена по кварталу в прошлый раз
-                $prepayed = $payedBefore;
-                $payedBefore = 0;
-            }
-            if ($summ - $prepayed <= $paymentSumm) {
-                // денег хватает на полную оплату платежа. Плачу за него
-                // сумма платежа учитывается с вычетом ранее оплаченного
-                self::insertSinglePayment($cottageInfo, $billId, $date, $summ - $prepayed, $paymentTime);
-                // корректирую сумму текущего платежа с учётом предыдущего
-                $paymentSumm -= $summ - $prepayed;
-            } elseif ($paymentSumm > 0) {
-                // денег не хватает на полую оплату месяца, но ещё есть остаток- помечаю месяц как частично оплаченный
-                self::insertSinglePayment($cottageInfo, $billId, $date, $paymentSumm, $paymentTime);
-                break;
+        foreach($paymentInfo as $key=>$value){
+            if($value > 0){
+                self::insertSinglePayment($cottageInfo, $bill, $key, $value, $transaction);
             }
         }
     }

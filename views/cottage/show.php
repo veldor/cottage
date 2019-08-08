@@ -69,7 +69,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <td>
                     <b class="text-info"><?= TimeHandler::getFullFromShotMonth($cottageInfo->globalInfo->powerPayFor) ?></b> <?= $cottageInfo->powerPayDifference ?>
                     <?php
-                    if($cottageInfo->globalInfo->partialPayedPower){
+                    if ($cottageInfo->globalInfo->partialPayedPower) {
                         // получу данные о неполном платеже
                         $dom = new DOMHandler($cottageInfo->globalInfo->partialPayedPower);
                         /** @var DOMElement $info */
@@ -97,7 +97,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <td>
                     <b class="text-info"><?= TimeHandler::getFullFromShortQuarter($cottageInfo->globalInfo->membershipPayFor) ?></b>
                     <?php
-                    if($cottageInfo->globalInfo->partialPayedMembership){
+                    if ($cottageInfo->globalInfo->partialPayedMembership) {
                         // получу данные о неполном платеже
                         $dom = new DOMHandler($cottageInfo->globalInfo->partialPayedMembership);
                         $info = $dom->query('/partial')->item(0);
@@ -116,15 +116,17 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             </tr>
             <?php
             // просмотрю пени
-            if(!empty($cottageInfo->fines)){
+            if (!empty($cottageInfo->fines)) {
                 $total = 0;
                 foreach ($cottageInfo->fines as $fine) {
-                    if($fine->is_enabled){
+                    if ($fine->is_enabled) {
                         $total += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
                     }
                 }
-                echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button></td></tr>";
-                $cottageInfo->totalDebt += $total;
+                if ($total > 0) {
+                    echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button></td></tr>";
+                    $cottageInfo->totalDebt += $total;
+                }
             }
             ?>
             </tbody>
@@ -142,7 +144,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             </tr>
             <tr>
                 <td>Кадастровый номер</td>
-                <td><b class="text-info"><?=$registrationNumber?></b></td>
+                <td><b class="text-info"><?= $registrationNumber ?></b></td>
             </tr>
         </table>
 
@@ -186,7 +188,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         <td>
                             <b class="text-info"><?= TimeHandler::getFullFromShotMonth($cottageInfo->additionalCottageInfo['cottageInfo']->powerPayFor) ?></b> <?= $cottageInfo->additionalCottageInfo['powerStatus']['powerPayDifference'] ?>
                             <?php
-                            if($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedPower){
+                            if ($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedPower) {
                                 // получу данные о неполном платеже
                                 $dom = new DOMHandler($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedPower);
                                 /** @var DOMElement $info */
@@ -227,7 +229,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         <td>
                             <b class="text-info"><?= TimeHandler::getFullFromShortQuarter($cottageInfo->additionalCottageInfo['cottageInfo']->membershipPayFor) ?></b>
                             <?php
-                            if($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedMembership){
+                            if ($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedMembership) {
                                 // получу данные о неполном платеже
                                 $dom = new DOMHandler($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedMembership);
                                 $info = $dom->query('/partial')->item(0);
@@ -281,7 +283,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     echo '
                      <tr class="info">
                         <td>Депозит участка</td>
-                        <td><b class="text-info">' . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['cottageInfo']->deposit)  . '</b></td>
+                        <td><b class="text-info">' . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['cottageInfo']->deposit) . '</b></td>
                     </tr>
                     ';
                     $registrationNumber = $cottageInfo->additionalCottageInfo['cottageInfo']->cottageRegistrationInformation ? $cottageInfo->additionalCottageInfo['cottageInfo']->cottageRegistrationInformation : 'Не зарегистрирован';
@@ -292,12 +294,26 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     </tr>
                     ';
                 }
+                $total = 0;
+                if(!empty($cottageInfo->additionalCottageInfo['fines'])){
+                    // есть задолженности по пени
+                    foreach ($cottageInfo->additionalCottageInfo['fines'] as $fine) {
+                        if ($fine->is_enabled) {
+                            $total += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
+                        }
+                    }
+                    if ($total > 0) {
+                        echo "<tr class='info'><td>Пени</td><td><button id='finesSummDouble' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button></td></tr>";
+                        $cottageInfo->totalDebt += $total;
+                    }
+                }
+
                 $fullDuty = CashHandler::toRubles($cottageInfo->additionalCottageInfo['totalDebt']) + CashHandler::toRubles($cottageInfo->totalDebt);
                 ?>
                 </tbody>
                 <tr class="info">
                     <td>Итоговая задолженность дополнительного участка</td>
-                    <td><?= $cottageInfo->additionalCottageInfo['totalDebt'] > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['totalDebt']) . "</b>" : "<b class='text-success'>Отсутствует</b>"?></td>
+                    <td><?= $cottageInfo->additionalCottageInfo['totalDebt'] > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['totalDebt'] + $total) . "</b>" : "<b class='text-success'>Отсутствует</b>" ?></td>
                 </tr>
                 <tr class="info">
                     <td>Общая задолженность обоих участков</td>
@@ -323,10 +339,9 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             echo "<div class='alert alert-warning'>Нет данных для реестра.</div>";
         }
         if ($cottageInfo->unpayedBills) {
-            if($cottageInfo->unpayedBills->isPartialPayed){
+            if ($cottageInfo->unpayedBills->isPartialPayed) {
                 echo "<div class='alert alert-warning'>Имеется частично оплаченный счёт.</div>";
-            }
-            else{
+            } else {
                 echo "<div class='alert alert-danger'>Имеется неоплаченный счёт.</div>";
             }
         }
@@ -453,13 +468,13 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 ?>
                 <li><a id="createSinglePayButton" href="#">Создать разовый платёж</a></li>
                 <li><a id="fillCurrentPowerMonth" href="#">Электроэнергия досрочно</a></li>
-               <!-- <li><a id="changePowerCounter" href="#">Замена счётчика</a></li>-->
+                <!-- <li><a id="changePowerCounter" href="#">Замена счётчика</a></li>-->
                 <li><a id="sendNotificationBtn" href="#">Отправить напоминание о долгах</a></li>
                 <li><a id="sendRegInfoNotificationBtn" href="#">Отправить регистрационные данные</a></li>
                 <li><a id="showReports" href="#">Отчёт о платежах</a></li>
                 <?php
 
-                if($hasSingleDebt){
+                if ($hasSingleDebt) {
                     echo '<li><a id="editSinglesActivator" href="#">Редактировать разовые платежи</a></li>';
                 }
 

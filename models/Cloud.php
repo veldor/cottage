@@ -219,7 +219,7 @@ class Cloud extends Model
             ->setFrom([Info::MAIL_ADDRESS => Info::COTTAGE_NAME])
             ->setSubject($subject)
             ->setHtmlBody($body)
-            ->setTo([$address => $receiverName]);
+            ->setTo(['eldorianwin@gmail.com' => $receiverName]);
         if (!empty($attachment)) {
             $mail->attach($attachment['url'], ['fileName' => $attachment['name']]);
         }

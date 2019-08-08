@@ -77,12 +77,11 @@ class Registry extends Model
                 try{
                     /** @var RegistryInfo $bill */
                     foreach ($billsList as $bill) {
-                        $bill->payDate = $date;
                         // если в базе данных платежей от сбербанка ещё нет данного- внесу.
                         if(!Table_bank_invoices::findOne(['bank_operation_id' => $bill->sberBillId])){
                             $invoice = new Table_bank_invoices();
                             $invoice->bank_operation_id = $bill->sberBillId;
-                            $invoice->pay_date = $bill->payDate;
+                            $invoice->pay_date = $date;
                             $invoice->pay_time = $bill->payTime;
                             $invoice->filial_number = $bill->departmentNumber;
                             $invoice->handler_number = $bill->handlerNumber;
@@ -93,6 +92,7 @@ class Registry extends Model
                             $invoice->payment_summ = $bill->operationSumm;
                             $invoice->transaction_summ = $bill->transactionSumm;
                             $invoice->commission_summ = $bill->commissionSumm;
+                            $invoice->real_pay_date = $bill->payDate;
                             $invoice->save();
                             $newBills[] = $bill;
                             $newBillsCount ++;

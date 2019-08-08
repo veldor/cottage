@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use app\models\small_classes\PeriodInfo;
 use app\models\tables\Table_bill_fines;
 use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
@@ -108,7 +109,6 @@ class ComplexPayment extends Model
             SingleHandler::changePayTime($billInfo->id, $timestamp);
         }
     }
-
 
     public function scenarios(): array
     {
@@ -402,22 +402,22 @@ class ComplexPayment extends Model
         $this->double = $double;
         $this->cottageNumber = $cottageNumber;
         $unpayed['square'] = $this->cottageInfo->cottageSquare;
-        $unpayed['powerDuty'] = PowerHandler::getDebtReport($this->cottageInfo, $double);
-        $unpayed['membershipDuty'] = MembershipHandler::getDebt($this->cottageInfo, $double);
-        $unpayed['targetDuty'] = TargetHandler::getDebt($this->cottageInfo, $double);
+        $unpayed['powerDuty'] = PowerHandler::getDebtReport($this->cottageInfo);
+        $unpayed['membershipDuty'] = MembershipHandler::getDebt($this->cottageInfo);
+        $unpayed['targetDuty'] = TargetHandler::getDebt($this->cottageInfo);
         $unpayed['singleDuty'] = SingleHandler::getDebtReport($this->cottageInfo, $double);
         if (!$this->double && $this->cottageInfo->haveAdditional) {
             $this->additionalCottageInfo = AdditionalCottage::getCottage($cottageNumber);
             if (!$this->additionalCottageInfo->hasDifferentOwner) {
                 if ($this->additionalCottageInfo->isPower === 1) {
-                    $unpayed['additionalPowerDuty'] = PowerHandler::getDebtReport($this->additionalCottageInfo, true);
+                    $unpayed['additionalPowerDuty'] = PowerHandler::getDebtReport($this->additionalCottageInfo);
                 }
                 $unpayed['additionalSquare'] = $this->additionalCottageInfo->cottageSquare;
                 if ($this->additionalCottageInfo->isMembership === 1) {
-                    $unpayed['additionalMembershipDuty'] = MembershipHandler::getDebt($this->additionalCottageInfo, true);
+                    $unpayed['additionalMembershipDuty'] = MembershipHandler::getDebt($this->additionalCottageInfo);
                 }
                 if ($this->additionalCottageInfo->isTarget === 1) {
-                    $unpayed['additionalTargetDuty'] = TargetHandler::getDebt($this->additionalCottageInfo, true);
+                    $unpayed['additionalTargetDuty'] = TargetHandler::getDebt($this->additionalCottageInfo);
                 }
             }
         }
@@ -504,7 +504,7 @@ class ComplexPayment extends Model
             $additionalCottage = Cottage::getCottageInfo($cottageInfo->cottageNumber, true);
         }
 
-        $power = PowerHandler::getDebtReport($cottageInfo, !$main);
+        $power = PowerHandler::getDebtReport($cottageInfo);
 
         if (!!$power) {
             foreach ($power as $item) {
@@ -515,7 +515,7 @@ class ComplexPayment extends Model
         $additionalPower = null;
         if ($additionalCottage) {
             if (!$additionalCottage->hasDifferentOwner) {
-                $additionalPower = PowerHandler::getDebtReport($additionalCottage, true);
+                $additionalPower = PowerHandler::getDebtReport($additionalCottage);
             }
         }
         if (!!$additionalPower) {
@@ -525,7 +525,7 @@ class ComplexPayment extends Model
             $form->additionalPowerPeriods = count($additionalPower);
         }
         // ЧЛЕНСКИЕ ВЗНОСЫ
-        $membership = MembershipHandler::getDebt($cottageInfo, !$main);
+        $membership = MembershipHandler::getDebt($cottageInfo);
         if (!!$membership) {
             foreach ($membership as $item) {
                 $totalSumm += CashHandler::toRubles($item['total_summ']);
@@ -535,7 +535,7 @@ class ComplexPayment extends Model
         $additionalMembership = null;
         if ($additionalCottage) {
             if (!$additionalCottage->hasDifferentOwner) {
-                $additionalMembership = MembershipHandler::getDebt($additionalCottage, true);
+                $additionalMembership = MembershipHandler::getDebt($additionalCottage);
             }
         }
         if (!!$additionalMembership) {
@@ -545,7 +545,7 @@ class ComplexPayment extends Model
             $form->additionalMembershipPeriods = count($additionalMembership);
         }
         // ЦЕЛЕВЫЕ ВЗНОСЫ
-        $target = TargetHandler::getDebt($cottageInfo, !$main);
+        $target = TargetHandler::getDebt($cottageInfo);
 
         if (!empty($target)) {
             $targets = [];
@@ -560,7 +560,7 @@ class ComplexPayment extends Model
         $additionalTarget = null;
         if ($additionalCottage) {
             if (!$additionalCottage->hasDifferentOwner) {
-                $additionalTarget = TargetHandler::getDebt($additionalCottage, true);
+                $additionalTarget = TargetHandler::getDebt($additionalCottage);
             }
         }
         if (!empty($additionalTarget)) {

@@ -5,9 +5,24 @@ namespace app\models;
 
 
 use app\models\small_classes\TransactionComparison;
+use yii\base\Model;
 
-class TransactionsHandler
+class TransactionsHandler extends Model
 {
+    const SCENARIO_CHANGE_DATE = 'change_date';
+
+    public $id;
+    public $double;
+    public $payDate;
+    public $bankDate;
+
+    public function scenarios(): array
+    {
+        return [
+            self::SCENARIO_CHANGE_DATE => ['id', 'double', 'payDate', 'bankDate'],
+        ];
+    }
+
 
     public static function handle($billId, $transactionId)
     {
@@ -59,5 +74,36 @@ class TransactionsHandler
     public static function getTransaction($transactionId)
     {
         return Table_bank_invoices::findOne($transactionId);
+    }
+
+    public function changeDate()
+    {
+        // найду транзакцию
+        if(!$this->double){
+            $transaction = Table_transactions::findOne($this->id);
+        }
+        else{
+            $transaction = Table_transactions_double::findOne($this->id);
+        }
+        $transaction->payDate = TimeHandler::getCustomTimestamp($this->payDate);
+        $transaction->bankDate = TimeHandler::getCustomTimestamp($this->bankDate);
+        $transaction->save();
+        return ['status' => 1, 'message' => 'Дата транзакции изменена'];
+    }
+
+    public function fill($id)
+    {
+        if(GrammarHandler::isMain($id)){
+            $transaction = Table_transactions::findOne($id);
+            $this->double = 0;
+        }
+        else{
+            $transaction = Table_transactions_double::findOne(GrammarHandler::getNumber($id));
+            $this->double = 1;
+        }
+        $this->id = $transaction->id;
+        $this->payDate = $transaction->payDate;
+        $this->bankDate = $transaction->bankDate;
+
     }
 }

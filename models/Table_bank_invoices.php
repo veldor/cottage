@@ -29,6 +29,7 @@ use yii\db\ActiveRecord;
  * @property string $commission_summ [varchar(100)]  Сумма комиссии банку
  * @property int $bounded_bill_id [int(11)]  Идентификатор платежа в системе
  * @property bool $bounded_bill_is_double [tinyint(1)]  Тип участка
+ * @property string $real_pay_date [char(10)]  Истинная дата платежа
  */
 
 class Table_bank_invoices extends ActiveRecord

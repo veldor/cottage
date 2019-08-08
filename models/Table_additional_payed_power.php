@@ -19,6 +19,7 @@ use yii\db\ActiveRecord;
  * @property string $month [varchar(10)]
  * @property string $summ [float unsigned]
  * @property int $paymentDate [int(20) unsigned]
+ * @property int $transactionId [int(10) unsigned]
  */
 
 class Table_additional_payed_power extends ActiveRecord
