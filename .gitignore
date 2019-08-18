@@ -22,6 +22,7 @@ nbproject
 #vagrant
 /vagrant
 /tests
+/runtime
 
 #assets folder
 /public_html/assets/*

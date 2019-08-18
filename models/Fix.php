@@ -251,6 +251,9 @@ class Fix extends Model
             }
             // найду счёт, к которому привязана транзакция
             $bill = Table_payment_bills::findOne($transaction->billId);
+            if(empty($bill->payedSumm)){
+                $bill->payedSumm = 0;
+            }
             // если сумма транзакции полностью покрывает счёт- он считается полностью оплаченным
             $billSumm = CashHandler::toRubles(CashHandler::toRubles($bill->totalSumm) - CashHandler::toRubles($bill->depositUsed) - CashHandler::toRubles($bill->discount));
             if (CashHandler::toRubles($transaction->transactionSumm) >= CashHandler::toRubles($billSumm)) {
@@ -300,7 +303,7 @@ class Fix extends Model
                 $power = Table_payed_power::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -309,7 +312,7 @@ class Fix extends Model
                 $power = Table_payed_target::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -318,7 +321,7 @@ class Fix extends Model
                 $power = Table_payed_membership::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -327,7 +330,7 @@ class Fix extends Model
                 $power = Table_payed_single::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -337,7 +340,7 @@ class Fix extends Model
                 $power = Table_additional_payed_power::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if ((empty($item->transactionId) || $item->transactionId === 0) && $item->cottageId === $bill->cottageNumber) {
+                        if ($item->transactionId === 0 && $item->cottageId === $bill->cottageNumber) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -346,7 +349,7 @@ class Fix extends Model
                 $power = Table_additional_payed_target::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if ((empty($item->transactionId) || $item->transactionId === 0) && $item->cottageId === $bill->cottageNumber) {
+                        if ($item->transactionId === 0 && $item->cottageId === $bill->cottageNumber) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -355,7 +358,7 @@ class Fix extends Model
                 $power = Table_additional_payed_membership::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if ((empty($item->transactionId) || $item->transactionId === 0) && $item->cottageId === $bill->cottageNumber) {
+                        if ($item->transactionId === 0 && $item->cottageId === $bill->cottageNumber) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -425,7 +428,7 @@ class Fix extends Model
                     $power = Table_payed_power::find()->where(['billId' => $bill->id])->all();
                     if (!empty($power)) {
                         foreach ($power as $item) {
-                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                            if ($item->transactionId === 0 && $item->paymentDate === $transaction->transactionDate) {
                                 $item->transactionId = $transaction->id;
                                 $item->save();
                             }
@@ -434,7 +437,7 @@ class Fix extends Model
                     $power = Table_payed_target::find()->where(['billId' => $bill->id])->all();
                     if (!empty($power)) {
                         foreach ($power as $item) {
-                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                            if ($item->transactionId === 0 && $item->paymentDate === $transaction->transactionDate) {
                                 $item->transactionId = $transaction->id;
                                 $item->save();
                             }
@@ -443,7 +446,7 @@ class Fix extends Model
                     $power = Table_payed_membership::find()->where(['billId' => $bill->id])->all();
                     if (!empty($power)) {
                         foreach ($power as $item) {
-                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                            if ($item->transactionId === 0 && $item->paymentDate === $transaction->transactionDate) {
                                 $item->transactionId = $transaction->id;
                                 $item->save();
                             }
@@ -452,7 +455,7 @@ class Fix extends Model
                     $power = Table_payed_single::find()->where(['billId' => $bill->id])->all();
                     if (!empty($power)) {
                         foreach ($power as $item) {
-                            if ((empty($item->transactionId) || $item->transactionId === 0) && $item->paymentDate === $transaction->transactionDate) {
+                            if ($item->transactionId === 0 && $item->paymentDate === $transaction->transactionDate) {
                                 $item->transactionId = $transaction->id;
                                 $item->save();
                             }
@@ -503,7 +506,7 @@ class Fix extends Model
                 $power = Table_payed_power::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -512,7 +515,7 @@ class Fix extends Model
                 $power = Table_payed_target::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -521,7 +524,7 @@ class Fix extends Model
                 $power = Table_payed_membership::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -530,7 +533,7 @@ class Fix extends Model
                 $power = Table_payed_single::find()->where(['billId' => $bill->id])->all();
                 if (!empty($power)) {
                     foreach ($power as $item) {
-                        if (empty($item->transactionId) || $item->transactionId === 0) {
+                        if ($item->transactionId === 0) {
                             $item->transactionId = $transaction->id;
                             $item->save();
                         }
@@ -538,6 +541,19 @@ class Fix extends Model
                 }
             }
         }
-        die();
+        $bills = Table_payment_bills::find()->all();
+        foreach ($bills as $bill) {
+            if(empty($bill->payedSumm)){
+                $bill->payedSumm = 0;
+                $bill->save();
+            }
+        }
+        $bills = Table_payment_bills_double::find()->all();
+        foreach ($bills as $bill) {
+            if(empty($bill->payedSumm)){
+                $bill->payedSumm = 0;
+                $bill->save();
+            }
+        }
     }
 }

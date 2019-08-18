@@ -78,7 +78,7 @@ function handlePartialPayments() {
     });
 }
 
-function confirmChaining(data) {
+/*function confirmChaining(data) {
     if(data['status'] === 1){
         let modal = makeModal('Подтверждение слияния', data['html']);
         let activator = modal.find('button#submitComparsionButton');
@@ -95,12 +95,12 @@ function confirmChaining(data) {
     else{
         makeInformer('danger', 'Слияние невозможно', data['message']);
     }
-}
+}*/
 
 function chainBill(supposedBillId, bankTransactionId) {
     // отправлю запрос на совмещение счёта и платежа
     let url = '/chain/' + supposedBillId + '/' + bankTransactionId;
-    sendAjax('get', url, confirmChaining);
+    sendAjax('get', url, simpleModalHandler);
 }
 
 function confirmManualChain(billId, bankTransactionId) {
@@ -302,6 +302,13 @@ $(function () {
 
 function handle() {
 
+    // при выборе файлов регистра- отправлю форму
+    let registryInput = $('#registryInput');
+    registryInput.on('change.send', function () {
+        if($(this).val()){
+            $(this).parents('form').trigger('submit');
+        }
+    });
     // добавлю функцию ручной привязки счёта
     let manualChainActivators = $('a.bill-manual-inserted');
     manualChainActivators.on('click.change', function (e) {

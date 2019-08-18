@@ -42,18 +42,18 @@ class TransactionsHandler extends Model
         if(!empty($transactionInfo->bounded_bill_id)){
             throw new ExceptionWithStatus("Транзакция уже связана со счётом " . $transactionInfo->bounded_bill_id, 3);
         }
-        if($billInfo->isPartialPayed){
-            throw new ExceptionWithStatus("Пока регистрирую только полные платежи", 4);
-        }
         // проверю суммы счёта\транзакции
         $billSumm = CashHandler::toRubles($billInfo->totalSumm);
         $fromDeposit = CashHandler::toRubles($billInfo->depositUsed);
         $discount = CashHandler::toRubles($billInfo->discount);
-        $fullSumm = CashHandler::toRubles($billSumm - $fromDeposit - $discount);
-        $transactionSumm = CashHandler::toRubles($transactionInfo->payment_summ);
-        if($fullSumm > $transactionSumm){
-            throw new ExceptionWithStatus("Частичная оплата", 5);
+        if(!empty($billInfo->payedSumm)){
+            $payedBefore = CashHandler::toRubles($billInfo->payedSumm);
         }
+        else{
+            $payedBefore = 0;
+        }
+        $fullSumm = CashHandler::toRubles($billSumm - $fromDeposit - $discount - $payedBefore);
+        $transactionSumm = CashHandler::toRubles($transactionInfo->payment_summ);
         // верну сравнение транзакции и счёта
         $comparsion = new TransactionComparison();
         $comparsion->billId = $billId;

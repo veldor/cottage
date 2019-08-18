@@ -5,6 +5,8 @@ use app\models\CashHandler;
 use app\models\Cottage;
 use app\models\DOMHandler;
 use app\models\GrammarHandler;
+use app\models\Table_payed_power;
+use app\models\Table_power_months;
 use app\models\TimeHandler;
 use nirvana\showloading\ShowLoadingAsset;
 use yii\web\View;
@@ -69,12 +71,25 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <td>
                     <b class="text-info"><?= TimeHandler::getFullFromShotMonth($cottageInfo->globalInfo->powerPayFor) ?></b> <?= $cottageInfo->powerPayDifference ?>
                     <?php
-                    if ($cottageInfo->globalInfo->partialPayedPower) {
-                        // получу данные о неполном платеже
-                        $dom = new DOMHandler($cottageInfo->globalInfo->partialPayedPower);
-                        /** @var DOMElement $info */
-                        $info = $dom->query('/partial')->item(0);
-                        echo '<p><b class="text-info">' . TimeHandler::getFullFromShotMonth($info->getAttribute('date')) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($info->getAttribute('summ')) . '</b></p>';
+
+                    // проверю частично оплаченные счета
+                    $months = Table_power_months::find()->where(['cottageNumber' => $cottageInfo->globalInfo->cottageNumber])->all();
+                    if(!empty($months)){
+                        foreach ($months as $month) {
+                            if($month->totalPay > 0){
+                                // найду платежи по счёту
+                                $payedAmount = 0;
+                                $pays = Table_payed_power::findAll(['cottageId' => $cottageInfo->globalInfo->cottageNumber, 'month' => $month->month]);
+                                if(!empty($pays)){
+                                    foreach ($pays as $pay) {
+                                        $payedAmount += CashHandler::toRubles($pay->summ);
+                                    }
+                                    if(CashHandler::toRubles($payedAmount) != CashHandler::toRubles($month->totalPay)){
+                                        echo '<p><b class="text-info">' . TimeHandler::getFullFromShotMonth($month->month) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($payedAmount) . '</b></p>';
+                                    }
+                                }
+                            }
+                        }
                     }
                     ?>
                 </td>

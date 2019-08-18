@@ -249,11 +249,13 @@ class Cottage extends Model
 
     public static function hasPayUpDuty(Table_cottages $cottage)
     {
+        $time = time();
         // получу данные по целевым задолженностям
         $duty = TargetHandler::getDebt($cottage);
         if(!empty($duty)){
             foreach ($duty as $key => $value) {
-                if($key < TimeHandler::getThisYear()){
+                $tariff = Table_tariffs_target::findOne(['year' => $key]);
+                if($tariff->payUpTime < $time){
                     return true;
                 }
             }
@@ -272,6 +274,13 @@ class Cottage extends Model
         // если не оплачен текущий квартал
         if($cottage->membershipPayFor < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())){
             return true;
+        }
+        elseif($cottage->membershipPayFor == TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())){
+            $payUp = TimeHandler::getPayUpQuarterTimestamp($cottage->membershipPayFor);
+            $dayDifference = TimeHandler::checkDayDifference($payUp);
+            if ($dayDifference > 0) {
+                return true;
+            }
         }
         return false;
     }

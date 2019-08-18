@@ -54,6 +54,12 @@ class Pay extends Model
      * @var Table_additional_cottages
      */
     public $additionalCottageInfo;
+    /**
+     * @var Table_bank_invoices
+     */
+    public $bankTransaction;
+
+    public $bankTransactionId;
 
     /**
      * @param $payId
@@ -104,7 +110,7 @@ class Pay extends Model
     public function scenarios(): array
     {
         return [
-            self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single', 'customDate', 'getCustomDate', 'sendConfirmation', 'fines'],
+            self::SCENARIO_PAY => ['billIdentificator', 'totalSumm', 'totalSumm', 'fromDeposit', 'toDeposit', 'realSumm', 'rawSumm', 'changeToDeposit', 'change', 'payType', 'double', 'target', 'additionalTarget', 'membership', 'additionalMembership', 'power', 'additionalPower', 'single', 'customDate', 'getCustomDate', 'sendConfirmation', 'fines', 'bankTransactionId'],
         ];
     }
 
@@ -134,7 +140,7 @@ class Pay extends Model
         ];
     }
 
-    public function fillInfo($identificator, $double = false): bool
+    public function fillInfo($identificator, $bankTransaction = null, $double = false): bool
     {
         if (!$this->double) {
             $this->double = $double;
@@ -157,6 +163,13 @@ class Pay extends Model
             $this->cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber);
             if ($this->cottageInfo->haveAdditional) {
                 $this->additionalCottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
+            }
+        }
+        if(!empty($bankTransaction)){
+            // найду транзакцию
+            $this->bankTransaction = Table_bank_invoices::findOne($bankTransaction);
+            if(empty($this->bankTransaction)){
+                throw new ExceptionWithStatus('Транзакция #' . $bankTransaction . ' не найдена.');
             }
         }
         return true;
@@ -382,6 +395,18 @@ class Pay extends Model
             $billTransaction->save();
             $billInfo->save();
             $cottageInfo->save();
+            if(!empty($this->bankTransactionId)){
+                $bankTransaction = Table_bank_invoices::findOne($this->bankTransactionId);
+                $billTransaction->bankDate = TimeHandler::getTimestampFromBank($bankTransaction->pay_date, $bankTransaction->pay_time);
+                if(!empty($bankTransaction->real_pay_date)){
+                    $billTransaction->payDate = TimeHandler::getTimestampFromBank($bankTransaction->real_pay_date, $bankTransaction->pay_time);
+                }
+                else{
+                    $billTransaction->payDate = $billTransaction->bankDate;
+                }
+                $bankTransaction->bounded_bill_id = $billInfo->id;
+                $bankTransaction->save();
+            }
             if(!empty($additionalCottageInfo)){
                 $additionalCottageInfo->save();
             }

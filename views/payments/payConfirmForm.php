@@ -12,8 +12,10 @@ use app\models\Pay;
 use app\models\SingleHandler;
 use app\models\Table_additional_payed_membership;
 use app\models\Table_additional_payed_power;
+use app\models\Table_additional_payed_target;
 use app\models\Table_payed_membership;
 use app\models\Table_payed_power;
+use app\models\Table_payed_target;
 use app\models\Table_payment_bills;
 use app\models\Table_payment_bills_double;
 use app\models\tables\Table_view_fines_info;
@@ -71,13 +73,23 @@ echo $form->field($model, 'totalSumm', ['template' => "{input}"])->hiddenInput()
 echo $form->field($model, 'change', ['template' => "{input}"])->hiddenInput()->label(false);
 echo $form->field($model, 'double', ['template' => "{input}"])->hiddenInput()->label(false);
 
-
-echo $form->field($model, 'rawSumm', ['template' =>
-    '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group"><span id="roundSummGet" class="btn btn-success input-group-addon">Ровно</span>{input}<span class="input-group-addon">&#8381;</span></div>
+if(empty($model->bankTransaction)){
+    echo $form->field($model, 'rawSumm', ['template' =>
+        '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group"><span id="roundSummGet" class="btn btn-success input-group-addon">Ровно</span>{input}<span class="input-group-addon">&#8381;</span></div>
 									{error}{hint}</div>'])
-    ->textInput(['autocomplete' => 'off', 'type' => 'number', 'step' => '0.01'])
-    ->hint('В рублях')
-    ->label('Получено средств');
+        ->textInput(['autocomplete' => 'off', 'type' => 'number', 'step' => '0.01'])
+        ->hint('В рублях')
+        ->label('Получено средств');
+}
+else{
+    echo $form->field($model, 'bankTransactionId', ['template' => "{input}"])->hiddenInput(['value' => $model->bankTransaction->bank_operation_id])->label(false);
+    echo $form->field($model, 'rawSumm', ['template' =>
+        '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group">{input}<span class="input-group-addon">&#8381;</span></div>
+									{error}{hint}</div>'])
+        ->textInput(['autocomplete' => 'off', 'type' => 'number', 'readonly' => true, 'value' => CashHandler::toRubles($model->bankTransaction->payment_summ)])
+        ->hint('В рублях')
+        ->label('Получено средств');
+}
 
 // ========================================БЛОК ЧАСТИЧНОЙ ОПЛАТЫ=====================================
 // подробно распишу все входящие в счёт платежи
@@ -163,23 +175,26 @@ if (!empty($model->billInfo['paymentContent']['additionalMembership'])) {
 if (!empty($model->billInfo['paymentContent']['target'])) {
     // получу информацию о задолженностях
     $yearInfo = TargetHandler::getDebt($model->cottageInfo);
+    $payed = 0;
     // для каждого года оплаты создам отдельное поле ввода
     foreach ($model->billInfo['paymentContent']['target']['values'] as $item) {
+        $summToPay = CashHandler::toRubles($item['summ']);
         // получу актуальную информацию о годе
-        if (!empty($yearInfo[$item['year']])) {
-            $info = $yearInfo[$item['year']];
-            $payed = CashHandler::toRubles($info['payed']);
-            $realSumm = CashHandler::toRubles($info['realSumm']);
+        $payedBefore = Table_payed_target::find()->where(['year' => $item['year'], 'billId' => $billInfo->id])->all();
+        if(!empty($payedBefore)){
+            foreach ($payedBefore as $payedItem) {
+                $summToPay -= CashHandler::toRubles($payedItem->summ);
+                $payed += CashHandler::toRubles($payedItem->summ);
+            }
+        }
             if (!empty($payed)) {
-                $targetSummToPay = $realSumm;
-                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($realSumm);
+                $targetSummToPay = $summToPay;
+                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($summToPay);
             } else {
-                $targetSummToPay = $realSumm;
+                $targetSummToPay = $summToPay;
                 $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($targetSummToPay);
             }
             echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Целевые {$item['year']}</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$targetSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[target][{$item['year']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
-
-        }
     }
 }
 if (!empty($model->billInfo['paymentContent']['additionalTarget'])) {
@@ -192,21 +207,24 @@ if (!empty($model->billInfo['paymentContent']['additionalTarget'])) {
     }
     // для каждого года оплаты создам отдельное поле ввода
     foreach ($model->billInfo['paymentContent']['additionalTarget']['values'] as $item) {
+       $summToPay = CashHandler::toRubles($item['summ']);
         // получу актуальную информацию о годе
-        if (!empty($yearInfo[$item['year']])) {
-            $info = $yearInfo[$item['year']];
-            $payed = CashHandler::toRubles($info['payed']);
-            $realSumm = CashHandler::toRubles($info['realSumm']);
+        $payedBefore = Table_additional_payed_target::find()->where(['year' => $item['year'], 'billId' => $billInfo->id])->all();
+        if(!empty($payedBefore)){
+            foreach ($payedBefore as $payedItem) {
+                $summToPay -= CashHandler::toRubles($payedItem->summ);
+                $payed += CashHandler::toRubles($payedItem->summ);
+            }
+        }
             if (!empty($payed)) {
-                $targetSummToPay = $realSumm;
-                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($realSumm);
+                $targetSummToPay = $summToPay;
+                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($summToPay);
             } else {
-                $targetSummToPay = $realSumm;
+                $targetSummToPay = $summToPay;
                 $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($targetSummToPay);
             }
             echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Целевые {$item['year']} (доп.)</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$targetSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[additionalTarget][{$item['year']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
 
-        }
     }
 }
 if (!empty($model->billInfo['paymentContent']['single'])) {
@@ -258,9 +276,12 @@ echo $form->field($model, 'toDeposit', ['template' =>
     ->hint('В рублях')
     ->label('Будет зачислено на депозит');
 echo "<div class='clearfix'></div>";
-echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div></div>';
-echo "<div class='margened'></div>";
-echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата поступления на счёт</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="getCustomDate" name="Pay[getCustomDate]"></div></div>';
+if(empty($model->bankTransaction)){
+    echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div></div>';
+    echo "<div class='margened'></div>";
+    echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата поступления на счёт</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="getCustomDate" name="Pay[getCustomDate]"></div></div>';
+}
+
 echo "<div class='margened'></div>";
 echo $form->field($model, 'sendConfirmation', ['template' =>
     '<div class="col-sm-5">{label}</div><div class="col-sm-7">{input}{error}{hint}</div>'])
@@ -294,7 +315,6 @@ ActiveForm::end();
 
         // обработаю ввод распределённой суммы в поле ввода
         let distributeInputs = $('.distributed-summ-input');
-
 
         // при клике на кнопку- вставляю в поле ввода суммы сумму, равную необходимой для полного погашения платежа
         roundSummGetBtn.on('click.all', function () {
@@ -336,6 +356,9 @@ ActiveForm::end();
                 enablePartial();
             }
         });
+        if(rawSumm.val()){
+            rawSumm.trigger('change');
+        }
 
         function enablePartial() {
             // скрою ячейку зачисления на депозит, тут она не понадобится

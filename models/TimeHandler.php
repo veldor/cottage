@@ -304,9 +304,8 @@ class TimeHandler extends Model {
 		return $unpayed;
 	}
 
-	// ======================== ВОЗВРАЩАЕТ МАССИВ СО СПИСКОМ КВАРТАЛОВ ОТ ТЕКУЩЕГО ДО ПЕРЕДАННОГО ==>"2018-1" <== "МАССИВ КВАРТАЛОВ" ======================
-
 	/**
+     * Получаю список месяцев между двумя датами
 	 * @param $month string
 	 * @param $endMonth string
 	 * @return array|null
@@ -459,18 +458,18 @@ class TimeHandler extends Model {
 		throw new InvalidArgumentException("Значение \"$day\" не является днём года");
 	}
 
-	/**
-	 * @param $year string|int
-	 * @return int
-	 */
-	public static function isYear($year): int
-	{
-		$year = (int)$year;
-		if ($year > 1900 && $year < 3000) {
-			return $year;
-		}
-		throw new InvalidArgumentException("Значение \"$year\" не является годом");
-	}
+        /**
+         * @param $year string|int
+         * @return int
+         */
+        public static function isYear($year): int
+        {
+            $year = (int)$year;
+            if ($year > 1900 && $year < 3000) {
+                return $year;
+            }
+            throw new InvalidArgumentException("Значение \"$year\" не является годом");
+        }
 
 	/**
 	 * @param $lastMonth string
@@ -563,11 +562,16 @@ class TimeHandler extends Model {
     {
         $dates = explode('-', $pay_date);
         $date = new DateTime();
-        $times = explode('-', $payTime);
         if(!empty($payTime)){
+            $times = explode('-', $payTime);
             $date->setDate($dates[2],$dates[1],$dates[0]);
             $date->setTime($times[0],$times[1],$times[2]);
             return $date->getTimestamp();
+        }
+        $date->setDate($dates[2],$dates[1],$dates[0]);
+        $timestamp = $date->getTimestamp();
+        if($timestamp > 0){
+            return $timestamp;
         }
         $date->setDate($dates[0],$dates[1],$dates[2]);
         return $date->getTimestamp();

@@ -40,11 +40,11 @@ class MembershipHandler extends Model {
 
 
     public function scenarios(): array
-	{
-		return [
-			self::SCENARIO_NEW_RECORD => ['membership'],
-		];
-	}
+    {
+        return [
+            self::SCENARIO_NEW_RECORD => ['membership'],
+        ];
+    }
 
 	public static function getCottageStatus($cottageInfo)
 	{
@@ -63,15 +63,14 @@ class MembershipHandler extends Model {
 			foreach ($tariffs as $item) {
 				$summ += $item->fixed_part;
 				$summ += $cottageInfo->cottageSquare * ($item->changed_part / 100);
+                // вычту сумму частично оплаченного квартала, если она есть
+                $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
+                if(!empty($payed)){
+                    foreach ($payed as $payedItem){
+                        $summ -= $payedItem->summ;
+                    }
+                }
 			}
-			// вычту сумму частично оплаченного квартала, если она есть
-            if($cottageInfo->partialPayedMembership){
-                // получу данные о неполном платеже
-                $dom = new DOMHandler($cottageInfo->partialPayedMembership);
-                /** @var DOMElement $info */
-                $info = $dom->query('/partial')->item(0);
-                $summ -= CashHandler::rublesRound($info->getAttribute('summ'));
-            }
 			return CashHandler::rublesRound($summ);
 		}
 		return false;

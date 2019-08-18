@@ -221,12 +221,12 @@ class PaymentsController extends Controller
         throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionGetPayConfirmForm($identificator, $double = false): array
+    public function actionGetPayConfirmForm($identificator,$bankTransaction = null, $double = false): array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $model = new Pay(['scenario' => Pay::SCENARIO_PAY]);
-            if ($model->fillInfo($identificator, $double)) {
+            if ($model->fillInfo($identificator, $bankTransaction, $double)) {
                 $view = $this->renderAjax('payConfirmForm', ['model' => $model]);
                 return ['status' => 1, 'view' => $view];
             }
@@ -380,8 +380,8 @@ class PaymentsController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
         try{
             $info = TransactionsHandler::handle($billId, $transactionId);
-            $view = $this->renderPartial("transactionComparsion", ['info' => $info]);
-            return ['status' => 1, 'html' => $view];
+            $view = $this->renderPartial("transactionComparison", ['info' => $info]);
+            return ['status' => 1, 'header' => 'Связывание счёта' ,'view' => $view];
         }
         catch (ExceptionWithStatus $e){
             return ['status' => 2, 'message' => $e->getMessage(), 'code' => $e->getCode()];

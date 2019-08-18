@@ -98,22 +98,22 @@ if (!empty($activeSearch)) {
                             <th colspan="2" class="text-center">Целевые</th>
                             <th colspan="2" class="text-center">Разовые</th>
                             <th colspan="2" class="text-center">Пени</th>
-                            <th rowspan="2" class="text-center vertical-top">Скидка</th>
-                            <th rowspan="2" class="text-center vertical-top">Депозит</th>
+                            <th rowspan="2" class="text-center vertical-top">Скид.</th>
+                            <th rowspan="2" class="text-center vertical-top">Деп</th>
                             <th rowspan="2" class="text-center vertical-top">Итого</th>
                         </tr>
                         <tr>
-                            <th class="text-center">Поквартально</th>
+                            <th class="text-center">Покварт.</th>
                             <th class="text-center">Итого</th>
-                            <th class="text-center">Показания</th>
+                            <th class="text-center">Показ.</th>
                             <th class="text-center">Всего</th>
-                            <th class="text-center">Оплачено</th>
+                            <th class="text-center">Опл.</th>
                             <th class="text-center">По годам</th>
                             <th class="text-center">Итого</th>
-                            <th class="text-center">Отдельно</th>
-                            <th class="text-center">Итого</th>
-                            <th class="text-center">Отдельно</th>
-                            <th class="text-center">Итого</th>
+                            <th class="text-center">Дет.</th>
+                            <th class="text-center">Итог</th>
+                            <th class="text-center">Дет.</th>
+                            <th class="text-center">Итог</th>
                         </tr>
                         </thead>
                         <tbody>

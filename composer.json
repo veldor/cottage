@@ -30,7 +30,8 @@
         "mihaildev/yii2-ckeditor": "*",
       "ext-iconv": "*",
       "ext-curl": "*",
-      "ext-zip": "*"
+      "ext-zip": "*",
+      "kartik-v/yii2-widget-switchinput": "dev-master"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.0.0",

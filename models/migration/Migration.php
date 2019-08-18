@@ -14,6 +14,11 @@ use app\models\Table_additional_payed_power;
 use app\models\Table_additional_payed_single;
 use app\models\Table_additional_payed_target;
 use app\models\Table_additional_power_months;
+use app\models\Table_bank_invoices;
+use app\models\Table_cottages;
+use app\models\Table_counter_changes;
+use app\models\Table_deposit_io;
+use app\models\Table_discounts;
 use app\models\Table_payed_membership;
 use app\models\Table_payed_power;
 use app\models\Table_payed_single;
@@ -26,15 +31,47 @@ use app\models\Table_tariffs_power;
 use app\models\Table_tariffs_target;
 use app\models\Table_transactions;
 use app\models\Table_transactions_double;
+use app\models\tables\Table_bill_fines;
+use app\models\tables\Table_payed_fines;
+use app\models\tables\Table_penalties;
 use app\models\TimeHandler;
 use DOMElement;
 use Exception;
 use yii\base\Model;
+use yii\db\ActiveRecord;
 
 class Migration extends Model
 {
     public static function migrateCottages()
     {
+        self::tableToXml('cottages', Table_cottages::find()->all());
+        self::tableToXml('additionalCottages', Table_additional_cottages::find()->all());
+        self::tableToXml('additional_power_months', Table_additional_power_months::find()->all());
+        self::tableToXml('additional_payed_membership', Table_additional_payed_membership::find()->all());
+        self::tableToXml('additional_payed_power', Table_additional_payed_power::find()->all());
+        self::tableToXml('additional_payed_single', Table_additional_payed_single::find()->all());
+        self::tableToXml('additional_payed_target', Table_additional_payed_target::find()->all());
+        self::tableToXml('bank_invoices', Table_bank_invoices::find()->all());
+        self::tableToXml('bill_fines', Table_bill_fines::find()->all());
+        self::tableToXml('cottages', Table_cottages::find()->all());
+        self::tableToXml('counter_changes', Table_counter_changes::find()->all());
+        self::tableToXml('deposit_io', Table_deposit_io::find()->all());
+        self::tableToXml('discounts', Table_discounts::find()->all());
+        self::tableToXml('power_months', Table_power_months::find()->orderBy('month')->all());
+        self::tableToXml('payed_power', Table_payed_power::find()->all());
+        self::tableToXml('payed_membership', Table_payed_membership::find()->orderBy('quarter')->all());
+        self::tableToXml('payed_single', Table_payed_single::find()->all());
+        self::tableToXml('payed_target', Table_payed_target::find()->all());
+        self::tableToXml('payed_fines', Table_payed_fines::find()->all());
+        self::tableToXml('payment_bills', Table_payment_bills::find()->all());
+        self::tableToXml('payment_bills_double', Table_payment_bills_double::find()->all());
+        self::tableToXml('penalties', Table_penalties::find()->all());
+        self::tableToXml('tariffs_membership', Table_tariffs_membership::find()->all());
+        self::tableToXml('tariffs_power', Table_tariffs_power::find()->all());
+        self::tableToXml('tariffs_target', Table_tariffs_target::find()->all());
+        self::tableToXml('transactions', Table_transactions::find()->all());
+        self::tableToXml('transactions_double', Table_transactions_double::find()->all());
+        die;
         // миграция сведений об участках
         $contacts = '<?xml version="1.0" encoding="utf-8"?><contacts>';
         $text = '<?xml version="1.0" encoding="utf-8"?><cottages>';
@@ -769,5 +806,25 @@ class Migration extends Model
         }
         $transactions_data .= '</transactions>';
         file_put_contents('Z:/migration/transactions.xml', $transactions_data);
+    }
+
+
+    /**
+     * @param $tableName
+     * @param $tableData ActiveRecord[]
+     */
+    private static function tableToXml($tableName, $tableData){
+        // создам xml
+        $text = '<?xml version="1.0" encoding="utf-8"?><root>';
+        foreach ($tableData as $item) {
+            $text .= "<item ";
+            $result = $item->toArray();
+            foreach ($result as $key => $value) {
+                $text .= "$key='" . urlencode($value) . "' ";
+            }
+            $text .= "/>";
+        }
+        $text .= '</root>';
+        file_put_contents("Z:/migrate/{$tableName}.xml", $text);
     }
 }

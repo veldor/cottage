@@ -2,21 +2,13 @@
 
 namespace app\controllers;
 
-use app\models\BankDetails;
-use app\models\Cloud;
-use app\models\ComplexPayment;
 use app\models\Cottage;
-use app\models\Filling;
-use app\models\Fix;
 use app\models\migration\Migration;
-use app\models\Pay;
-use app\models\Payments;
 use app\models\TariffsKeeper;
-use Dompdf\Dompdf;
-use Yii;
-use yii\web\Controller;
-use yii\filters\AccessControl;
 use app\models\YaAuth;
+use Yii;
+use yii\filters\AccessControl;
+use yii\web\Controller;
 
 class SiteController extends Controller
 {
@@ -91,7 +83,8 @@ class SiteController extends Controller
         return false;
     }
     public function actionTest(){
-        return $this->render('test');
+        Migration::migrateCottages();
+        //return $this->render('test');
         //Fix::test();
         /*Migration::migrateCottages();
         Migration::migrateTariffs();

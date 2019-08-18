@@ -73,8 +73,8 @@ if (!empty($tab)) {
             <?php $form = ActiveForm::begin(['options' => ['enctype' => 'multipart/form-data']]);
             echo $form->field($model, 'file[]', ['template' =>
                 '<div class="col-sm-6 text-center">{label}{input}
-									{error}{hint}</div><div class="col-sm-6"><button class="btn btn-success">Обработать</button></div>'])
-                ->fileInput(['class' => 'hidden', 'multiple' => true, 'accept' => 'text/plain'])
+									{error}{hint}</div>'])
+                ->fileInput(['class' => 'hidden', 'id' => 'registryInput', 'multiple' => true, 'accept' => 'text/plain'])
                 ->label('Выберите файл регистра.', ['class' => 'btn btn-info']);
             ActiveForm::end();
             if (!empty($errorMessage)) {

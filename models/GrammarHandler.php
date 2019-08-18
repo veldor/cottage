@@ -18,14 +18,14 @@ class GrammarHandler extends Model
     public const REGISTRIATION_INFO_PRESET = '%REGINFO%';
     public const DUTY_INFO_PRESET = '%DUTYINFO%';
 
-    public static function normalizePhone($phone){
-        if(  preg_match( '/^(\+?\d).*(\d{3}).*(\d{3}).*(\d{2}).*(\d{2})$/', $phone,  $matches ) )
-        {
-            $result = $matches[1] . ' ' . $matches[2] . ' ' .$matches[3] . '-' . $matches[4] . '-' . $matches[5];
-            return $result;
+        public static function normalizePhone($phone){
+            if(  preg_match( '/^(\+?\d).*(\d{3}).*(\d{3}).*(\d{2}).*(\d{2})$/', $phone,  $matches ) )
+            {
+                $result = $matches[1] . ' ' . $matches[2] . ' ' .$matches[3] . '-' . $matches[4] . '-' . $matches[5];
+                return $result;
+            }
+            return $phone;
         }
-        return $phone;
-    }
 
     public static function clearWhitespaces($string){
         // заменю встречающиеся несколько пробелов подряд на один и обрежу пробелы в начале и конце

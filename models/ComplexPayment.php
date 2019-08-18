@@ -2,7 +2,6 @@
 
 namespace app\models;
 
-use app\models\small_classes\PeriodInfo;
 use app\models\tables\Table_bill_fines;
 use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;

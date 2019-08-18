@@ -165,7 +165,7 @@ class Cloud extends Model
             self::send(Info::MAIL_REPORTS_ADDRESS, GrammarHandler::handlePersonals($info->cottageOwnerPersonals), $subject, $finalText);
             return ['status' => 1];
         } catch (ExceptionWithStatus $e) {
-            die('dont send');
+            throw $e;
         }
     }
 
@@ -201,7 +201,7 @@ class Cloud extends Model
             }
             return $message;
         } catch (ExceptionWithStatus $e) {
-            die('dont send');
+            throw $e;
         }
     }
 
