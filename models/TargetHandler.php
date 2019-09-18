@@ -9,12 +9,12 @@
 namespace app\models;
 
 
+use app\models\selections\TargetDebt;
 use app\validators\CashValidator;
 use DOMElement;
 use InvalidArgumentException;
 use yii\base\InvalidValueException;
 use yii\base\Model;
-use yii\db\ActiveRecord;
 
 class TargetHandler extends Model
 {
@@ -118,7 +118,7 @@ class TargetHandler extends Model
     }
 
     /**
-     * @param $cottageInfo ActiveRecord
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
      * @return array
      */
     public static function getDutyInfo($cottageInfo): array
@@ -179,7 +179,7 @@ class TargetHandler extends Model
 
     /**
      * @param $cottageInfo Table_additional_cottages|Table_cottages
-     * @return array
+     * @return TargetDebt[]
      */
     public static function getDebt($cottageInfo): array
     {
@@ -188,46 +188,37 @@ class TargetHandler extends Model
             return [];
         }
         $targetDom = new DOMHandler($cottageInfo->targetPaysDuty);
-        $duty = [];
+        $answer = [];
         $years = $targetDom->query('/targets/target');
         if ($years !== null) {
             /**
              * @var $year DOMElement
              */
             foreach ($years as $year) {
-                $date = $year->getAttribute('year');
-                $description = $year->getAttribute('description');
-                $fixed = CashHandler::toRubles($year->getAttribute('fixed'));
-                $float = CashHandler::toRubles($year->getAttribute('float'));
-                $payed = CashHandler::toRubles($year->getAttribute('payed'));
-                $summ = Calculator::countFixedFloatPlus($fixed, $float, $cottageInfo->cottageSquare);
-                $realSumm = CashHandler::rublesMath($summ['total'] - $payed);
-                $duty[$date] = ['fixed' => $fixed, 'float' => $float, 'payed' => $payed, 'summ' => $summ, 'realSumm' => $realSumm, 'description' => $description];
+                $answerItem = new TargetDebt();
+                $answerItem->year = $year->getAttribute('year');
+                $answerItem->tariffFixed = CashHandler::toRubles($year->getAttribute('fixed'));
+                $answerItem->tariffFloat = CashHandler::toRubles($year->getAttribute('float'));
+                $answerItem->amount = Calculator::countFixedFloat($answerItem->tariffFixed, $answerItem->tariffFloat, $cottageInfo->cottageSquare);
+                $answerItem->partialPayed = CashHandler::toRubles($year->getAttribute('payed'));
+                $answer[$answerItem->year] = $answerItem;
             }
         }
-        return $duty;
+        return $answer;
     }
 
     public static function createPayment($cottageInfo, $target, $additional = false): array
     {
         $answer = '';
         $summ = 0;
-        $debt = self::getDebt($cottageInfo, $additional);
+        $debt = self::getDebt($cottageInfo);
         foreach ($target as $key => $value) {
             if (!empty($value)) {
-                $pay = CashHandler::toRubles($value);
-                if (!empty($debt[$key])) {
-                    if ($pay > $debt[$key]['realSumm']) {
-                        throw new InvalidArgumentException('Сумма платежа превышает сумму задолженности');
-                    }
-                    $s = Calculator::countFixedFloatPlus($debt[$key]['fixed'], $debt[$key]['float'], $cottageInfo->cottageSquare);
-                    $leftPay = CashHandler::rublesMath($s['total'] - $debt[$key]['payed']);
-                    $summ += $pay;
-                    $answer .= "<pay year='$key' summ='{$pay}' total-summ='{$s['total']}' float-cost='{$s['float']}' fixed='{$debt[$key]['fixed']}' float='{$debt[$key]['float']}' square='{$cottageInfo->cottageSquare}' payed-before='{$debt[$key]['payed']}' left-pay='$leftPay'/>";
-
-                } else {
-                    throw new InvalidArgumentException('Год не найден в списке задолженностей');
-                }
+                $toPay = CashHandler::toRubles($value['value']);
+                $s = Calculator::countFixedFloatPlus($debt[$key]->tariffFixed, $debt[$key]->tariffFloat, $cottageInfo->cottageSquare);
+                $leftPay = CashHandler::rublesMath($s['total'] - $debt[$key]->partialPayed);
+                    $summ += $toPay;
+                    $answer .= "<pay year='$key' summ='{$toPay}' total-summ='{$s['total']}' float-cost='{$s['float']}' fixed='{$debt[$key]->tariffFixed}' float='{$debt[$key]->tariffFloat}' square='{$cottageInfo->cottageSquare}' payed-before='{$debt[$key]->partialPayed}' left-pay='$leftPay'/>";
             }
         }
 

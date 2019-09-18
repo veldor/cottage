@@ -234,10 +234,10 @@ ul#searchedPatientsList li:hover {
     cursor: pointer;
     background-color: #4CFF00;
 }
-
+/*
 .choosed {
     background-color: #4CFF00;
-}
+}*/
 
 .selected {
     background-color: #2aabd2;
@@ -525,4 +525,15 @@ div.inlined{
     float: none;
 }
 
+div#createBillToolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background-color: #2AABD2;
+    z-index: 9000;
+    border-top: 1px solid #FF0000;
+    padding: 8px 10px 10px 30px;
+}
 

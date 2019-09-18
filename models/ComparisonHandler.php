@@ -155,7 +155,7 @@ class ComparisonHandler extends Model
             if($single->length > 0){
                 $totalAmount = [];
                 foreach ($single as $item) {
-                    $time = $item->getAttribute('time');
+                    $time = $item->getAttribute('timestamp');
                     $amount = DOMHandler::getFloatAttribute($item, 'summ');
                     // вычту оплаченное
                     $payedSingle = Table_payed_single::find()->where(['billId' => $billInfo->id, 'time' => $time])->all();

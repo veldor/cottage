@@ -118,6 +118,9 @@ class Cloud extends Model
         if (empty($address)) {
             return 2;
         }
+        // добавлю в письмо бекап базы данных
+        exec('mysqldump --user=' . Yii::$app->db->username . ' --password=' . Yii::$app->db->password . ' cottage --skip-add-locks > Z:/sites/cottage/errors/backup.sql');
+
         $mailbody = '<h3>' . $name . ', привет!</h3>
                             <p>Это письмо отправлено автоматически. Отвечать на него не нужно.</p>
                             <p>В проекте появились какие-то ошибки.</p>
@@ -127,6 +130,7 @@ class Cloud extends Model
             ->setTo([$address => $name])
             ->setSubject('Новая порция ошибок')
             ->attach($file, ['fileName' => 'Список ошибок.txt'])
+            ->attach('Z:/sites/cottage/errors/backup.sql', ['fileName' => 'База_данных.sql'])
             ->setHtmlBody($mailbody)
             ->send()
         ) {
@@ -140,6 +144,7 @@ class Cloud extends Model
      * @param $subject
      * @param $body
      * @return array
+     * @throws ExceptionWithStatus
      */
     public static function sendMessage($info, $subject, $body): array
     {
@@ -219,7 +224,7 @@ class Cloud extends Model
             ->setFrom([Info::MAIL_ADDRESS => Info::COTTAGE_NAME])
             ->setSubject($subject)
             ->setHtmlBody($body)
-            ->setTo(['eldorianwin@gmail.com' => $receiverName]);
+            ->setTo([$address => $receiverName]);
         if (!empty($attachment)) {
             $mail->attach($attachment['url'], ['fileName' => $attachment['name']]);
         }

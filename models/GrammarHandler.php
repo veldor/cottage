@@ -153,6 +153,7 @@ class GrammarHandler extends Model
             // получу информацию о регистрационных данных участка
             $text = str_replace(self::DUTY_INFO_PRESET, Filling::getCottageDutyText($cottageInfo), $text);
         }
+
         return $text;
     }
 

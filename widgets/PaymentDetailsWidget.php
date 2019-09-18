@@ -11,7 +11,6 @@ namespace app\widgets;
 
 use app\models\CashHandler;
 use app\models\FinesHandler;
-use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
 use app\models\TimeHandler;
 use yii\base\Widget;
@@ -80,68 +79,102 @@ class PaymentDetailsWidget extends Widget
                                         <b class="text-warning"><?= $item['difference'] ?> кВт.ч</b>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>
-                                        Льготный лимит
-                                    </td>
-                                    <td class="text-left">
-                                        <?php
-                                        if ($item['corrected'] === '1') {
-                                            echo '(Льготный лимит сброшен)';
-                                        }
-                                        ?>
-                                        <b class="text-info"><?= $item['powerLimit'] ?> кВт.ч</b>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        В пределах льготного лимита
-                                    </td>
-                                    <td class="text-left">
-                                        <b class="text-warning"><?= $item['in-limit'] ?> кВт.ч</b>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Стоимость 1 кВт.ч (льготная)
-                                    </td>
-                                    <td class="text-left">
-                                        <b class="text-success"><?= CashHandler::toSmoothRubles($item['powerCost']) ?></b>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Стоимость льготной электроэнергии
-                                    </td>
-                                    <td class="text-left">
-                                        <b class="text-success"><?= CashHandler::toSmoothRubles($item['in-limit-cost']) ?></b>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        За пределами льготного лимита
-                                    </td>
-                                    <td class="text-left">
-                                        <b class="text-warning"><?= $item['over-limit'] ?> кВт.ч</b>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Стоимость 1 кВт.ч
-                                    </td>
-                                    <td class="text-left">
-                                        <b class="text-success"><?= CashHandler::toSmoothRubles($item['powerOvercost']) ?></b>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Стоимость электроэнергии
-                                    </td>
-                                    <td class="text-left">
-                                        <b class="text-success"><?= CashHandler::toSmoothRubles($item['over-limit-cost']) ?></b>
-                                    </td>
-                                </tr>
                                 <?php
+                                if ($item['corrected'] === '1') {
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            Льготный лимит
+                                        </td>
+                                        <td class="text-left">
+                                            Льготный лимит сброшен
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            За пределами льготного лимита
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-warning"><?= $item['difference'] ?> кВт.ч</b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            Стоимость 1 кВт.ч
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-success"><?= CashHandler::toSmoothRubles($item['powerOvercost']) ?></b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            Стоимость электроэнергии
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-success"><?= CashHandler::toSmoothRubles($realSumm) ?></b>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                } else {
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            Льготный лимит
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-info"><?= $item['powerLimit'] ?> кВт.ч</b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            В пределах льготного лимита
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-warning"><?= $item['in-limit'] ?> кВт.ч</b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            Стоимость 1 кВт.ч (льготная)
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-success"><?= CashHandler::toSmoothRubles($item['powerCost']) ?></b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            Стоимость льготной электроэнергии
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-success"><?= CashHandler::toSmoothRubles($item['in-limit-cost']) ?></b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            За пределами льготного лимита
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-warning"><?= $item['over-limit'] ?> кВт.ч</b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            Стоимость 1 кВт.ч
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-success"><?= CashHandler::toSmoothRubles($item['powerOvercost']) ?></b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            Стоимость электроэнергии
+                                        </td>
+                                        <td class="text-left">
+                                            <b class="text-success"><?= CashHandler::toSmoothRubles($item['over-limit-cost']) ?></b>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                }
                                 if (!empty($item['prepayed'])) {
                                     echo '
                                     <tr>
@@ -587,7 +620,8 @@ class PaymentDetailsWidget extends Widget
             <div class="color-orange row">
                 <div class="col-lg-12">
                     <h3>Целевые платежи (Дополнительный участок)</h3>
-                    <p> Лет к оплате: <b class='text-success'><?= count($this->info['additionalTarget']['values']) ?></b><br/>
+                    <p> Лет к оплате: <b
+                                class='text-success'><?= count($this->info['additionalTarget']['values']) ?></b><br/>
                     <p> Общая сумма целевых платежей: <b
                                 class='text-success'><?= CashHandler::toSmoothRubles($this->info['additionalTarget']['summ']) ?></b><br/>
                 </div>
@@ -733,7 +767,13 @@ class PaymentDetailsWidget extends Widget
                 </div>
                 <div class="col-lg-10">
                     <table class="table table-condensed table-hover">
-                        <tr><th>Тип</th><th>Период</th><th>Стоимость</th><th>Дней</th><th>В день</th></tr>
+                        <tr>
+                            <th>Тип</th>
+                            <th>Период</th>
+                            <th>Стоимость</th>
+                            <th>Дней</th>
+                            <th>В день</th>
+                        </tr>
                         <?php
                         $summ = 0;
                         /** @var Table_view_fines_info $item */
@@ -743,7 +783,7 @@ class PaymentDetailsWidget extends Widget
                             ?>
                             <tr>
                                 <td>
-                                    <?=FinesHandler::$types[$item->pay_type]?>
+                                    <?= FinesHandler::$types[$item->pay_type] ?>
                                 </td>
                                 <td>
                                     <b class="text-primary"><?= $item->period ?></b>
@@ -752,10 +792,10 @@ class PaymentDetailsWidget extends Widget
                                     <b class="text-success"><?= CashHandler::toSmoothRubles($item->start_summ) ?></b>
                                 </td>
                                 <td class="text-left">
-                                    <?=$item->start_days?>
+                                    <?= $item->start_days ?>
                                 </td>
                                 <td class="text-left">
-                                    <?=$forDay?>
+                                    <?= $forDay ?>
                                 </td>
                             </tr>
                             <?php

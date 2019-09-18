@@ -523,6 +523,15 @@ function showFines(data) {
 }
 
 function basementFunctional() {
+    // активирую переход к участку по ссылке
+    $('#goToCottageActivator').on('click.go', function () {
+        location.replace('/show-cottage/' + $('#goToCottageInput').val());
+    });
+    $('#goToCottageInput').on('keypress.go', function (e) {
+        if(e.charCode === 13){
+            location.replace('/show-cottage/' + $('#goToCottageInput').val());
+        }
+    });
     // расчитаю пени
     let countFinesActivator = $('#finesSumm');
     countFinesActivator.on('click.count', function (e) {
@@ -696,7 +705,7 @@ function basementFunctional() {
                 let i = 0;
                 while (answer['data'][i]) {
                     let simple = answer['data'][i];
-                    let payed = simple['isPartialPayed'] ? '<button class="btn btn-info">Частично оплачен</button>' : (simple['isPayed'] ? '<button class="btn btn-success">Завершен</button>' : '<button class="btn btn-warning">В ожидании оплаты</button>');
+                    let payed = simple['isPartialPayed'] ? '<button class="btn btn-info ">Частично оплачен</button>' : (simple['isPayed'] ? '<button class="btn btn-success">Завершен</button>' : '<button class="btn btn-warning">В ожидании оплаты</button>');
                     if (simple['isPayed'] || simple['isPartialPayed']) {
                         let summ;
                         if (simple['isPartialPayed']) {
@@ -708,20 +717,27 @@ function basementFunctional() {
                                 summ = '<b class="text-danger">' + simple['summ'] + ' &#8381;</b> Не оплачено ';
                             }
                         }
-                        /*let summ = simple['payed-summ'] ? ' Оплачено ' + simple['payed-summ'] + ' из ' + simple['summ'] : '<b class="text-warning">' + simple['summ'] + ' &#8381;</b> Не оплачен. ';*/
-                        modalBody.append('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: ' + summ + payed + ' ' + simple['paymentTime'] + '</p>');
+                        let item = $('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: ' + summ + payed + ' ' + simple['paymentTime'] + '</p>');
+                        item.on('click.show', function () {
+                            editBill(simple['id'], simple['double']);
+                        });
+                        modalBody.append(item);
                     } else {
-                        modalBody.append('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: <b class="text-warning">' + simple['summ'] + ' &#8381;</b>. ' + payed + ' ' + simple['paymentTime'] + '</p>');
+                        let item = $('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: <b class="text-warning">' + simple['summ'] + ' &#8381;</b>. ' + payed + ' ' + simple['paymentTime'] + '</p>');
+                        item.on('click.show', function () {
+                            editBill(simple['id'], simple['double']);
+                        });
+                        modalBody.append(item);
                     }
                     i++;
                 }
-                modal.find('p.hoverable').on('click.show', function () {
+/*                modal.find('p.hoverable').on('click.show', function () {
                     let id = $(this).attr('data-payment-id');
                     modal.modal('hide');
                     modal.on('hidden.bs.modal', function () {
                         editBill(id, double);
                     });
-                })
+                })*/
             } else if (answer.status === 2) {
                 makeInformer('info', 'Список платежей', 'Платежей по данному участку не найдено');
             } else {
@@ -916,7 +932,7 @@ function editBill(identificator, double) {
 
     function callback(answer) {
         if (answer.status === 1) {
-            let modal = makeModal('Информация о счёте', answer['view']);
+            let modal = makeModal('Информация о счёте', answer['view'], true);
             // Обработаю использование депозита
             //const totalPaymentSumm = modal.find('span#paymentTotalSumm');
             const deleteBillBtn = $('button#deleteBill');

@@ -125,4 +125,9 @@ class CashHandler extends Model
         $summ = self::dividedSumm($powerCost);
         return (int) ($summ['rubles'] . $summ ['cents']);
     }
+
+    public static function toJsRubles($summ){
+        $summ = CashHandler::toRubles($summ);
+        return str_replace(',', '.', $summ);
+    }
 }

@@ -17,11 +17,12 @@ use yii\base\Model;
 class ComplexPayment extends Model
 {
     public $cottageNumber; // тип оплаты
-    public $membershipPeriods = 0; // тип оплаты
-    public $additionalMembershipPeriods = 0; // тип оплаты
-    public $powerPeriods = 0; // тип оплаты
-    public $additionalPowerPeriods = 0; // тип оплаты
     public $countedSumm = 0;
+
+    public $power;
+    public $additionalPower;
+    public $membership;
+    public $additionalMembership;
     public $target;
     public $additionalTarget;
     public $single;
@@ -29,10 +30,11 @@ class ComplexPayment extends Model
     public $discount = 0;
     public $discountReason;
     public $fines;
-    public $noLimitPower;
-    public $noLimitAdditionalPower;
     public $double;
 
+    /**
+     * @var UnpayedData
+     */
     public $unpayed;
     public $cottageInfo;
     public $additionalCottageInfo;
@@ -112,7 +114,7 @@ class ComplexPayment extends Model
     public function scenarios(): array
     {
         return [
-            self::SCENARIO_CREATE => ['cottageNumber', 'membershipPeriods', 'additionalMembershipPeriods', 'powerPeriods', 'additionalPowerPeriods', 'target', 'additionalTarget', 'single', 'countedSumm', 'fromDeposit', 'discount', 'discountReason', 'noLimitPower', 'noLimitAdditionalPower', 'double', 'fines'],
+            self::SCENARIO_CREATE => ['cottageNumber', 'membership', 'additionalMembership', 'power', 'additionalPower', 'target', 'additionalTarget', 'single', 'countedSumm', 'fromDeposit', 'discount', 'discountReason', 'double', 'fines'],
         ];
     }
 
@@ -122,17 +124,8 @@ class ComplexPayment extends Model
         return [
             [['cottageNumber'], 'required', 'on' => self::SCENARIO_CREATE],
             [['countedSumm', 'fromDeposit', 'discount'], CashValidator::class],
-            [['cottageNumber', 'membershipPeriods', 'additionalMembershipPeriods', 'powerPeriods', 'additionalPowerPeriods'], 'integer', 'min' => 0],
-            [['discount', 'fromDeposit'], 'checkModifiers'],
+            [['cottageNumber'], 'integer', 'min' => 0],
         ];
-    }
-
-
-    public function checkModifiers($attribute)
-    {
-        if ($this->discount + $this->fromDeposit > $this->countedSumm) {
-            $this->addError($attribute, 'Неверная сумма скидки/депозита');
-        }
     }
 
 
@@ -188,11 +181,9 @@ class ComplexPayment extends Model
         $transaction = new DbTransaction();
         try {
 
-            if (self::checkUnpayed($this->cottageNumber, $this->double)) {
-                throw new ErrorException('Имеется неоплченный счёт. Создание нового невозможно! Оплатите или отмените предыдущий!');
-            }
             $fromDeposit = $this->fromDeposit;
             $discount = $this->discount;
+
             if ($this->double) {
                 $this->cottageInfo = AdditionalCottage::getCottage($this->cottageNumber);
             } else {
@@ -214,23 +205,23 @@ class ComplexPayment extends Model
             $additionalTarget = '';
             $single = '';
             // ЭЛЕКТРОЭНЕРГИЯ========================================================================================================
-            if ($this->powerPeriods > 0) {
-                $powerData = PowerHandler::createPayment($this->cottageInfo, $this->powerPeriods, $this->noLimitPower, $this->double);
+            if (!empty($this->power)) {
+                $powerData = PowerHandler::createPayment($this->cottageInfo, $this->power, $this->double);
                 $power = $powerData['text'];
                 $totalCost += $powerData['summ'];
             }
-            if ($this->additionalPowerPeriods > 0) {
-                $additionalPowerData = PowerHandler::createPayment($this->additionalCottageInfo, $this->additionalPowerPeriods, $this->noLimitAdditionalPower, true);
+            if (!empty($this->additionalPower)) {
+                $additionalPowerData = PowerHandler::createPayment($this->additionalCottageInfo, $this->additionalPower, true);
                 $additionalPower = $additionalPowerData['text'];
                 $totalCost += $additionalPowerData['summ'];
             }
-            if ($this->membershipPeriods > 0) {
-                $membershipData = MembershipHandler::createPayment($this->cottageInfo, $this->membershipPeriods, $this->double);
+            if (!empty($this->membership)) {
+                $membershipData = MembershipHandler::createPayment($this->cottageInfo, $this->membership, $this->double);
                 $membership = $membershipData['text'];
                 $totalCost += $membershipData['summ'];
             }
-            if ($this->additionalMembershipPeriods > 0) {
-                $additionalMembershipData = MembershipHandler::createPayment($this->additionalCottageInfo, $this->additionalMembershipPeriods, true);
+            if (!empty($this->additionalMembership)) {
+                $additionalMembershipData = MembershipHandler::createPayment($this->additionalCottageInfo, $this->additionalMembership, true);
                 $additionalMembership = $additionalMembershipData['text'];
                 $totalCost += $additionalMembershipData['summ'];
             }
@@ -289,22 +280,11 @@ class ComplexPayment extends Model
                     $link->save();
                 }
             }
-            // отправлю письмо о созданном счёте
-//            if($this->cottageInfo->cottageOwnerEmail || $this->cottageInfo->cottageContacterEmail){
-//                $payDetails = Filling::getPaymentDetails($bill);
-//                $dutyText = Filling::getCottageDutyText($this->cottageInfo);
-//                $mailBody = "<div style='text-align: center'><h1>Добрый день!</h1></div><div><p>Добрый день. Вам выставлен счёт за услуги садоводства. Вы можете оплатить его наличными у бухгалтера. Контактная информация в конце письма.";
-//                $mailBody .= $payDetails;
-//                $mailBody .= $dutyText;
-//               // $result = Notifier::sendNotification($this->cottageInfo, 'Выставлен новый счёт за услуги.', $mailBody, true);
-//                $result['billId'] = $bill->id;
-//                return $result;
-//            }
             $transaction->commitTransaction();
             return ['status' => 1, 'billId' => $bill->id, 'double' => (boolean)$this->double];
         } catch (ExceptionWithStatus $e) {
             $transaction->rollbackTransaction();
-            return ['status' => 2, 'message' => 'Ошибка при создании счёта'];
+            return ['status' => 2, 'message' => 'Ошибка при создании счёта: ' . $e->getMessage()];
         }
     }
 
@@ -375,7 +355,7 @@ class ComplexPayment extends Model
                 } else {
                     $payedSumm = '';
                 }
-                $paymentsInfo[] = ['id' => $item->id, 'isPartialPayed' => $item->isPartialPayed, 'isPayed' => $item->isPayed, 'creationTime' => TimeHandler::getDatetimeFromTimestamp($item->creationTime), 'paymentTime' => $pt, 'summ' => CashHandler::toRubles($item->totalSumm), 'payed-summ' => $payedSumm, 'from-deposit' => $item->depositUsed, 'discount' => $item->discount];
+                $paymentsInfo[] = ['id' => $item->id, 'isPartialPayed' => $item->isPartialPayed, 'isPayed' => $item->isPayed, 'creationTime' => TimeHandler::getDatetimeFromTimestamp($item->creationTime), 'paymentTime' => $pt, 'summ' => CashHandler::toRubles($item->totalSumm), 'payed-summ' => $payedSumm, 'from-deposit' => $item->depositUsed, 'discount' => $item->discount, 'double' => $double];
             }
             return $paymentsInfo;
         }
@@ -392,7 +372,7 @@ class ComplexPayment extends Model
 
     public function loadInfo($cottageNumber, $double = false)
     {
-        $unpayed = [];
+        $unpayed = new UnpayedData();
         if ($double) {
             $this->cottageInfo = AdditionalCottage::getCottage($cottageNumber);
         } else {
@@ -400,23 +380,23 @@ class ComplexPayment extends Model
         }
         $this->double = $double;
         $this->cottageNumber = $cottageNumber;
-        $unpayed['square'] = $this->cottageInfo->cottageSquare;
-        $unpayed['powerDuty'] = PowerHandler::getDebtReport($this->cottageInfo);
-        $unpayed['membershipDuty'] = MembershipHandler::getDebt($this->cottageInfo);
-        $unpayed['targetDuty'] = TargetHandler::getDebt($this->cottageInfo);
-        $unpayed['singleDuty'] = SingleHandler::getDebtReport($this->cottageInfo, $double);
+        $unpayed->square = $this->cottageInfo->cottageSquare;
+        $unpayed->powerDuty = PowerHandler::getDebtReport($this->cottageInfo);
+        $unpayed->membershipDuty = MembershipHandler::getDebt($this->cottageInfo);
+        $unpayed->targetDuty = TargetHandler::getDebt($this->cottageInfo);
+        $unpayed->singleDuty = SingleHandler::getDebtReport($this->cottageInfo, $double);
         if (!$this->double && $this->cottageInfo->haveAdditional) {
             $this->additionalCottageInfo = AdditionalCottage::getCottage($cottageNumber);
             if (!$this->additionalCottageInfo->hasDifferentOwner) {
                 if ($this->additionalCottageInfo->isPower === 1) {
-                    $unpayed['additionalPowerDuty'] = PowerHandler::getDebtReport($this->additionalCottageInfo);
+                    $unpayed->additionalPowerDuty = PowerHandler::getDebtReport($this->additionalCottageInfo);
                 }
-                $unpayed['additionalSquare'] = $this->additionalCottageInfo->cottageSquare;
+                $unpayed->additionalSquare = $this->additionalCottageInfo->cottageSquare;
                 if ($this->additionalCottageInfo->isMembership === 1) {
-                    $unpayed['additionalMembershipDuty'] = MembershipHandler::getDebt($this->additionalCottageInfo);
+                    $unpayed->additionalMembershipDuty = MembershipHandler::getDebt($this->additionalCottageInfo);
                 }
                 if ($this->additionalCottageInfo->isTarget === 1) {
-                    $unpayed['additionalTargetDuty'] = TargetHandler::getDebt($this->additionalCottageInfo);
+                    $unpayed->additionalTargetDuty = TargetHandler::getDebt($this->additionalCottageInfo);
                 }
             }
         }

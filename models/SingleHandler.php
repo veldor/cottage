@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\selections\SingleDebt;
 use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use DOMElement;
@@ -32,7 +33,7 @@ class SingleHandler extends Model
     {
         // найду все платежи данного счёта
         $pays = Table_payed_single::find()->where(['billId' => $id])->all();
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
                 /** @var Table_payed_single $pay */
                 $pay->paymentDate = $timestamp;
@@ -145,7 +146,7 @@ class SingleHandler extends Model
     public function insert(): array
     {
         $transaction = new DbTransaction();
-        try{
+        try {
             $description = urlencode($this->description);
             $time = time();
             if ($this->double) {
@@ -174,8 +175,7 @@ class SingleHandler extends Model
             $cottage->save();
             $transaction->commitTransaction();
             return ['status' => 1];
-        }
-        catch (Exception $e){
+        } catch (Exception $e) {
             $transaction->rollbackTransaction();
             throw $e;
         }
@@ -184,7 +184,7 @@ class SingleHandler extends Model
     /**
      * @param $cottage int|string|Table_cottages
      * @param bool $double
-     * @return array
+     * @return SingleDebt[]
      */
     public static function getDebtReport($cottage, $double = false): array
     {
@@ -200,15 +200,18 @@ class SingleHandler extends Model
         }
         if (!empty($cottage->singlePaysDuty)) {
             $dom = new DOMHandler($cottage->singlePaysDuty);
+            $answer = [];
             $pays = $dom->query('/singlePayments/singlePayment');
             /**
              * @var  $pay DOMElement
              */
             foreach ($pays as $pay) {
-                $time = $pay->getAttribute('time');
-                $answer[$time]['summ'] = CashHandler::toRubles($pay->getAttribute('summ'));
-                $answer[$time]['payed'] = CashHandler::toRubles($pay->getAttribute('payed'));
-                $answer[$time]['description'] = urldecode($pay->getAttribute('description'));
+                $answerItem = new SingleDebt();
+                $answerItem->time = $pay->getAttribute('time');
+                $answerItem->amount = CashHandler::toRubles($pay->getAttribute('summ'));
+                $answerItem->partialPayed = CashHandler::toRubles($pay->getAttribute('payed'));
+                $answerItem->description = urldecode($pay->getAttribute('description'));
+                $answer[] = $answerItem;
             }
         }
         return $answer;
@@ -216,25 +219,32 @@ class SingleHandler extends Model
 
     public static function createPayment($cottageInfo, $singles): array
     {
-        $answer = '';
         $summ = 0;
+        $answer = '';
         $debt = self::getDebtReport($cottageInfo);
         foreach ($singles as $key => $value) {
             if (!empty($value)) {
-                $pay = CashHandler::toRubles($value);
+                $pay = CashHandler::toRubles($value['value']);
                 if ($value > 0) {
-                    if (!empty($debt[$key])) {
-                        if ($pay > $debt[$key]['summ']) {
-                            throw new InvalidArgumentException('Сумма платежа превышает сумму задолженности');
+                    // найду подходящий долг
+                    foreach ($debt as $item) {
+                        if ($item->time == $key) {
+                            $targetDebt = $item;
+                        }
+                    }
+                    if (!empty($targetDebt)) {
+                        if ($pay > CashHandler::toRubles($targetDebt->amount - $targetDebt->partialPayed)) {
+                            throw new InvalidArgumentException('Сумма платежа(' . $pay . ') превышает сумму задолженности ' . CashHandler::toRubles($targetDebt->amount - $targetDebt->partialPayed));
                         }
                         $summ += $pay;
-                        $leftPay = CashHandler::toRubles($debt[$key]['summ']) - CashHandler::toRubles($debt[$key]['payed']);
-                        $answer .= "<pay description='{$debt[$key]['description']}' timestamp='$key' payed='{$debt[$key]['payed']}' summ='{$pay}' payed-before='{$debt[$key]['payed']}' left-pay='{$leftPay}'/>";
+                        $leftPay = CashHandler::toRubles($targetDebt->amount) - CashHandler::toRubles($targetDebt->partialPayed);
+                        $answer .= "<pay description='{$targetDebt->description}' timestamp='$key' payed='{$targetDebt->partialPayed}' summ='{$pay}' payed-before='{$targetDebt->partialPayed}' left-pay='{$leftPay}'/>";
 
                     } else {
                         throw new InvalidArgumentException('Счёт не найден в списке задолженностей');
                     }
                 }
+
             }
         }
         if ($summ > 0) {
@@ -339,7 +349,7 @@ class SingleHandler extends Model
             $write->billId = $billInfo->id;
             $write->time = $payment['timestamp'];
             $write->transactionId = $transaction->id;
-            $write->summ =$summ;
+            $write->summ = $summ;
             $write->paymentDate = $transaction->bankDate;
             $write->save();
         }
@@ -350,12 +360,11 @@ class SingleHandler extends Model
         // стандартные проверки
         $cottageInfo = Cottages::getCottage($cottageNumber, $double);
         // нужно проверить, что : нет неоплаченных платежей, платёж существует, платёж не был частично оплачен
-        if($double){
+        if ($double) {
             if (Pay::getUnpayedBillId($cottageInfo->masterId)) {
                 throw new ExceptionWithStatus('Сначала завершите работу с неоплаченным счётом по участку', '2');
             }
-        }
-        else{
+        } else {
             if (Pay::getUnpayedBillId($cottageInfo->cottageNumber)) {
                 throw new ExceptionWithStatus('Сначала завершите работу с неоплаченным счётом по участку', '2');
             }
@@ -408,8 +417,8 @@ class SingleHandler extends Model
 
     public static function handlePartialPayment($bill, $paymentInfo, $cottageInfo, $transaction)
     {
-        foreach($paymentInfo as $key=>$value){
-            if($value > 0){
+        foreach ($paymentInfo as $key => $value) {
+            if ($value > 0) {
                 self::insertSinglePayment($cottageInfo, $bill, $key, $value, $transaction);
             }
         }

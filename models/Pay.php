@@ -313,6 +313,7 @@ class Pay extends Model
                 // отмечу счёт полностью оплаченным
                 $billInfo->isPayed = 1;
                 $billInfo->isPartialPayed = 0;
+                $billInfo->paymentTime = $paymentTime;
             } elseif ($payType === 'partial-finish') {
                 $billTransaction->partial = 1;
                 $billTransaction->usedDeposit = 0;
@@ -324,7 +325,7 @@ class Pay extends Model
                 // отмечу счёт полностью оплаченным
                 $billInfo->isPayed = 1;
                 $billInfo->isPartialPayed = 0;
-
+                $billInfo->paymentTime = $paymentTime;
             }
             $billTransaction->save();
             if ($payType === 'full') {
@@ -387,7 +388,6 @@ class Pay extends Model
             if ($this->fines > 0) {
                 FinesHandler::handlePartialPayment($billInfo, $this->fines, $cottageInfo, $billTransaction);
             }
-            $billInfo->isPartialPayed = 1;
             // регистрирую транзакцию
             $billTransaction->transactionSumm = CashHandler::toRubles($this->rawSumm);
             // если используются средства с депозита и это первый платёж по данному счёту- списываю средства

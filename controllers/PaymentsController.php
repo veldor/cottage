@@ -61,9 +61,6 @@ class PaymentsController extends Controller
             }
             else if ($type === 'complex') {
             	try{
-		            if (ComplexPayment::checkUnpayed($cottageNumber, $double)) {
-			            throw new InvalidValueException('Имеется неоплаченный счёт. Создание нового невозможно до его оплаты');
-		            }
 		            $form = new ComplexPayment(['scenario' => ComplexPayment::SCENARIO_CREATE]);
 		            $form->loadInfo($cottageNumber, $double);
 	            }

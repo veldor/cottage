@@ -41,6 +41,13 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
     <div class="col-lg-12">
         <h1>Участок № <?= $cottageInfo->globalInfo->cottageNumber ?></h1>
 
+        <div class="input-group margened col-sm-2 col-lg-offset-5"><label for="goToCottageInput"></label><input type="text"
+                                                                                                                id="goToCottageInput"
+                                                                                                                class="form-control"
+                                                                                                                value="<?= $cottageInfo->globalInfo->cottageNumber ?>"><span
+                    class="input-group-btn"><button class="btn btn-default" type="button" id="goToCottageActivator"><span
+                            class="glyphicon glyphicon-play"></span></button></span></div>
+
         <table class="table table-hover">
             <caption><?= $firstName ?></caption>
             <tbody>
@@ -85,7 +92,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                                         $payedAmount += CashHandler::toRubles($pay->summ);
                                     }
                                     if(CashHandler::toRubles($payedAmount) != CashHandler::toRubles($month->totalPay)){
-                                        echo '<p><b class="text-info">' . TimeHandler::getFullFromShotMonth($month->month) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($payedAmount) . '</b></p>';
+                                        echo '<p><b class="text-info">' . TimeHandler::getFullFromShotMonth($month->month) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($payedAmount) . '</b> из ' . CashHandler::toRubles($month->totalPay) . '</p>';
                                     }
                                 }
                             }
@@ -469,11 +476,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             <ul class="dropdown-menu">
                 <?php
                 if ($differentOwner) {
-                    if ($cottageInfo->unpayedBills) {
-                        echo "<li><a id='handleUnpayedBtn' data-identificator='{$cottageInfo->unpayedBills->id}' href='#'>Завершить оформление выставленного счёта</a></li>";
-                    } else {
                         echo '<li><a id="payForCottageButton" href="#">Оплатить</a></li>';
-                    }
                     ?>
                     <li><a id="buttonShowPaymentsStory" href="#">История платежей</a></li>
                     <li><a id="changeInfoButton" href="#">Изменить данные</a></li>
@@ -568,11 +571,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <h2>Основные действия</h2>
                 <div class="btn-group-vertical">
                     <?php
-                    if ($cottageInfo->unpayedBills) {
-                        echo "<button id='handleUnpayedBtn' data-identificator='{$cottageInfo->unpayedBills->id}' class='btn btn-success' type='button'>Завершить оформление выставленного счёта</button>";
-                    } else {
                         echo "<button id='payForCottageButton' class='btn btn-success'>Оплатить</button>";
-                    }
                     ?>
                     <button id="buttonShowPaymentsStory" class="btn btn-default">История платежей</button>
                     <button id="changeInfoButton" class="btn btn-info">Изменить данные</button>

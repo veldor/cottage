@@ -253,8 +253,8 @@ class Cottage extends Model
         // получу данные по целевым задолженностям
         $duty = TargetHandler::getDebt($cottage);
         if(!empty($duty)){
-            foreach ($duty as $key => $value) {
-                $tariff = Table_tariffs_target::findOne(['year' => $key]);
+            foreach ($duty as $value) {
+                $tariff = Table_tariffs_target::findOne(['year' => $value->year]);
                 if($tariff->payUpTime < $time){
                     return true;
                 }

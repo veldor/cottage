@@ -275,9 +275,9 @@ class Search extends Model
                                 $powUsed .= $powData->difference . '<br/>';
                                 $powSumm += $power->summ;
                             }
+                            $powSumm = CashHandler::toRubles($powSumm);
+                            $wholePower += CashHandler::toRubles($power->summ);
                         }
-                        $powSumm = CashHandler::toRubles($powSumm);
-                        $wholePower += CashHandler::toRubles($power->summ);
                     }
                     else{
                         $powCounterValue = '--';

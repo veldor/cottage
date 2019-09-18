@@ -86,7 +86,7 @@ else{
     echo $form->field($model, 'rawSumm', ['template' =>
         '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group">{input}<span class="input-group-addon">&#8381;</span></div>
 									{error}{hint}</div>'])
-        ->textInput(['autocomplete' => 'off', 'type' => 'number', 'readonly' => true, 'value' => CashHandler::toRubles($model->bankTransaction->payment_summ)])
+        ->textInput(['autocomplete' => 'off', 'type' => 'number', 'readonly' => true, 'value' => str_replace(',', '.', CashHandler::toRubles($model->bankTransaction->payment_summ))])
         ->hint('В рублях')
         ->label('Получено средств');
 }
@@ -233,10 +233,13 @@ if (!empty($model->billInfo['paymentContent']['single'])) {
     // для каждого года оплаты создам отдельное поле ввода
     foreach ($model->billInfo['paymentContent']['single']['values'] as $item) {
         // получу актуальную информацию о платеже
-        if (!empty($singleInfo[$item['timestamp']])) {
-            $info = $singleInfo[$item['timestamp']];
-            $payed = CashHandler::toRubles($info['payed']);
-            $realSumm = CashHandler::toRubles($info['summ']);
+        foreach ($singleInfo as $singleDebtItem) {
+            if($singleDebtItem->time == $item['timestamp']){
+                $targetDebt = $singleDebtItem;
+            }
+        }
+            $payed = CashHandler::toRubles($targetDebt->partialPayed);
+            $realSumm = CashHandler::toRubles($targetDebt->amount);
             if (!empty($payed)) {
                 $singleSummToPay = $realSumm - $payed;
                 $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($singleSummToPay);
@@ -245,7 +248,6 @@ if (!empty($model->billInfo['paymentContent']['single'])) {
                 $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($singleSummToPay);
             }
             echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Разовый: {$item['description']}</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$singleSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[single][{$item['timestamp']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
-        }
     }
 }
 $fines = Table_view_fines_info::find()->where(['bill_id' => $model->billIdentificator])->all();

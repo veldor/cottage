@@ -83,7 +83,8 @@ class SiteController extends Controller
         return false;
     }
     public function actionTest(){
-        Migration::migrateCottages();
+        return $this->render('test');
+        //Migration::migrateCottages();
         //return $this->render('test');
         //Fix::test();
         /*Migration::migrateCottages();
