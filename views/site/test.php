@@ -1,34 +1,71 @@
 <?php
 
-echo 'mysqldump --user=' . Yii::$app->db->username . ' --password=' . Yii::$app->db->password . ' cottage --skip-add-locks > Z:/sites/cottage/errors/backup.sql';
+use app\assets\AppAsset;
+use app\models\CashHandler;
+use app\models\Table_cottages;
+use app\models\Table_payed_power;
+use app\models\Table_power_months;
+use yii\web\View;
 
-exec('mysqldump --user=' . Yii::$app->db->username . ' --password=' . Yii::$app->db->password . ' cottage --skip-add-locks > Z:/sites/cottage/errors/backup.sql');
-die;
+/* @var $this View */
 
-//use app\assets\AppAsset;
-//use app\models\CashHandler;
-//use app\models\Table_cottages;
-//use app\models\Table_payed_power;
-//use app\models\Table_power_months;
-//use yii\web\View;
-//
-///* @var $this View */
-//
-//AppAsset::register($this);
-//
-//$aprilPowerData = 0;
-//$mayPowerData = 0;
-//$junePowerData = 0;
-//$julePowerData = 0;
-//$augustPowerData = 0;
-//
-//$aprilTPay = 0;
-//$mayTPay = 0;
-//$juneTPay = 0;
-//$juleTPay = 0;
-//$augustTPay = 0;
-//
-//echo "<table class='table table-bordered'><thead><tr><th></th><th colspan='2'>Апрель</th><th colspan='2'>Май</th><th colspan='2'>Июнь</th><th colspan='2'>Июль</th><th colspan='2'>Август</th></tr>
+AppAsset::register($this);
+
+$array = ["Апрель" => "2019-04", "Май" => "2019-05", "Июнь" => "2019-06", "Июль" => "2019-07", "Август" => "2019-08", "Сентябрь" => "2019-09", ];
+$cottages = Table_cottages::find()->orderBy('cottageNumber')->all();
+
+//echo "<div class='row for-print'>";
+
+
+$wholeUsed = 0;
+$wholePayed = 0;
+
+foreach ($array as $key => $value) {
+
+    $xml = '<?xml version="1.0" encoding="utf-8"?><month name="' . $key . '">';
+
+    $totalUsedInMonth = 0;
+    $totalPayedInMonth = 0;
+
+echo "<div class='col-sm-4'><table class='table table-bordered table-condensed'><caption>$key</caption><thead><tr><th>Участок</th><th>Последние показания</th><th>Расход</th><th>Оплачено</th></tr>";
+    // поищу по всем участкам данные за месяц
+    foreach ($cottages as $cottage) {
+        // поищу данные о потреблённой энергии за месяц
+        $used = Table_power_months::findOne(['month' => $value, 'cottageNumber' => $cottage->cottageNumber]);
+        if(!empty($used)){
+            $payedAmount = 0;
+            $payed = Table_payed_power::find()->where(['month' => $value, 'cottageId' => $cottage->cottageNumber])->all();
+            if(!empty($payed)){
+                foreach ($payed as $payedItem) {
+                    $payedAmount += $payedItem->summ;
+                }
+            }
+            $totalUsedInMonth += $used->difference;
+            $totalPayedInMonth += $payedAmount;
+            $xml .= "<cottage number='{$cottage->cottageNumber}' power_data='{$used->newPowerData}' used_power='{$used->difference}' payed='" . CashHandler::toRubles($payedAmount) . "' />";
+            echo "<tr><td><b class='text-info'>{$cottage->cottageNumber}</b></td><td><b class='text-primary'>{$used->newPowerData}</b></td><td>{$used->difference}</td><td>" . CashHandler::toShortSmoothRubles($payedAmount) . "</td></tr>";
+        }
+        else{
+            $xml .= "<cottage number='{$cottage->cottageNumber}' power_data='--' used_power='--' payed='--' />";
+            echo "<tr><td>{$cottage->cottageNumber}</td><td>--</td><td>--</td><td>--</td></tr>";
+        }
+    }
+    $wholeUsed += $totalUsedInMonth;
+    $wholePayed += $totalPayedInMonth;
+    echo "<tr><td><b class='text-info'>Итого за месяц</b></td><td><b class='text-primary'>--</b></td><td>{$totalUsedInMonth}</td><td>" . CashHandler::toShortSmoothRubles($totalPayedInMonth) . "</td></tr>";
+    echo "</table></div>";
+
+    $xml .= "</month>";
+    file_put_contents('Z:/' . $key . '.xml', $xml);
+}
+
+echo "<div class='col-sm-12'>Всего потрачено: $wholeUsed Квт.</div> Всего оплачено: " . CashHandler::toShortSmoothRubles($wholePayed) . "</div>";
+
+echo "</div>";
+
+
+
+//echo "<table class='table table-bordered'><thead><tr><th></th><th colspan='2'>Апрель</th><th colspan='2'>Май</th><th colspan='2'>Июнь</th><th colspan='2'>Июль</th><th colspan='2'>Август</th><th colspan='2'>Сентябрь</th></tr>
 //        <tr><th>Участок</th><th>Расход</th><th>Оплачено</th><th>Расход</th><th>Оплачено</th><th>Расход</th><th>Оплачено</th><th>Расход</th><th>Оплачено</th><th>Расход</th><th>Оплачено</th></tr></thead>";
 //$cottages = Table_cottages::find()->all();
 //foreach ($cottages as $cottage) {
@@ -124,5 +161,5 @@ die;
 //
 //echo "<h2>Израсходовано электроэнергии всего: " . ($aprilPowerData + $mayPowerData + $junePowerData + $julePowerData + $augustPowerData) . " Квт.ч</h2>";
 //echo "<h2>Оплачено электроэнергии всего: " . CashHandler::toSmoothRubles($aprilTPay + $mayTPay + $juneTPay + $juleTPay + $augustTPay) . "</h2>";
-//
+
 

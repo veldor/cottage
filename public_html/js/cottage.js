@@ -523,6 +523,12 @@ function showFines(data) {
 }
 
 function basementFunctional() {
+    // отменю смену счётчика
+    let discardCounterChangeBtn = $('button#discardCounterChange');
+    discardCounterChangeBtn.on('click.discard', function () {
+        sendAjax('post', '/counter/discard-change/' + cottageNumber + '/' + $(this).attr('data-month'), simpleAnswerHandler);
+    });
+
     // активирую переход к участку по ссылке
     $('#goToCottageActivator').on('click.go', function () {
         location.replace('/show-cottage/' + $('#goToCottageInput').val());
@@ -1029,6 +1035,7 @@ function editBill(identificator, double) {
                     function payConfirmCallback(answer) {
                         if (answer.status === 1) {
                             let newModal = makeModal('Подтверждение оплаты', answer['view']);
+                            newModal.find('.popovered').popover();
                         }
                     }
                 });

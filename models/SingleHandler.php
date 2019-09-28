@@ -42,6 +42,25 @@ class SingleHandler extends Model
         }
     }
 
+    public static function removeDebtByName(Table_cottages $cottageInfo, string $string)
+    {
+        $existedPays = self::getDebtReport($cottageInfo);
+        if(!empty($existedPays)){
+            foreach ($existedPays as $existedPay) {
+                if(strripos($existedPay->description, $string) > -1){
+                    // удалю платёж
+                    $dom = new DOMHandler($cottageInfo->singlePaysDuty);
+                    /** @var DOMElement $item */
+                    $item = $dom->query('//singlePayment[@time=' . $existedPay->time . ']')->item(0);
+                    $cottageInfo->singleDebt -= CashHandler::toRubles($item->getAttribute('summ'));
+                    $dom->deleteElem($item);
+                    $cottageInfo->singlePaysDuty = $dom->save();
+                    $cottageInfo->save();
+                }
+            }
+        }
+    }
+
     public function scenarios(): array
     {
         return [
@@ -207,6 +226,7 @@ class SingleHandler extends Model
              */
             foreach ($pays as $pay) {
                 $answerItem = new SingleDebt();
+                $answerItem->id = $pay->getAttribute('id');
                 $answerItem->time = $pay->getAttribute('time');
                 $answerItem->amount = CashHandler::toRubles($pay->getAttribute('summ'));
                 $answerItem->partialPayed = CashHandler::toRubles($pay->getAttribute('payed'));
@@ -238,7 +258,7 @@ class SingleHandler extends Model
                         }
                         $summ += $pay;
                         $leftPay = CashHandler::toRubles($targetDebt->amount) - CashHandler::toRubles($targetDebt->partialPayed);
-                        $answer .= "<pay description='{$targetDebt->description}' timestamp='$key' payed='{$targetDebt->partialPayed}' summ='{$pay}' payed-before='{$targetDebt->partialPayed}' left-pay='{$leftPay}'/>";
+                        $answer .= "<pay description='" . urlencode($targetDebt->description) . "' timestamp='$key' payed='{$targetDebt->partialPayed}' summ='{$pay}' payed-before='{$targetDebt->partialPayed}' left-pay='{$leftPay}'/>";
 
                     } else {
                         throw new InvalidArgumentException('Счёт не найден в списке задолженностей');

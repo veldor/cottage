@@ -352,7 +352,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
 
         }
         if (!empty($cottageInfo->counterChanged)) {
-            echo "<div class='alert alert-info'>" . TimeHandler::getFullFromShotMonth($cottageInfo->counterChanged->changeMonth) . ": Заменён счётчик электроэнергии.</div>";
+            echo "<div class='alert alert-info'>" . TimeHandler::getFullFromShotMonth($cottageInfo->counterChanged->changeMonth) . ": Заменён счётчик электроэнергии. <button id='discardCounterChange' class='btn btn-default' data-month='{$cottageInfo->counterChanged->changeMonth}'><span class='text-danger'>Отменить операцию</span></button></div>";
         }
         if (empty($cottageInfo->globalInfo->cottageHaveRights)) {
             echo "<div class='alert alert-warning'>Нет документов на участок.</div>";

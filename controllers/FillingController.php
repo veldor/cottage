@@ -33,7 +33,7 @@ class FillingController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['view', 'fill', 'create', 'future-quarters', 'cancel-power', 'fill-current', 'get-serial-cottages', 'confirm-serial-payments', 'fill-missing-individuals'],
+                        'actions' => ['view', 'fill', 'create', 'future-quarters', 'cancel-power', 'fill-current', 'get-serial-cottages', 'confirm-serial-payments', 'fill-missing-individuals', 'discard-counter-change'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -188,5 +188,11 @@ class FillingController extends Controller
         // получу сведения о незаполненных тарифах
         $cottagesWithMissing = PersonalTariffFilling::getCottagesWithMissing();
         return $this->render("fill-missed-individuals", ['items' => $cottagesWithMissing, 'error' => $hasError]);
+    }
+    public function actionDiscardCounterChange($cottageNumber, $month){
+        if (Yii::$app->request->isPost) {
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            return PowerHandler::discardCounterChange($cottageNumber, $month);
+        }
     }
 }

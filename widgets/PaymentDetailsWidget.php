@@ -720,7 +720,7 @@ class PaymentDetailsWidget extends Widget
                     <table class="table table-condensed table-hover">
                         <?php
                         foreach ($this->info['single']['values'] as $item) {
-                            $ds = $item['description'];
+                            $ds = urldecode($item['description']);
                             ?>
                             <tbody>
                             <tr>

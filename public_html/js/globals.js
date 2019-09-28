@@ -293,26 +293,28 @@ function makeModal(header, text, delayed) {
     if(delayed){
         // открытие модали поверх другой модали
         let modal = $("#myModal");
-        modal.modal('hide');
-        let newModal = $('<div id="myModal" class="modal fade mode-choose"><div class="modal-dialog  modal-lg"><div class="modal-content"><div class="modal-header">' + header + '</div><div class="modal-body">' + text + '</div><div class="modal-footer"><button class="btn btn-danger"  data-dismiss="modal" type="button" id="cancelActionButton">Отмена</button></div></div></div>');
-        modal.on('hidden.bs.modal', function () {
-            modal.remove();
-            if (!text)
-                text = '';
-            $('body').append(newModal);
-            dangerReload();
-            newModal.modal({
-                keyboard: true,
-                show: true
+        if(modal.length == 1){
+            modal.modal('hide');
+            let newModal = $('<div id="myModal" class="modal fade mode-choose"><div class="modal-dialog  modal-lg"><div class="modal-content"><div class="modal-header">' + header + '</div><div class="modal-body">' + text + '</div><div class="modal-footer"><button class="btn btn-danger"  data-dismiss="modal" type="button" id="cancelActionButton">Отмена</button></div></div></div>');
+            modal.on('hidden.bs.modal', function () {
+                modal.remove();
+                if (!text)
+                    text = '';
+                $('body').append(newModal);
+                dangerReload();
+                newModal.modal({
+                    keyboard: true,
+                    show: true
+                });
+                newModal.on('hidden.bs.modal', function () {
+                    normalReload();
+                    newModal.remove();
+                    $('div.wrap div.container, div.wrap nav').removeClass('blured');
+                });
+                $('div.wrap div.container, div.wrap nav').addClass('blured');
             });
-            newModal.on('hidden.bs.modal', function () {
-                normalReload();
-                newModal.remove();
-                $('div.wrap div.container, div.wrap nav').removeClass('blured');
-            });
-            $('div.wrap div.container, div.wrap nav').addClass('blured');
-        });
-        return newModal;
+            return newModal;
+        }
     }
         if (!text)
             text = '';

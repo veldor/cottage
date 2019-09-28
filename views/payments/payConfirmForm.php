@@ -133,6 +133,13 @@ if (!empty($model->billInfo['paymentContent']['additionalPower'])) {
     }
 }
 if (!empty($model->billInfo['paymentContent']['membership'])) {
+
+    $popover = '';
+
+    foreach ($model->billInfo['paymentContent']['membership']['values'] as $item) {
+        $popover .= 'Квартал: <b class="text-info">' . $item['date'] . '</b>, стоимость: <b class="text-danger"> ' . $item['summ'] . '</b>, оплачено ранее: <b class="text-success">' . $item['prepayed'] . '</b><br/>';
+    }
+
     // найду оплаты электроэнергии по данному счёту
     $fullMembershipSumm = CashHandler::toRubles($model->billInfo['paymentContent']['membership']['summ']);
     $payedBefore = Table_payed_membership::find()->where(['billId' => $billInfo->id])->all();
@@ -149,10 +156,15 @@ if (!empty($model->billInfo['paymentContent']['membership'])) {
         $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullMembershipSumm);
     }
     if ($membershipSummToPay > 0) {
-        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[membership]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input popovered' type='number' step='0.01' name='Pay[membership]'  data-container='body' data-toggle='popover' data-placement='auto' data-content='$popover' data-html='true' data-trigger='hover'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
     }
 }
 if (!empty($model->billInfo['paymentContent']['additionalMembership'])) {
+    $popover = '';
+    foreach ($model->billInfo['paymentContent']['additionalMembership']['values'] as $item) {
+        $popover .= 'Квартал: <b class="text-info">' . $item['date'] . '</b>, стоимость: <b class="text-danger"> ' . $item['summ'] . '</b>, оплачено ранее: <b class="text-success">' . $item['prepayed'] . '</b><br/>';
+    }
+
     // найду оплаты электроэнергии по данному счёту
     $fullMembershipSumm = CashHandler::toRubles($model->billInfo['paymentContent']['additionalMembership']['summ']);
     $payedBefore = Table_additional_payed_membership::find()->where(['billId' => $billInfo->id])->all();
@@ -169,10 +181,12 @@ if (!empty($model->billInfo['paymentContent']['additionalMembership'])) {
         $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullMembershipSumm);
     }
     if ($membershipSummToPay > 0) {
-        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские (доп.) </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[additionalMembership]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+        echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские (доп.) </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input popovered' type='number' step='0.01' name='Pay[additionalMembership]' data-container='body' data-toggle='popover' data-placement='auto' data-content='$popover' data-html='true' data-trigger='hover'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
     }
 }
 if (!empty($model->billInfo['paymentContent']['target'])) {
+
+
     // получу информацию о задолженностях
     $yearInfo = TargetHandler::getDebt($model->cottageInfo);
     $payed = 0;

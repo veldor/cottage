@@ -21,4 +21,7 @@ class SingleDebt
      * @var string
      */
     public $time;
+    /**
+     * @var string
+     */
 }
