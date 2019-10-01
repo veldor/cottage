@@ -47,8 +47,13 @@ class MembershipHandler extends Model {
         ];
     }
 
-	public static function getCottageStatus($cottageInfo)
+    /**
+     * @param $cottageInfo Table_additional_cottages|Table_cottages
+     * @return bool|float|int
+     */
+    public static function getCottageStatus($cottageInfo)
 	{
+	    $main = Cottage::isMain($cottageInfo);
 		// верну общую сумму неоплаченных членских взносов
 		$summ = 0;
 		// Сделаю выборку тарифов
@@ -65,7 +70,12 @@ class MembershipHandler extends Model {
 				$summ += $item->fixed_part;
 				$summ += $cottageInfo->cottageSquare * ($item->changed_part / 100);
                 // вычту сумму частично оплаченного квартала, если она есть
-                $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
+                if($main){
+                    $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
+                }
+                else{
+                    $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $item->quarter])->all();
+                }
                 if(!empty($payed)){
                     foreach ($payed as $payedItem){
                         $summ -= $payedItem->summ;
@@ -183,19 +193,13 @@ class MembershipHandler extends Model {
             }
             $summToPay = $summToPay['total'] - $payedBefore;
             if ($summToPay > 0) {
-                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+                if($additional){
+                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[additionalMembership][{$key}][value]' name='ComplexPayment[additionalMembership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[additionalMembership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+                }
+                else{
+                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+                }
             }
-//			$summ = Calculator::countFixedFloatPlus($value['fixed'], $value['float'], $cottage->cottageSquare);
-//			$date = TimeHandler::getFullFromShortQuarter($key);
-//			if ($key > $cottage->membershipPayFor) {
-//				$description = "<p>Площадь расчёта- <b class='text-info'>{$cottage->cottageSquare}</b> М<sup>2</sup></p><p>Оплата за участок- <b class='text-info'>{$value['fixed']}</b> &#8381;</p><p>Оплата за сотку- <b class='text-info'>{$value['float']}</b> &#8381;</p><p>Начислено за сотки- <b class='text-info'>{$summ['float']}</b> &#8381;</p>";
-//				$content .= "<div class='col-lg-12 text-center membership-container hoverable additional' data-summ='{$summ['total']}'><table class='table table-condensed'><tbody><tr><td>{$date}</td><td><b class='text-danger popovered' data-toggle='popover' title='Детали платежа' data-placement='left' data-content=\"$description\">{$summ['total']} &#8381;</b></td></tr></tbody></table></div>";
-//				$totalCost += $summ['total'];
-//			}
-//			else {
-//				$content .= "<div class='col-lg-12 text-center'>{$date}: Квартал уже оплачен</div>";
-//			}
-
 		}
 		$content .= "</table>";
 		return ['status' => 1, 'content' => $content, 'totalSumm' => $totalCost];

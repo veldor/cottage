@@ -941,7 +941,8 @@ function editBill(identificator, double) {
             let modal = makeModal('Информация о счёте', answer['view'], true);
             // Обработаю использование депозита
             //const totalPaymentSumm = modal.find('span#paymentTotalSumm');
-            const deleteBillBtn = $('button#deleteBill');
+            let deleteBillBtn = modal.find('button#deleteBill');
+            console.log(deleteBillBtn);
             deleteBillBtn.on('click.delete', function () {
                 let url = double ? '/bill/delete/double/' + identificator : '/bill/delete/' + identificator;
                 sendAjax('post', url, simpleAnswerHandler);

@@ -276,7 +276,7 @@ class Cottage extends Model
             return true;
         }
         elseif($cottage->membershipPayFor == TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())){
-            $payUp = TimeHandler::getPayUpQuarterTimestamp($cottage->membershipPayFor);
+            $payUp = TimeHandler::getPayUpQuarterTimestamp(TimeHandler::getCurrentQuarter());
             $dayDifference = TimeHandler::checkDayDifference($payUp);
             if ($dayDifference > 0) {
                 return true;

