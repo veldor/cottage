@@ -540,4 +540,9 @@ div#createBillToolbar {
 .for-print{
     font-size: 10px;
 }
+div#goToCottageContainer{
+    display: inline-block;
+    width: 130px;
+    padding-top: 8px;
+}
 

@@ -41,12 +41,15 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
     <div class="col-lg-12">
         <h1>Участок № <?= $cottageInfo->globalInfo->cottageNumber ?></h1>
 
-        <div class="input-group margened col-sm-2 col-lg-offset-5"><label for="goToCottageInput"></label><input type="text"
-                                                                                                                id="goToCottageInput"
-                                                                                                                class="form-control"
-                                                                                                                value="<?= $cottageInfo->globalInfo->cottageNumber ?>"><span
-                    class="input-group-btn"><button class="btn btn-default" type="button" id="goToCottageActivator"><span
-                            class="glyphicon glyphicon-play"></span></button></span></div>
+        <!--        <div class="input-group margened col-sm-2 col-lg-offset-5"><label for="goToCottageInput"></label><input-->
+        <!--                    type="text"-->
+        <!--                    id="goToCottageInput"-->
+        <!--                    class="form-control"-->
+        <!--                    ><span-->
+        <!--                    class="input-group-btn"><button class="btn btn-default" type="button"-->
+        <!--                                                    id="goToCottageActivator"><span-->
+        <!--                            class="glyphicon glyphicon-play"></span></button></span>-->
+        <!--        </div>-->
 
         <table class="table table-hover">
             <caption><?= $firstName ?></caption>
@@ -81,17 +84,17 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
 
                     // проверю частично оплаченные счета
                     $months = Table_power_months::find()->where(['cottageNumber' => $cottageInfo->globalInfo->cottageNumber])->all();
-                    if(!empty($months)){
+                    if (!empty($months)) {
                         foreach ($months as $month) {
-                            if($month->totalPay > 0){
+                            if ($month->totalPay > 0) {
                                 // найду платежи по счёту
                                 $payedAmount = 0;
                                 $pays = Table_payed_power::findAll(['cottageId' => $cottageInfo->globalInfo->cottageNumber, 'month' => $month->month]);
-                                if(!empty($pays)){
+                                if (!empty($pays)) {
                                     foreach ($pays as $pay) {
                                         $payedAmount += CashHandler::toRubles($pay->summ);
                                     }
-                                    if(CashHandler::toRubles($payedAmount) != CashHandler::toRubles($month->totalPay)){
+                                    if (CashHandler::toRubles($payedAmount) != CashHandler::toRubles($month->totalPay)) {
                                         echo '<p><b class="text-info">' . TimeHandler::getFullFromShotMonth($month->month) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($payedAmount) . '</b> из ' . CashHandler::toRubles($month->totalPay) . '</p>';
                                     }
                                 }
@@ -317,7 +320,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     ';
                 }
                 $total = 0;
-                if(!empty($cottageInfo->additionalCottageInfo['fines'])){
+                if (!empty($cottageInfo->additionalCottageInfo['fines'])) {
                     // есть задолженности по пени
                     foreach ($cottageInfo->additionalCottageInfo['fines'] as $fine) {
                         if ($fine->is_enabled) {
@@ -476,7 +479,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             <ul class="dropdown-menu">
                 <?php
                 if ($differentOwner) {
-                        echo '<li><a id="payForCottageButton" href="#">Оплатить</a></li>';
+                    echo '<li><a id="payForCottageButton" href="#">Оплатить</a></li>';
                     ?>
                     <li><a id="buttonShowPaymentsStory" href="#">История платежей</a></li>
                     <li><a id="changeInfoButton" href="#">Изменить данные</a></li>
@@ -513,11 +516,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                                 class="caret"></span></button>
                     <ul class="dropdown-menu">
                         <?php
-                        if ($cottageInfo->additionalCottageInfo['unpayedBills']) {
-                            echo "<li><a id='handleDoubleUnpayedBtn' data-identificator='{$cottageInfo->additionalCottageInfo['unpayedBills']->id}' href='#'>Завершить оформление выставленного счёта</a></li>";
-                        } else {
-                            echo '<li><a id="payForDoubleCottageBtn" href="#">Оплатить</a></li>';
-                        }
+                        echo '<li><a id="payForDoubleCottageBtn" href="#">Оплатить</a></li>';
                         ?>
 
                         <li><a id="showDoublePaymentsStory" href="#">История платежей</a></li>
@@ -571,7 +570,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <h2>Основные действия</h2>
                 <div class="btn-group-vertical">
                     <?php
-                        echo "<button id='payForCottageButton' class='btn btn-success'>Оплатить</button>";
+                    echo "<button id='payForCottageButton' class='btn btn-success'>Оплатить</button>";
                     ?>
                     <button id="buttonShowPaymentsStory" class="btn btn-default">История платежей</button>
                     <button id="changeInfoButton" class="btn btn-info">Изменить данные</button>

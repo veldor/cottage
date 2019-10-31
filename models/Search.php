@@ -206,6 +206,7 @@ class Search extends Model
     {
         $wholePower = 0;
         $wholeTarget = 0;
+        $wholeSingle = 0;
         $wholeMembership = 0;
         $wholeFines = 0;
         $wholeSumm = 0;
@@ -309,6 +310,7 @@ class Search extends Model
                         foreach ($singles as $single) {
                             $singleList .= CashHandler::toRubles($single->summ) . '<br/>';
                             $singleSumm += $single->summ;
+                            $wholeSingle += $singleSumm;
                         }
                         $singleSumm = CashHandler::toRubles($singleSumm);
                     }
@@ -442,6 +444,7 @@ class Search extends Model
                         foreach ($singles as $single) {
                             $singleList .= CashHandler::toRubles($single->summ) . '<br/>';
                             $singleSumm += $single->summ;
+                            $wholeSingle += $singleSumm;
                         }
                         $singleSumm = CashHandler::toRubles($singleSumm);
                     }
@@ -489,7 +492,7 @@ class Search extends Model
                     $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}-a</td><td class='cottage-number-cell'>{$transaction->cottageNumber}-a</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$discountSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . "</td></tr>";
                 }
             }
-            $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td></td><td></td><td>$wholeFines</td><td></td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";
+            $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td>$wholeSingle</td><td></td><td>$wholeFines</td><td></td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";
             return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm];
         }
         else{

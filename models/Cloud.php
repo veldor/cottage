@@ -20,6 +20,28 @@ class Cloud extends Model
         $this->drive->setServiceScheme(DiskClient::HTTPS_SCHEME);
     }
 
+    public static function sendBackup()
+    {
+        $file = 'Z:/sites/cottage/errors/backup.sql';
+        try{
+            exec('C:\vd\mysql\bin\mysqldump --user=' . Yii::$app->db->username . ' --password=' . Yii::$app->db->password . ' cottage --skip-add-locks > ' . $file);
+            $mailbody = '<h3>Пам-пам</h3>
+                            <p>Пришёл бекап базы данных.</p>
+                            ';
+            Yii::$app->mailer->compose()
+                ->setFrom([Info::MAIL_ADDRESS => Info::COTTAGE_NAME])
+                ->setTo(['eldorianwin@gmail.com' => 'Главному'])
+                ->setSubject('Слепок базы данных')
+                ->attach($file, ['fileName' => 'backup.sql'])
+                ->setHtmlBody($mailbody)
+                ->send();
+        }
+        finally{
+            unlink($file);
+        }
+        return ['status' => 1];
+    }
+
 
     public function uploadFile($filename, $source): bool
     {
@@ -119,7 +141,7 @@ class Cloud extends Model
             return 2;
         }
         // добавлю в письмо бекап базы данных
-        exec('mysqldump --user=' . Yii::$app->db->username . ' --password=' . Yii::$app->db->password . ' cottage --skip-add-locks > Z:/sites/cottage/errors/backup.sql');
+        exec('C:\vd\mysql\bin\mysqldump --user=' . Yii::$app->db->username . ' --password=' . Yii::$app->db->password . ' cottage --skip-add-locks > Z:/sites/cottage/errors/backup.sql');
 
         $mailbody = '<h3>' . $name . ', привет!</h3>
                             <p>Это письмо отправлено автоматически. Отвечать на него не нужно.</p>

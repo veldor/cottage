@@ -36,6 +36,21 @@ use yii\widgets\Breadcrumbs;
         echo Nav::widget([
             'options' => ['class' => 'navbar-nav navbar-right'],
             'items' => [
+
+                '<li><div id="goToCottageContainer"><label class="hidden" for="goToCottageInput"></label><div class="input-group">
+                    <span class="input-group-btn">
+                        <a class="btn btn-default" href="/cottage/previous">
+                            <span class="glyphicon glyphicon-backward"></span>
+                        </a>
+                    </span>
+                     <input
+                    type="text"
+                    id="goToCottageInput"
+                    class="form-control">
+                    <span
+                    class="input-group-btn"><a class="btn btn-default" href="/cottage/next"><span
+                            class="glyphicon glyphicon-forward"></span></a></span>
+        </div></div></li>',
                 ['label' => 'Статистика', 'url' => ['/count/index'], 'options' => ['class' => 'visible-lg']],
                 ['label' => 'Выборки', 'url' => ['/search/search'], 'options' => ['class' => 'visible-lg']],
                 ['label' => 'Заполнение', 'url' => ['/filling'], 'options' => ['class' => 'visible-lg']],

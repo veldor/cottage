@@ -139,6 +139,12 @@ class ComplexPayment extends Model
         if ($bill === null) {
             throw new ExceptionWithStatus('Счёт не найден', 3);
         }
+        // если счёт не оплачен и есть оплата с депозита- зачислю её обратно на депозит
+        if(!$bill->isPartialPayed && !$bill->isPayed && $bill->depositUsed > 0){
+            $cottage = Cottage::getCottageByLiteral($bill->cottageNumber . ($double ? '-a' : ''));
+            $cottage->deposit = CashHandler::toRubles(CashHandler::toRubles($cottage->deposit) + CashHandler::toRubles($bill->depositUsed));
+            $cottage->save();
+        }
         if ($bill->isPayed) {
             throw new ExceptionWithStatus('Счёт оплачен, удаление невозможно', 4);
         }
@@ -280,6 +286,12 @@ class ComplexPayment extends Model
                     $link->save();
                 }
             }
+            // заморожу средства на депозите
+            if($this->fromDeposit > 0){
+                $this->cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($this->cottageInfo->deposit) - $this->fromDeposit);
+                $this->cottageInfo->save();
+            }
+
             $transaction->commitTransaction();
             return ['status' => 1, 'billId' => $bill->id, 'double' => (boolean)$this->double];
         } catch (ExceptionWithStatus $e) {

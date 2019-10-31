@@ -17,6 +17,22 @@ $(function () {
     checkSoftwareUpdates();
     checkUnsendedMessages();
     integrityChecks();
+
+    // активирую переход к участку по ссылке
+    $('#goToCottageActivator').on('click.go', function () {
+        let cottageValue = $('#goToCottageInput').val();
+        if(cottageValue){
+            location.replace('/show-cottage/' + cottageValue);
+        }
+    });
+    $('#goToCottageInput').on('keypress.go', function (e) {
+        if(e.charCode === 13){
+            let cottageValue = $('#goToCottageInput').val();
+            if(cottageValue){
+                location.replace('/show-cottage/' + cottageValue);
+            }
+        }
+    });
 });
 function serialize(obj) {
     const str = [];
@@ -742,7 +758,7 @@ function handleFloatInput(input, button) {
     if (input.length === 1 && button.length === 1) {
         button.prop('disabled', true);
         input.on('input', function () {
-            if (/^\+?(0|[1-9]\d*[.,]?\d{0,2})$/.test(input.val())) {
+            if (/^\+?(\d*[.,]?\d{0,2})$/.test(input.val())) {
                 button.prop('disabled', false);
             }
             else {

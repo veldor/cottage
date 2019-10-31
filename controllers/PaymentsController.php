@@ -269,7 +269,6 @@ class PaymentsController extends Controller
 
     public function actionDeleteBill($identificator, $double = false): array
     {
-
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             try{

@@ -502,7 +502,7 @@ function editSingle(editActivator, double) {
 function addToDeposit(double) {
     let url = '/deposit/add';
     // покажу форму ввода значения суммы зачисления
-    let modal = makeModal("Сумма внесения", '<div class="input-group"><input id="toDepositSumm" type="number" class="form-control"><div class="input-group-btn"><button id="sendDataBtn" type="button" class="btn btn-default" disabled="">Зачислить</button> </div></div>');
+    let modal = makeModal("Сумма внесения", '<div class="input-group"><input id="toDepositSumm" type="number" step="0.01" class="form-control"><div class="input-group-btn"><button id="sendDataBtn" type="button" class="btn btn-default" disabled="">Зачислить</button> </div></div>');
     let input = modal.find('input#toDepositSumm');
     let btn = modal.find('button#sendDataBtn');
     handleFloatInput(input, btn);
@@ -527,16 +527,6 @@ function basementFunctional() {
     let discardCounterChangeBtn = $('button#discardCounterChange');
     discardCounterChangeBtn.on('click.discard', function () {
         sendAjax('post', '/counter/discard-change/' + cottageNumber + '/' + $(this).attr('data-month'), simpleAnswerHandler);
-    });
-
-    // активирую переход к участку по ссылке
-    $('#goToCottageActivator').on('click.go', function () {
-        location.replace('/show-cottage/' + $('#goToCottageInput').val());
-    });
-    $('#goToCottageInput').on('keypress.go', function (e) {
-        if(e.charCode === 13){
-            location.replace('/show-cottage/' + $('#goToCottageInput').val());
-        }
     });
     // расчитаю пени
     let countFinesActivator = $('#finesSumm');
@@ -708,42 +698,72 @@ function basementFunctional() {
             if (answer.status === 1) {
                 let modal = makeModal('Просмотр истории платежей');
                 let modalBody = modal.find('div.modal-body');
+                let billsTable = $('<table class="table table-striped table-hover table-condensed"></table>');
+                modalBody.append(billsTable);
                 let i = 0;
                 while (answer['data'][i]) {
                     let simple = answer['data'][i];
-                    let payed = simple['isPartialPayed'] ? '<button class="btn btn-info ">Частично оплачен</button>' : (simple['isPayed'] ? '<button class="btn btn-success">Завершен</button>' : '<button class="btn btn-warning">В ожидании оплаты</button>');
-                    if (simple['isPayed'] || simple['isPartialPayed']) {
-                        let summ;
-                        if (simple['isPartialPayed']) {
-                            summ = ' Оплачено ' + simple['payed-summ'] + ' из ' + simple['summ'] + ' ';
-                        } else {
-                            if (simple['payed-summ'] >= simple['summ']) {
-                                summ = '<b class="text-success">' + simple['summ'] + ' &#8381;</b> Оплачено полностью ';
-                            } else {
-                                summ = '<b class="text-danger">' + simple['summ'] + ' &#8381;</b> Не оплачено ';
-                            }
+                    let text = '<tr class="hoverable" data-payment-id="' + simple['id'] + '"><td >№ <b class="text-info">' + simple['id'] + '</b></td>';
+                    text += '<td><b class="text-success">' + simple['summ'] + ' &#8381;</b></td>';
+                    text += simple['isPayed'] ? '<td><button class="btn btn-default"><span class="glyphicon glyphicon-lock text-danger"></span></button></td>' : '<td></td>';
+                    if(simple['payed-summ'] > 0){
+                        if(simple['payed-summ'] < simple['summ']){
+                            text += '<td><b class="text-info">Оплачено частично, ' + simple['payed-summ'] + ' &#8381;</b></td>';
                         }
-                        let item = $('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: ' + summ + payed + ' ' + simple['paymentTime'] + '</p>');
-                        item.on('click.show', function () {
-                            editBill(simple['id'], simple['double']);
-                        });
-                        modalBody.append(item);
-                    } else {
-                        let item = $('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: <b class="text-warning">' + simple['summ'] + ' &#8381;</b>. ' + payed + ' ' + simple['paymentTime'] + '</p>');
-                        item.on('click.show', function () {
-                            editBill(simple['id'], simple['double']);
-                        });
-                        modalBody.append(item);
+                        else{
+                            text += '<td><b class="text-success">Оплачено полностью</b></td>';
+                        }
                     }
+                    else{
+                        if(!simple['isPayed']){
+                            text += '<td><b class="text-warning">Ожидает оплаты</b></td>';
+                        }
+                        else{
+                            text += '<td><b class="text-danger">Не оплачено</b></td>';
+                        }
+                    }
+                    if(simple['paymentTime']){
+                        text += '<td><b class="text-info">Дата оплаты: ' + simple['paymentTime'] + '</b></td>';
+                    }
+                    text += '</tr>';
+                    let item = $(text);
+                    billsTable.append(item);
+                    item.on('click.show', function () {
+                        editBill(simple['id'], simple['double']);
+                    });
+                    // let payed = simple['isPartialPayed'] ? '<button class="btn btn-info ">Частично оплачен</button>' : (simple['isPayed'] ? '<button class="btn btn-default"><span class="glyphicon glyphicon-lock text-danger"></span></button>' : '<button class="btn btn-warning">В ожидании оплаты</button>');
+                    // if (simple['isPayed'] || simple['isPartialPayed']) {
+                    //     let summ;
+                    //     if (simple['isPartialPayed']) {
+                    //         summ = ' Оплачено ' + simple['payed-summ'] + ' из ' + simple['summ'] + ' ';
+                    //     } else {
+                    //         if (simple['payed-summ'] >= simple['summ']) {
+                    //             summ = '<b class="text-success">' + simple['summ'] + ' &#8381;</b> Оплачено полностью ';
+                    //         } else {
+                    //             summ = '<b class="text-danger">' + simple['summ'] + ' &#8381;</b> Не оплачено ';
+                    //         }
+                    //     }
+                    //     let item = $('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: ' + summ + payed + ' ' + simple['paymentTime'] + '</p>');
+                    //     item.on('click.show', function () {
+                    //         editBill(simple['id'], simple['double']);
+                    //     });
+                    //     modalBody.append(item);
+                    // } else {
+                    //     let item = $('<p class="hoverable" data-payment-id="' + simple['id'] + '">Платёж № <b class="text-info">' + simple['id'] + '</b>, сумма: <b class="text-warning">' + simple['summ'] + ' &#8381;</b>. ' + payed + ' ' + simple['paymentTime'] + '</p>');
+                    //     item.on('click.show', function () {
+                    //         editBill(simple['id'], simple['double']);
+                    //     });
+                    //     modalBody.append(item);
+                    // }
                     i++;
                 }
-/*                modal.find('p.hoverable').on('click.show', function () {
-                    let id = $(this).attr('data-payment-id');
-                    modal.modal('hide');
-                    modal.on('hidden.bs.modal', function () {
-                        editBill(id, double);
-                    });
-                })*/
+                /*                modal.find('p.hoverable').on('click.show', function () {
+                                    let id = $(this).attr('data-payment-id');
+                                    modal.modal('hide');
+                                    modal.on('hidden.bs.modal', function () {
+                                        editBill(id, double);
+                                    });
+                                })*/
             } else if (answer.status === 2) {
                 makeInformer('info', 'Список платежей', 'Платежей по данному участку не найдено');
             } else {

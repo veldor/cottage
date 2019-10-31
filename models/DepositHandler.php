@@ -54,10 +54,9 @@ class DepositHandler extends Model {
             $depositIo->transactionId = $transaction->id;
             $depositIo->billId = $billInfo->id;
             $depositIo->destination = $way;
-            $depositIo->summBefore = $cottageInfo->deposit;
+            $depositIo->summBefore = CashHandler::toRubles($cottageInfo->deposit) + CashHandler::toRubles($billInfo->depositUsed);
             if($way === 'out'){
                 $depositIo->summ = $billInfo->depositUsed;
-                $cottageInfo->deposit = CashHandler::rublesMath($cottageInfo->deposit - $billInfo->depositUsed);
                 $depositIo->summAfter = $cottageInfo->deposit;
             }
             else{

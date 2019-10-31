@@ -10,6 +10,7 @@
 /* @var $this View */
 
 /* @var $model Registry */
+/* @var $countersModel \app\controllers\PowerCounters */
 
 use app\assets\FillingAsset;
 use app\models\CashHandler;
@@ -28,7 +29,7 @@ ShowLoadingAsset::register($this);
 
 $this->title = 'Заполнение данных';
 
-$tabs = ['power' => 'active in', 'bills' => '', 'registry' => '', 'mailing' => ''];
+$tabs = ['counters' => 'active in', 'bills' => '', 'registry' => '', 'mailing' => ''];
 
 if (!empty($tab)) {
     foreach ($tabs as $key => $value) {
@@ -44,7 +45,8 @@ if (!empty($tab)) {
 
 <!-- Nav tabs -->
 <ul class="nav nav-tabs">
-    <li class="<?= $tabs['power'] ?>"><a href="#power" data-toggle="tab">Электроэнергия</a></li>
+<!--    <li class="--><?//= $tabs['power'] ?><!--"><a href="#power" data-toggle="tab">Электроэнергия</a></li>-->
+    <li class="<?= $tabs['counters'] ?>"><a href="#counters" data-toggle="tab">Счётчики</a></li>
     <li class="<?= $tabs['bills'] ?>"><a href="#bills" data-toggle="tab">Счета</a></li>
     <li class="<?= $tabs['registry'] ?>"><a href="#registry" data-toggle="tab">Реестр</a></li>
     <li class="<?= $tabs['mailing'] ?>"><a href="#mailing" data-toggle="tab">Рассылка</a></li>
@@ -52,12 +54,30 @@ if (!empty($tab)) {
 
 <!-- Tab panes -->
 <div class="tab-content">
-    <div class="tab-pane <?= $tabs['power'] ?>" id="power">
-        <div class="row show-grid small-text">
-            <?php try {
-                echo AllCottagesWidget::widget(['info' => $info]);
-            } catch (Exception $e) {
-            } ?>
+<!--    <div class="tab-pane --><?//= $tabs['power'] ?><!--" id="power">-->
+<!--        <div class="row show-grid small-text">-->
+<!--            --><?php //try {
+//                echo AllCottagesWidget::widget(['info' => $info]);
+//            } catch (Exception $e) {
+//            } ?>
+<!--        </div>-->
+<!--    </div>-->
+    <div class="tab-pane <?= $tabs['counters']?>" id="counters">
+        <div class="row margened">
+            <?php $form = ActiveForm::begin(['options' => ['enctype' => 'multipart/form-data'], 'action' => ['/fill/counters']]);
+            echo $form->field($countersModel, 'file', ['template' =>
+                '<div class="col-sm-6 text-center">{label}{input}
+									{error}{hint}</div>'])
+                ->fileInput(['class' => 'hidden', 'id' => 'countersInput', 'multiple' => true, 'accept' => 'text/xml'])
+                ->label('Выберите файл с данными счётчиков.', ['class' => 'btn btn-info']);
+            ActiveForm::end();
+            /** @var RegistryInfo $billDetails */
+            if (!empty($countersData)) {
+                echo "<div class='col-sm-12'>
+                        $countersData;
+                    </div>";
+            }
+            ?>
         </div>
     </div>
     <div class="tab-pane <?= $tabs['bills'] ?>" id="bills">

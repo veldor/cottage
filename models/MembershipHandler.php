@@ -47,13 +47,8 @@ class MembershipHandler extends Model {
         ];
     }
 
-    /**
-     * @param $cottageInfo Table_additional_cottages|Table_cottages
-     * @return bool|float|int
-     */
-    public static function getCottageStatus($cottageInfo)
+	public static function getCottageStatus($cottageInfo)
 	{
-	    $main = Cottage::isMain($cottageInfo);
 		// верну общую сумму неоплаченных членских взносов
 		$summ = 0;
 		// Сделаю выборку тарифов
@@ -70,12 +65,7 @@ class MembershipHandler extends Model {
 				$summ += $item->fixed_part;
 				$summ += $cottageInfo->cottageSquare * ($item->changed_part / 100);
                 // вычту сумму частично оплаченного квартала, если она есть
-                if($main){
-                    $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
-                }
-                else{
-                    $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $item->quarter])->all();
-                }
+                $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
                 if(!empty($payed)){
                     foreach ($payed as $payedItem){
                         $summ -= $payedItem->summ;
@@ -193,12 +183,7 @@ class MembershipHandler extends Model {
             }
             $summToPay = $summToPay['total'] - $payedBefore;
             if ($summToPay > 0) {
-                if($additional){
-                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[additionalMembership][{$key}][value]' name='ComplexPayment[additionalMembership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[additionalMembership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
-                }
-                else{
-                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
-                }
+                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
             }
 		}
 		$content .= "</table>";
@@ -274,9 +259,7 @@ class MembershipHandler extends Model {
 		$answer = '';
 		$summ = 0;
 		foreach ($membershipPeriods as $key => $value) {
-
 		    $toPay = CashHandler::toRubles($value['value']);
-
             if ($cottageInfo->individualTariff) {
                 $tariff = PersonalTariff::getMembershipRate($cottageInfo, $key);
             }

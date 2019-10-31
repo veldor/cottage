@@ -120,10 +120,9 @@ if (!empty($paymentContent['membership']) || !empty($paymentContent['additionalM
         foreach ($paymentContent['membership']['values'] as $value) {
             // проверю срок оплаты
             $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
+            $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
             if (TimeHandler::checkOverdueQuarter($value['date'])) {
                 $values .= '(платёж просрочен)  ';
-            } else {
-                $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
             }
         }
     }
@@ -131,10 +130,9 @@ if (!empty($paymentContent['membership']) || !empty($paymentContent['additionalM
         $summ += $paymentContent['additionalMembership']['summ'];
         foreach ($paymentContent['additionalMembership']['values'] as $value) {
             $values .= '<b>' . TimeHandler::getFullFromShortQuarter($value['date']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
+            $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
             if (TimeHandler::checkOverdueQuarter($value['date'])) {
                 $values .= '(платёж просрочен)  ';
-            } else {
-                $values .= '(срок оплаты: до ' . TimeHandler::getPayUpQuarter($value['date']) . ')  ';
             }
         }
     }
@@ -149,10 +147,9 @@ if (!empty($paymentContent['target']) || !empty($paymentContent['additionalTarge
             $values .= '<b>' . $value['year'] . ' год : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
             // проверю просроченность платежа
             $payUpTime = TargetHandler::getPayUpTime($value['year']);
+            $values .= '(срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUpTime) . ')  ';
             if ($payUpTime < time()) {
                 $values .= '(платёж просрочен)  ';
-            } else {
-                $values .= '(срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUpTime) . ')  ';
             }
         }
     }
@@ -160,6 +157,11 @@ if (!empty($paymentContent['target']) || !empty($paymentContent['additionalTarge
         $summ += $paymentContent['additionalTarget']['summ'];
         foreach ($paymentContent['additionalTarget']['values'] as $value) {
             $values .= '<b>' . $value['year'] . ' год : ' . CashHandler::toSmoothRubles($value['summ']) . ', ';
+            $payUpTime = TargetHandler::getPayUpTime($value['year']);
+            $values .= '(срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUpTime) . ')  ';
+            if($payUpTime < time()){
+                $values .= '(платёж просрочен)  ';
+            }
         }
     }
     $tarText = "<p>Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p><br/>';

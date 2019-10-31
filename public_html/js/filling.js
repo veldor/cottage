@@ -301,6 +301,13 @@ $(function () {
 });
 
 function handle() {
+    // при выборе файла с данными счётчиков- отправлю форму
+    let countersInput = $('#countersInput');
+    countersInput.on('change.send', function () {
+        if($(this).val()){
+            $(this).parents('form').trigger('submit');
+        }
+    });
 
     // при выборе файлов регистра- отправлю форму
     let registryInput = $('#registryInput');

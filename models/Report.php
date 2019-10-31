@@ -8,9 +8,10 @@
 
 namespace app\models;
 
+use app\models\selections\MembershipDebt;
+use app\models\selections\TargetDebt;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
-use DOMElement;
 use yii\base\ErrorException;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
@@ -32,252 +33,10 @@ class Report extends Model
         // найду все транзакции данного участка
         $trs = Table_transactions::find()->where(['cottageNumber' => $cottageNumber])->andWhere(['>=', 'transactionDate', $start])->andWhere(['<=', 'transactionDate', $end])->all();
         if (!empty($trs)) {
-//            foreach ($trs as $item) {
-//                /** @var Table_fulltransactioninfo $item */
-//                // членские взносы
-//                $memList = '--';
-//                $memSumm = '--';
-//                $payedSumm = 0;
-//                $partial = $item->partial;
-//                $date = TimeHandler::getDateFromTimestamp($item->transactionDate);
-//                $type = $item->transactionType === 'cash' ? 'Нал' : 'Безнал';
-//                if(!empty($item->billCast)){
-//                    $dom = new DOMHandler($item->billCast);
-//                }
-//                else{
-//                    $dom = new DOMHandler($item->bill_content);
-//                }
-//                $mem = $dom->query('/payment/membership');
-//                if ($mem->length === 1) {
-//                    /** @var DOMElement $memItem */
-//                    $memItem = $mem->item(0);
-//                    if ($partial) {
-//                        $payedSumm = $memItem->getAttribute('payed');
-//                        if(!empty($payedSumm)){
-//                            $payedSumm = CashHandler::toRubles($payedSumm);
-//                        }
-//                        else{
-//                            $payedSumm = 0;
-//                        }
-//                        if ($payedSumm > 0) {
-//                            $memSumm = $payedSumm;
-//                        } else {
-//                            $memSumm = 0;
-//                        }
-//                    } else {
-//                        $memSumm = CashHandler::toRubles($memItem->getAttribute('cost'));
-//                    }
-//                    $quarters = $dom->query('/payment/membership/quarter');
-//                    if ($memList === '--') {
-//                        $memList = '';
-//                    }
-//                    foreach ($quarters as $quarter) {
-//                        /** @var DOMElement $quarter */
-//                        $summ = CashHandler::toRubles($quarter->getAttribute('summ'));
-//                        if ($partial) {
-//                            // если оплата частичная- сверю сумму с полной оплатой раздела.
-//                            if ($payedSumm > 0) {
-//                                if ($summ > $payedSumm) {
-//                                    $payedSumm -= CashHandler::toRubles($summ);
-//                                } else {
-//                                    $summ = $payedSumm;
-//                                    $payedSumm = 0;
-//                                }
-//                            } else {
-//                                $summ = 0;
-//                            }
-//                        }
-//                        $memList .= $quarter->getAttribute('date') . ' - ' . $summ . '<br>';
-//                    }
-//                }
-//                $memAdd = $dom->query('/payment/additional_membership');
-//                if ($memAdd->length === 1) {
-//                    $payedSumm = 0;
-//                    $additionalSumm = 0;
-//                    $memItem = $memAdd->item(0);
-//                    if ($partial) {
-//                        $payedSumm = $memItem->getAttribute('payed');
-//                        if ($payedSumm > 0) {
-//                            $additionalSumm = $payedSumm;
-//                        } else {
-//                            $additionalSumm = 0;
-//                        }
-//                    }
-//
-//                    if ($memSumm === '--') {
-//                        $memSumm = $additionalSumm;
-//                    } else {
-//                        $memSumm += $additionalSumm;
-//                    }
-//                    $quarters = $dom->query('/payment/additional_membership/quarter');
-//                    if ($memList === '--') {
-//                        $memList = '';
-//                    }
-//                    foreach ($quarters as $quarter) {
-//                        /** @var DOMElement $quarter */
-//                        $summ = CashHandler::toRubles($quarter->getAttribute('summ'));
-//
-//                        if ($partial) {
-//                            // если оплата частичная- сверю сумму с полной оплатой раздела.
-//                            if ($payedSumm > 0) {
-//                                if ($summ > $payedSumm) {
-//                                    $payedSumm -= $summ;
-//                                } else {
-//                                    $summ = $payedSumm;
-//                                    $payedSumm = 0;
-//                                }
-//                            } else {
-//                                $summ = 0;
-//                            }
-//                        }
-//
-//                        $memList .= $quarter->getAttribute('date') . '(д) - ' . $summ . '<br>';
-//                    }
-//                }
-//                // электричество
-//                $powCounterValue = '--';
-//                $powUsed = '--';
-//                $powSumm = '--';
-//                $power = $dom->query('/payment/power');
-//                if ($power->length === 1) {
-//                    /** @var DOMElement $powerItem */
-//                    $powerItem = $power->item(0);
-//                    if ($partial) {
-//                        $payedSumm = $powerItem->getAttribute('payed');
-//                        if ($payedSumm > 0) {
-//                            $powSumm = CashHandler::toRubles($payedSumm);
-//                        } else {
-//                            $powSumm = 0;
-//                        }
-//                    } else {
-//                        $powSumm = CashHandler::toRubles($powerItem->getAttribute('cost'));
-//                    }
-//                    $months = $dom->query('/payment/power/month');
-//                    $powCounterValue = '';
-//                    $powUsed = '';
-//                    foreach ($months as $month) {
-//                        /** @var DOMElement $month */
-//                        $powCounterValue .= $month->getAttribute('date') . ': ' . $month->getAttribute('new-data') . '<br>';
-//                        $powUsed .= $month->getAttribute('difference') . '<br>';
-//                    }
-//                }
-//                $additional = $dom->query('/payment/additional_power');
-//                if ($additional->length === 1) {
-//                    /** @var DOMElement $powerItem */
-//                    $powerItem = $additional->item(0);
-//                    $summ = CashHandler::toRubles($powerItem->getAttribute('cost'));
-//                    if ($powSumm === '--') {
-//                        $powSumm = CashHandler::toRubles($summ);
-//                    } else {
-//                        $powSumm += $summ;
-//                    }
-//                    $months = $dom->query('/payment/additional_power/month');
-//                    $powCounterValue = '';
-//                    $powUsed = '';
-//                    foreach ($months as $month) {
-//                        /** @var DOMElement $month */
-//                        $powCounterValue .= $month->getAttribute('date') . ': ' . $month->getAttribute('new-data') . '<br>';
-//                        $powUsed .= $month->getAttribute('difference') . '<br>';
-//                    }
-//                }
-//                // целевые взносы
-//                $tarList = '--';
-//                $tarSumm = '--';
-//                $tar = $dom->query('/payment/target/pay');
-//                if ($tar->length > 0) {
-//                    // проверю, не оплачена ли часть платежа ранее
-//                    $pay = $dom->query('/payment/target')->item(0);
-//                    /** @var DOMElement $pay */
-//                    $payedBefore = $pay->getAttribute('payed');
-//                    if($payedBefore > 0){
-//                        $payedBefore = CashHandler::toRubles($payedBefore);
-//                    }
-//                    /** @var DOMElement $targetItem */
-//                    $targetItem = $tar->item(0);
-//                    $payedSumm = 0;
-//                    $tarList = '';
-//                    if ($partial) {
-//                        $payedSumm = $targetItem->parentNode->getAttribute('payed');
-//                        if ($payedSumm > 0) {
-//                            $payedSumm = CashHandler::toRubles($payedSumm);
-//                            $tarSumm = $payedSumm;
-//                        } else {
-//                            $tarSumm = 0;
-//                        }
-//                    }
-//                    else if($payedBefore > 0){
-//                        // это завершающий платёж частичной оплаты
-//                        $tarSumm = CashHandler::toRubles($targetItem->parentNode->getAttribute('cost')) - $payedBefore;
-//                    }
-//                    else {
-//                        $tarSumm = CashHandler::toRubles($targetItem->parentNode->getAttribute('cost'));
-//                    }
-//                    foreach ($tar as $value) {
-//                        /** @var DOMElement $value */
-//                        $summ = CashHandler::toRubles($value->getAttribute('summ'));
-//                        if ($partial) {
-//                            // если оплата частичная- сверю сумму с полной оплатой раздела.
-//                            if ($payedSumm > 0) {
-//                                if ($payedSumm >= $summ) {
-//                                    $payedSumm -= $summ;
-//                                }
-//                                else {
-//                                    $summ = $payedSumm;
-//                                    $payedSumm = 0;
-//                                }
-//                            } else {
-//                                $summ = 0;
-//                            }
-//                        }
-//                        elseif($payedBefore > 0){
-//                            if($payedBefore >= $summ){
-//                                $payedBefore -= $summ;
-//                                continue;
-//                            }
-//                            else{
-//                                $summ -= $payedBefore;
-//                                $payedBefore = 0;
-//                            }
-//                        }
-//                        $tarList .= $value->getAttribute('year') . ' - ' . $summ . '<br/>';
-//                    }
-//                }
-//                $additionalTar = $dom->query('/payment/additional_target/pay');
-//                if ($additionalTar->length > 0) {
-//                    /** @var DOMElement $parent */
-//                    $parent = $additionalTar->item(0)->parentNode;
-//                    $summ = CashHandler::toRubles($parent->getAttribute('cost'));
-//                    if ($tarSumm === '--') {
-//                        $tarSumm = $summ;
-//                    } else {
-//                        $tarSumm += $summ;
-//                    }
-//                    foreach ($additionalTar as $value) {
-//                        /** @var DOMElement $value */
-//                        $tarList .= $value->getAttribute('year') . ' - ' . CashHandler::toRubles($value->getAttribute('summ')) . '<br/>';
-//                    }
-//                }
-//                // разовые взносы
-//                $singleList = '--';
-//                $singleSumm = '--';
-//                $singles = $dom->query('/payment/single/pay');
-//                if ($singles->length > 0) {
-//                    $singleList = '';
-//                    $parent = $singles->item(0)->parentNode;
-//                    $singleSumm = CashHandler::toRubles($parent->getAttribute('cost'));
-//                    foreach ($singles as $value) {
-//                        $singleList .= $value->getAttribute('timestamp') . ' - ' . CashHandler::toRubles($value->getAttribute('summ')) . '<br/>';
-//                    }
-//                }
-//                $toDeposit = $item->gainedDeposit ?: 0;
-//                $deposit = CashHandler::toRubles($toDeposit - $item->usedDeposit, true);
-//
-//
-//                $content[] = "<tr><td>$date</td><td>$memList</td><td>$memSumm</td><td>$powCounterValue</td><td>$powUsed</td><td>$powSumm</td><td>$tarList</td><td>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>" . CashHandler::toRubles($item->discount) . "</td><td>{$deposit}</td></td><td>" . CashHandler::toRubles($item->transactionSumm) . "</td><td class='text-primary'>$type</td></tr>";
-//            }
             $wholePower = 0;
             $wholeTarget = 0;
             $wholeMembership = 0;
+            $wholeSingle = 0;
             $wholeFines = 0;
             $wholeSumm = 0;
             $fullSumm = 0;
@@ -373,6 +132,7 @@ class Report extends Model
                         foreach ($singles as $single) {
                             $singleList .= CashHandler::toRubles($single->summ) . '<br/>';
                             $singleSumm += $single->summ;
+                            $wholeSingle += $singleSumm;
                         }
                         $singleSumm = CashHandler::toRubles($singleSumm);
                     }
@@ -506,6 +266,7 @@ class Report extends Model
                         foreach ($singles as $single) {
                             $singleList .= CashHandler::toRubles($single->summ) . '<br/>';
                             $singleSumm += $single->summ;
+                            $wholeSingle += $singleSumm;
                         }
                         $singleSumm = CashHandler::toRubles($singleSumm);
                     }
@@ -553,7 +314,7 @@ class Report extends Model
                     $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}-a</td><td class='cottage-number-cell'>{$transaction->cottageNumber}-a</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$discountSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . "</td></tr>";
                 }
             }
-            $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td></td><td></td><td>$wholeFines</td><td></td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";
+            $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td>$wholeSingle</td><td></td><td>$wholeFines</td><td></td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";
         }
         return ['content' => $content, 'cottageInfo' => $cottageInfo];
     }
@@ -626,9 +387,10 @@ class Report extends Model
         $cottageInfo = Table_additional_cottages::findOne($cottageNumber);
         if (!empty($cottageInfo)) {
             $content = "<table class='table table-hover table-striped'><thead><tr><th>Квартал</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
+            /** @var MembershipDebt[] $info */
             $info = MembershipHandler::getDebt($cottageInfo);
             foreach ($info as $key => $item) {
-                $content .= "<tr><td>$key</td><td>{$cottageInfo->cottageSquare}</td><td>{$item['fixed']}  &#8381;</td><td>{$item['float']}  &#8381;</td><td>{$item['fixed']}  &#8381;</td><td>{$item['float_summ']}  &#8381;</td><td>{$item['total_summ']}  &#8381;</td></tr>";
+                $content .= "<tr><td>$key</td><td>{$cottageInfo->cottageSquare}</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->amount}  &#8381;</td></tr>";
             }
             $content .= '</tbody></table>';
             return $content;
@@ -655,14 +417,20 @@ class Report extends Model
         }
         throw new InvalidArgumentException('Неверный адрес участка');
     }
+
+    /**
+     * @param $cottageNumber
+     * @return string
+     */
     public static function target_additionalDebtReport($cottageNumber): string
     {
         $cottageInfo = Table_additional_cottages::findOne($cottageNumber);
         $content = "<table class='table table-hover table-striped'><thead><tr><th>Год</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
         if (!empty($cottageInfo)) {
+            /** @var TargetDebt[] $years */
             $years = TargetHandler::getDebt($cottageInfo);
             foreach ($years as $key =>$year) {
-                $content .= "<tr><td>{$key}</td><td>{$cottageInfo->cottageSquare}</td><td>{$year['fixed']} &#8381;</td><td>{$year['float']}  &#8381;</td><td>{$year['fixed']}  &#8381;</td><td>{$year['summ']['float']}  &#8381;</td><td>{$year['realSumm']}  &#8381;</td></tr>";
+                $content .= "<tr><td>{$key}</td><td>{$cottageInfo->cottageSquare}</td><td>{$year->tariffFixed} &#8381;</td><td>{$year->tariffFloat}  &#8381;</td><td>{$year->tariffFixed}  &#8381;</td><td>{$year->tariffFloat}  &#8381;</td><td>{$year->amount}  &#8381;</td></tr>";
 
             }
             $content .= '</tbody></table>';

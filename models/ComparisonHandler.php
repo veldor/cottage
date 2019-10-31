@@ -31,15 +31,18 @@ class ComparisonHandler extends Model
     public function compare()
     {
         // todo обраружить и реализовать обработку платежей с допучастков
+            // проверю, не является ли участок дополнительным
+            $isDouble = Pay::isDoubleBill($this->billId);
+
         // найду платёж
-        $billInfo = ComplexPayment::getBill($this->billId);
+        $billInfo = ComplexPayment::getBill($this->billId, $isDouble);
         $transactionInfo = TransactionsHandler::getTransaction($this->transactionId);
         if (empty($billInfo) || empty($transactionInfo)) {
             throw new ExceptionWithStatus('Не найден элемент транзакции', 2);
         }
         // получу необходимую для оплаты сумму
         $requiredAmount = CashHandler::toRubles(CashHandler::toRubles($billInfo->totalSumm) - CashHandler::toRubles($billInfo->depositUsed) - CashHandler::toRubles($billInfo->discount) - CashHandler::toRubles($billInfo->payedSumm));
-        $cottageInfo = Cottage::getCottageInfo($billInfo->cottageNumber);
+        $cottageInfo = Cottage::getCottageInfo($billInfo->cottageNumber, $isDouble);
         $additionalCottageInfo = null;
         if($cottageInfo->haveAdditional){
             $additionalCottageInfo = Cottage::getCottageByLiteral($cottageInfo->cottageNumber . '-a');
@@ -116,6 +119,22 @@ class ComparisonHandler extends Model
                 }
                 PowerHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
             }
+            // электричество
+            $power = $dom->query('//additional_power/month');
+            if($power->length > 0){
+                $totalAmount = 0;
+                foreach ($power as $item) {
+                    $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
+                }
+                // вычту оплаченное
+                $payedPower = Table_additional_payed_power::find()->where(['billId' => $billInfo->id])->all();
+                if(!empty($payedPower)){
+                    foreach ($payedPower as $item) {
+                        $totalAmount -= $item->summ;
+                    }
+                }
+                PowerHandler::handlePartialPayment($billInfo, $totalAmount, $additionalCottageInfo, $t);
+            }
             // членские
             $membership = $dom->query('//membership/quarter');
             if($membership->length > 0){
@@ -131,6 +150,22 @@ class ComparisonHandler extends Model
                     }
                 }
                 MembershipHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
+            }
+            // членские
+            $membership = $dom->query('//additional_membership/quarter');
+            if($membership->length > 0){
+                $totalAmount = 0;
+                foreach ($membership as $item) {
+                    $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
+                }
+                // вычту оплаченное
+                $payedMembership = Table_additional_payed_membership::find()->where(['billId' => $billInfo->id])->all();
+                if(!empty($payedMembership)){
+                    foreach ($payedMembership as $item) {
+                        $totalAmount -= $item->summ;
+                    }
+                }
+                MembershipHandler::handlePartialPayment($billInfo, $totalAmount, $additionalCottageInfo, $t);
             }
             // целевые
             $target = $dom->query('//target/pay');

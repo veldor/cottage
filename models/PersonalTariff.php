@@ -502,46 +502,40 @@ class PersonalTariff extends Model
                         $fixed = $result->item(0)->getAttribute('fixed');
                         $float = $result->item(0)->getAttribute('float');
                         $cost = Calculator::countFixedFloat($fixed, $float, $cottageInfo->cottageSquare);
-                        $totalCost += $cost;
-                        $date = TimeHandler::getFullFromShortQuarter($key);
-                        //$description = "<p>Площадь расчёта- <b class='text-info'>{$cottageInfo->cottageSquare}</b> М<sup>2</sup></p><p>Оплата за участок- <b class='text-info'>{$fixed}</b> &#8381;</p><p>Оплата за сотку- <b class='text-info'>{$float}</b> &#8381;</p>";
-                        //$content .= "<div class='col-lg-12 text-center membership-container selected' data-summ='{$cost}'><h3>{$date} : <b class='text-danger popovered' data-toggle='popover' title='Детали платежа' data-placement='top' data-content=\"$description\">{$cost} &#8381;</b></h3></div>";
-                        $summToPay = Calculator::countFixedFloatPlus($fixed, $float, $cottageInfo->cottageSquare);
-                        if($additional){
+                        if ($additional) {
                             $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $key])->all();
-                        }
-                        else{
+                        } else {
                             $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $key])->all();
                         }
                         $payedBefore = 0;
-                        if(!empty($payed)){
+                        if (!empty($payed)) {
                             foreach ($payed as $item) {
                                 $payedBefore += $item->summ;
                             }
                         }
-                        $summToPay = $summToPay['total'] - $payedBefore;
+                        $summToPay = $cost - $payedBefore;
                         if ($summToPay > 0) {
-                            if($additional){
-                                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[additionalMembership][{$key}][value]' name='ComplexPayment[additionalMembership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[additionalMembership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
-                            }
-                            else{
-                                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
-                            }
+                            $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
                         }
-                    } else {
-                        $fullDate = TimeHandler::getFullFromShortQuarter($key);
-                        $content .= "<div class='col-lg-12 text-center'><h3>{$fullDate}: квартал уже оплачен</h3></div>";
+                        $totalCost += $summToPay;
+//                        $date = TimeHandler::getFullFromShortQuarter($key);
+//                        $description = "<p>Площадь расчёта- <b class='text-info'>{$cottageInfo->cottageSquare}</b> М<sup>2</sup></p><p>Оплата за участок- <b class='text-info'>{$fixed}</b> &#8381;</p><p>Оплата за сотку- <b class='text-info'>{$float}</b> &#8381;</p>";
+//                        $content .= "<div class='col-lg-12 text-center membership-container selected' data-summ='{$cost}'><h3>{$date} : <b class='text-danger popovered' data-toggle='popover' title='Детали платежа' data-placement='top' data-content=\"$description\">{$cost} &#8381;</b></h3></div>";
+//                    } else {
+//                        $fullDate = TimeHandler::getFullFromShortQuarter($key);
+//                        $content .= "<div class='col-lg-12 text-center'><h3>{$fullDate}: квартал уже оплачен</h3></div>";
+//                    }
                     }
-                } else {
+                }
+                else{
+                    // не заполнены ставки на квартал
                     $unfilled[$key] = true;
                 }
-
-
             }
+            $content .= "</table>";
             if (!empty($unfilled)) {
                 return ['status' => 2, 'unfilled' => $unfilled];
             }
-            $content .= "</table>";
             return ['status' => 1, 'content' => $content, 'totalCost' => CashHandler::rublesRound($totalCost)];
         }
         return false;

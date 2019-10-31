@@ -69,7 +69,7 @@ class Cottage extends Model
         // проверю, не привязан ли дополнительный участок
         if ($this->globalInfo->haveAdditional) {
             $this->additionalCottageInfo = AdditionalCottage::getCottageInfo($cottageId);
-            if (!$this->unpayedBills && !empty($this->additionalCottageInfo['powerStatus']['lastPowerFillDate']) && $this->additionalCottageInfo['powerStatus']['lastPowerFillDate']  === TimeHandler::getPreviousShortMonth() && $this->additionalCottageInfo['powerStatus']['powerPayed'] === 'no') {
+            if (!$this->unpayedBills && !empty($this->additionalCottageInfo['powerStatus']['lastPowerFillDate']) && $this->additionalCottageInfo['powerStatus']['lastPowerFillDate'] === TimeHandler::getPreviousShortMonth() && $this->additionalCottageInfo['powerStatus']['powerPayed'] === 'no') {
                 $this->powerDataAdditionalCancellable = true;
             }
         }
@@ -141,10 +141,9 @@ class Cottage extends Model
     public static function getCottageInfo($cottageNumber, $double = false)
     {
         if (is_int((int)$cottageNumber)) {
-            if($double){
+            if ($double) {
                 $cottageInfo = Table_additional_cottages::findOne($cottageNumber);
-            }
-            else{
+            } else {
                 $cottageInfo = Table_cottages::findOne($cottageNumber);
             }
             if ($cottageInfo) {
@@ -159,7 +158,7 @@ class Cottage extends Model
      */
     public static function getRegistred($double = false)
     {
-        if($double){
+        if ($double) {
             return Table_additional_cottages::find()->where(['hasDifferentOwner' => 1])->orderBy('masterId')->all();
         }
         return Table_cottages::find()->orderBy('cottageNumber')->all();
@@ -193,8 +192,8 @@ class Cottage extends Model
     {
         $re = '/^(\d+)(-a)?$/';
         $match = null;
-        if(preg_match($re, $key, $match)){
-            if(count($match) === 2){
+        if (preg_match($re, $key, $match)) {
+            if (count($match) === 2) {
                 return self::getCottageInfo($match[1]);
             }
         }
@@ -205,10 +204,9 @@ class Cottage extends Model
     {
 
         // получу сведения о участке
-        if($own === 'main'){
+        if ($own === 'main') {
             $cottageInfo = Cottage::getCottageInfo($cottageNumber);
-        }
-        else{
+        } else {
             $cottageInfo = Cottage::getCottageInfo($cottageNumber, true);
         }
         return $cottageInfo;
@@ -220,7 +218,7 @@ class Cottage extends Model
      */
     public static function hasMail($cottage)
     {
-        if(!empty($cottage->cottageOwnerEmail) || !empty($cottage->cottageContacterEmail)){
+        if (!empty($cottage->cottageOwnerEmail) || !empty($cottage->cottageContacterEmail)) {
             return true;
         }
         return false;
@@ -232,7 +230,7 @@ class Cottage extends Model
      */
     public static function getCottageNumber($cottage)
     {
-        if(self::isMain($cottage)){
+        if (self::isMain($cottage)) {
             return $cottage->cottageNumber;
         }
         return $cottage->masterId . "-a";
@@ -241,10 +239,10 @@ class Cottage extends Model
     public static function getCottageByLiteral($key)
     {
         $additional = false;
-        if(strpos($key, '-a')){
+        if (strpos($key, '-a')) {
             $additional = true;
         }
-        return self::getCottageInfo((int) $key, $additional);
+        return self::getCottageInfo((int)$key, $additional);
     }
 
     public static function hasPayUpDuty(Table_cottages $cottage)
@@ -252,30 +250,29 @@ class Cottage extends Model
         $time = time();
         // получу данные по целевым задолженностям
         $duty = TargetHandler::getDebt($cottage);
-        if(!empty($duty)){
+        if (!empty($duty)) {
             foreach ($duty as $value) {
                 $tariff = Table_tariffs_target::findOne(['year' => $value->year]);
-                if($tariff->payUpTime < $time){
+                if ($tariff->payUpTime < $time) {
                     return true;
                 }
             }
         }
         // если не оплачен предыдущий месяц электроэнергии
-        if($cottage->powerDebt > 0){
+        if ($cottage->powerDebt > 0) {
             $months = Table_power_months::find()->where(['month' => $cottage->membershipPayFor])->all();
-            if(!empty($months)){
+            if (!empty($months)) {
                 foreach ($months as $month) {
-                    if($month->difference > 0 && $month->month <= TimeHandler::getPreviousMonth()){
+                    if ($month->difference > 0 && $month->month <= TimeHandler::getPreviousMonth()) {
                         return true;
                     }
                 }
             }
         }
         // если не оплачен текущий квартал
-        if($cottage->membershipPayFor < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())){
+        if ($cottage->membershipPayFor < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
             return true;
-        }
-        elseif($cottage->membershipPayFor == TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())){
+        } elseif ($cottage->membershipPayFor == TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
             $payUp = TimeHandler::getPayUpQuarterTimestamp(TimeHandler::getCurrentQuarter());
             $dayDifference = TimeHandler::checkDayDifference($payUp);
             if ($dayDifference > 0) {
@@ -283,5 +280,46 @@ class Cottage extends Model
             }
         }
         return false;
+    }
+
+    public static function getPreviousCottage()
+    {
+        $link = $_SERVER['HTTP_REFERER'];
+        if (preg_match('/https\:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
+            while ($next = --$matches[1]) {
+                try{
+                    if (!empty(Cottage::getCottageByLiteral($next))) {
+                        return 'https://dev.com/show-cottage/' . $next;
+                    }
+                    if ($next < 1) {
+                        break;
+                    }
+                }
+                catch (\Exception $e){
+
+                }
+            }
+        }
+        return 'https://dev.com/show-cottage/180';
+    }
+
+    public static function getNextCottage()
+    {
+        $link = $_SERVER['HTTP_REFERER'];
+        if (preg_match('/https\:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
+            while ($next = ++$matches[1]) {
+                try {
+                    if (!empty(Cottage::getCottageByLiteral($next))) {
+                        return 'https://dev.com/show-cottage/' . $next;
+                    }
+                    if ($next > 180) {
+                        break;
+                    }
+                } catch (\Exception $e) {
+
+                }
+            }
+        }
+        return 'https://dev.com/show-cottage/1';
     }
 }

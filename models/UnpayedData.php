@@ -22,11 +22,11 @@ class UnpayedData extends Model
      */
     public $membershipDuty;
     /**
-     * @var selections\TargetDebt[]
+     * @var selections\TargetDebt[]|array
      */
     public $targetDuty;
     /**
-     * @var selections\SingleDebt[]
+     * @var selections\SingleDebt[]|array
      */
     public $singleDuty;
     /**
@@ -34,13 +34,13 @@ class UnpayedData extends Model
      */
     public $additionalPowerDuty;
     /**
-     * @var selections\MembershipDebt[]
-     */
-    public $additionalMembershipDuty;
-    /**
      * @var int
      */
     public $additionalSquare;
+    /**
+     * @var selections\MembershipDebt[]
+     */
+    public $additionalMembershipDuty;
     /**
      * @var selections\TargetDebt[]|array
      */

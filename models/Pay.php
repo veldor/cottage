@@ -92,6 +92,13 @@ class Pay extends Model
     {
         $billInfo = ComplexPayment::getBill($billId);
         if (!empty($billInfo)) {
+            // если используется сумма с депозита и счёт не оплачивался- спишу её
+            // заморожу средства на депозите
+            if($billInfo->depositUsed > 0 && $billInfo->payedSumm == 0){
+                $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber);
+                $cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->deposit) - $billInfo->depositUsed);
+                $cottageInfo->save();
+            }
             // если счёт открыт- пишу, что он открыт
             if ($billInfo->isPayed === 0) {
                 return ['status' => 2, 'message' => 'Счёт ещё открыт!'];
@@ -105,6 +112,19 @@ class Pay extends Model
             return ['status' => 1, 'message' => 'Счёт успешно открыт заново!'];
         }
         return ['status' => 3, 'message' => 'Счёт не найден!'];
+    }
+
+    public static function isDoubleBill($billId)
+    {
+        // заменю букву А
+        return !!substr_count(self::toLatin($billId), 'A');
+    }
+
+    public static function toLatin($number)
+    {
+        $input = ["А"];
+        $replace = ["A"];
+        return str_replace($input, $replace, mb_strtoupper($number));
     }
 
     public function scenarios(): array
@@ -393,6 +413,10 @@ class Pay extends Model
             // если используются средства с депозита и это первый платёж по данному счёту- списываю средства
             $billTransaction->transactionReason = 'Частичная оплата по счёту № ' . $billInfo->id;
             $billTransaction->save();
+            if($billInfo->payedSumm == $billInfo->totalSumm){
+                $billInfo->isPartialPayed = 0;
+                $billInfo->isPayed = 1;
+            }
             $billInfo->save();
             $cottageInfo->save();
             if(!empty($this->bankTransactionId)){

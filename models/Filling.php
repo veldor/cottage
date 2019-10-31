@@ -280,6 +280,7 @@ class Filling extends Model
             foreach ($info['paymentContent']['single']['values'] as $value) {
                 $content .= self::getRow('Дата регистрации платежа', TimeHandler::getDatetimeFromTimestamp($value['timestamp']));
                 $content .= self::getRow('Сумма платежа', $value['summ'], Colors::COLOR_WARNING, CashHandler::RUB);
+                $content .= self::getRow('Назначение платежа', urldecode($value['description']), Colors::COLOR_INFO);
                 if ($value['payed'] > 0) {
                     $content .= self::getRow('Оплачено ранее', $value['payed'], Colors::COLOR_INFO, CashHandler::RUB);
                     $content .= self::getRow('Итого к оплате', $value['summ'] - $value['payed'], Colors::COLOR_INFO, CashHandler::RUB);

@@ -9,10 +9,9 @@ use app\models\Filling;
 use app\models\FinesHandler;
 use app\models\PersonalTariff;
 use ErrorException;
-use Exception;
 use Yii;
-use yii\web\Controller;
 use yii\filters\AccessControl;
+use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 use yii\widgets\ActiveForm;
@@ -29,7 +28,7 @@ class CottageController extends Controller {
 				'rules' => [
 					[
 						'allow' => true,
-						'actions' => ['add', 'change', 'save', 'show', 'additional', 'additional-save'],
+						'actions' => ['add', 'change', 'save', 'show', 'additional', 'additional-save', 'previous', 'next'],
 						'roles' => ['writer'],
 					],
 				],
@@ -196,4 +195,13 @@ class CottageController extends Controller {
 		}
 		return false;
 	}
+
+	public function actionPrevious(){
+	    $url = Cottage::getPreviousCottage();
+        return $this->redirect($url, 301);
+    }
+	public function actionNext(){
+	    $url = Cottage::getNextCottage();
+        return $this->redirect($url, 301);
+    }
 }

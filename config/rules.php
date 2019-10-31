@@ -136,5 +136,7 @@ return [
     'transaction/change-date/<id:[0-9]+(-a)?>' => 'payments/change-transaction-date',
     'transaction/change-date' => 'payments/change-transaction-date',
     'pay/confirm' => 'payments/confirm-payment',
-    'counter/discard-change/<cottageNumber:[0-9]+(-a)?>/<month:[0-9]+-[0-9]+>' => 'filling/discard-counter-change'
+    'backup/send' => 'management/send-backup',
+    'counter/discard-change/<cottageNumber:[0-9]+(-a)?>/<month:[0-9]+-[0-9]+>' => 'filling/discard-counter-change',
+    'fill/counters' => 'filling/fill-counters',
 ];

@@ -8,6 +8,7 @@
 
 namespace app\controllers;
 
+use app\models\Cloud;
 use app\models\UpdateSite;
 use Yii;
 use yii\web\Controller;
@@ -29,7 +30,7 @@ class ManagementController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'get-update-form', 'validate-update', 'create-update', 'check-update', 'install-update'],
+                        'actions' => ['index', 'get-update-form', 'validate-update', 'create-update', 'check-update', 'install-update', 'send-backup'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -100,5 +101,12 @@ class ManagementController extends Controller
         }
         else
             throw new NotFoundHttpException("Страница не найдена");
+    }
+
+    public function actionSendBackup(){
+        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            return Cloud::sendBackup();
+        }
     }
 }

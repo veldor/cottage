@@ -1,6 +1,7 @@
 $(function () {
     handleUpdate();
     handleFixes();
+    globalOptions();
 });
 function handleFixes() {
     const refPower = $('button#refreshPowerData');
@@ -113,4 +114,11 @@ function handleUpdate() {
         // const modal = makeModal("Настройка обновления сайта", updateButton);
         // loadForm('/update/create/form', modal, '/update/create');
     })
+}
+
+function globalOptions() {
+    const sendBackupBtn = $('button#sendBackupButton');
+    sendBackupBtn.on('click.send', function () {
+       sendAjax('post', '/backup/send', simpleAnswerHandler)
+    });
 }

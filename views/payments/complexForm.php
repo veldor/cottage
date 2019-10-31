@@ -51,7 +51,7 @@ echo '</div>';
 
 
 $membershipDuty = $matrix->unpayed->membershipDuty;
-echo '<h2 class="text-center ">Членские взносы:</h2>';
+echo '<h2 class="text-center ">Членские возносы:</h2>';
 echo "<div class='row color-orange' id='membershipCollector'>";
 echo "<div class='text-center'> <h3>$cottageName</h3>";
 if (!empty($membershipDuty)) {
@@ -67,13 +67,19 @@ if (!empty($membershipDuty)) {
 } else {
     echo '<p class="text-success">Долгов за членские взносы не найдено</p>';
 }
-echo "<div class='input-group'><span class='input-group-addon'>Предоплата кварталов </span><input class='form-control' id='addFutureQuarters'/></div>";
-echo "<div id='forFutureQuarters'></div>";
+if($matrix->double){
+    echo "<div class='input-group'><span class='input-group-addon'>Предоплата кварталов </span><input class='form-control' id='addAddtionalFutureQuarters'/></div>";
+    echo "<div id='additionalFutureDiv'></div>";
+}
+else{
+    echo "<div class='input-group'><span class='input-group-addon'>Предоплата кварталов </span><input class='form-control' id='addFutureQuarters'/></div>";
+    echo "<div id='forFutureQuarters'></div>";
+}
 echo '</div>';
 echo '</div>';
 
 $targetDuty = $matrix->unpayed->targetDuty;
-echo '<h2 class="text-center ">Целевые взносы:</h2>';
+echo '<h2 class="text-center ">Целевые возносы:</h2>';
 echo "<div class='row color-orange' id='targetCollector'>";
 echo "<div class='text-center'> <h3>$cottageName</h3>";
 if (!empty($targetDuty)) {
@@ -92,7 +98,7 @@ if (!empty($targetDuty)) {
 echo '</div></div>';
 
 $singleDuty = $matrix->unpayed->singleDuty;
-echo '<h2 class="text-center ">Разовые взносы:</h2>';
+echo '<h2 class="text-center ">Разовые возносы:</h2>';
 echo "<div class='row color-orange' id='singleCollector'>";
 echo "<div class='text-center'> <h3>$cottageName</h3>";
 if (!empty($singleDuty)) {
@@ -138,7 +144,7 @@ if (!empty($matrix->cottageInfo->haveAdditional)) {
 
 
     $additionalMembershipDuty = $matrix->unpayed->additionalMembershipDuty;
-    echo '<h2 class="text-center ">Членские взносы:</h2>';
+    echo '<h2 class="text-center ">Членские возносы:</h2>';
     echo "<div class='row color-orange' id='membershipCollector'>";
     echo "<div class='text-center'> <h3>Доп. участок</h3>";
     if (!empty($additionalMembershipDuty)) {
@@ -160,7 +166,7 @@ if (!empty($matrix->cottageInfo->haveAdditional)) {
     echo '</div>';
 
     $additionalTargetDuty = $matrix->unpayed->additionalTargetDuty;
-    echo '<h2 class="text-center ">Целевые взносы:</h2>';
+    echo '<h2 class="text-center ">Целевые возносы:</h2>';
     echo "<div class='row color-orange' id='targetCollector'>";
     echo "<div class='text-center'> <h3>Доп. участок</h3>";
     if (!empty($additionalTargetDuty)) {

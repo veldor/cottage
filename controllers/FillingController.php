@@ -6,6 +6,8 @@ use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\MembershipHandler;
 use app\models\PersonalTariffFilling;
+use app\models\PowerCounter;
+use app\models\PowerCounters;
 use app\models\PowerHandler;
 use app\models\Registry;
 use app\models\SerialInvoices;
@@ -33,7 +35,7 @@ class FillingController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['view', 'fill', 'create', 'future-quarters', 'cancel-power', 'fill-current', 'get-serial-cottages', 'confirm-serial-payments', 'fill-missing-individuals', 'discard-counter-change'],
+                        'actions' => ['view', 'fill', 'create', 'future-quarters', 'cancel-power', 'fill-current', 'get-serial-cottages', 'confirm-serial-payments', 'fill-missing-individuals', 'fill-counters'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -58,12 +60,14 @@ class FillingController extends Controller
                 $errorMessage = $e->getMessage();
             }
             $registryModel->getUnhandled();
-            return $this->render('filling', ['info' => $model, 'model' => $registryModel, 'tab' => 'registry', 'errorMessage' => $errorMessage, 'billDetails' => $details]);
+            $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
+            return $this->render('filling', ['info' => $model,'countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'registry', 'errorMessage' => $errorMessage, 'billDetails' => $details]);
         }
         else{
             $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
             $registryModel->getUnhandled();
-            return $this->render('filling', ['info' => $model, 'model' => $registryModel, 'tab' => 'power', 'errorMessage' => null, 'billDetails' => null]);
+            $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
+            return $this->render('filling', ['info' => $model,'countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'power', 'errorMessage' => null, 'billDetails' => null]);
         }
     }
 
@@ -95,17 +99,12 @@ class FillingController extends Controller
             Yii::$app->response->format = Response::FORMAT_JSON;
             $model = new PowerHandler(['scenario' => PowerHandler::SCENARIO_NEW_RECORD]);
             $model->load(Yii::$app->request->post());
-            try{
-                if ($model->validate()){
-                    return $model->insert();
-                }
-                return ['status' => 0,
-                    'errors' => $model->errors,
-                ];
+            if ($model->validate()){
+                return $model->insert();
             }
-            catch (ExceptionWithStatus $e){
-                return ['status' => $e->getCode(), 'message' => $e->getMessage()];
-            }
+            return ['status' => 0,
+                'errors' => $model->errors,
+            ];
         }
         elseif(Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
@@ -189,10 +188,13 @@ class FillingController extends Controller
         $cottagesWithMissing = PersonalTariffFilling::getCottagesWithMissing();
         return $this->render("fill-missed-individuals", ['items' => $cottagesWithMissing, 'error' => $hasError]);
     }
-    public function actionDiscardCounterChange($cottageNumber, $month){
-        if (Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return PowerHandler::discardCounterChange($cottageNumber, $month);
-        }
+    public function actionFillCounters(){
+        $model = Filling::getFillingInfo();
+        $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
+        $registryModel->getUnhandled();
+        $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
+        $countersModel->file = UploadedFile::getInstance($countersModel, 'file');
+        $countersData = $countersModel->parseIndications();
+        return $this->render('filling', ['info' => $model,'countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'counters', 'errorMessage' => '', 'billDetails' => '', 'countersData' => $countersData]);
     }
 }
