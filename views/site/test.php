@@ -2,6 +2,8 @@
 
 use app\assets\AppAsset;
 use app\models\CashHandler;
+use app\models\Cottage;
+use app\models\PowerHandler;
 use app\models\Table_cottages;
 use app\models\Table_payed_power;
 use app\models\Table_power_months;
@@ -11,7 +13,13 @@ use yii\web\View;
 
 AppAsset::register($this);
 
-$array = ["Апрель" => "2019-04", "Май" => "2019-05", "Июнь" => "2019-06", "Июль" => "2019-07", "Август" => "2019-08", "Сентябрь" => "2019-09", ];
+// получу все задолженности по всем участкам
+$cottages = Cottage::getRegistred();
+foreach ($cottages as $cottage) {
+    $debt = Cottage::getFullDebt($cottage);
+}
+
+/*$array = ["Апрель" => "2019-04", "Май" => "2019-05", "Июнь" => "2019-06", "Июль" => "2019-07", "Август" => "2019-08", "Сентябрь" => "2019-09", ];
 $cottages = Table_cottages::find()->orderBy('cottageNumber')->all();
 
 //echo "<div class='row for-print'>";
@@ -61,7 +69,7 @@ echo "<div class='col-sm-4'><table class='table table-bordered table-condensed'>
 
 echo "<div class='col-sm-12'>Всего потрачено: $wholeUsed Квт.</div> Всего оплачено: " . CashHandler::toShortSmoothRubles($wholePayed) . "</div>";
 
-echo "</div>";
+echo "</div>";*/
 
 
 

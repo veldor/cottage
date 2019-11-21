@@ -332,7 +332,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         $cottageInfo->totalDebt += $total;
                     }
                 }
-
                 $fullDuty = CashHandler::toRubles($cottageInfo->additionalCottageInfo['totalDebt']) + CashHandler::toRubles($cottageInfo->totalDebt);
                 ?>
                 </tbody>

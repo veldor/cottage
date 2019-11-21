@@ -49,6 +49,7 @@ class MembershipHandler extends Model {
 
 	public static function getCottageStatus($cottageInfo)
 	{
+	    $isMain = Cottage::isMain($cottageInfo);
 		// верну общую сумму неоплаченных членских взносов
 		$summ = 0;
 		// Сделаю выборку тарифов
@@ -65,7 +66,12 @@ class MembershipHandler extends Model {
 				$summ += $item->fixed_part;
 				$summ += $cottageInfo->cottageSquare * ($item->changed_part / 100);
                 // вычту сумму частично оплаченного квартала, если она есть
-                $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
+                if($isMain){
+                    $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
+                }
+                else{
+                    $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $item->quarter])->all();
+                }
                 if(!empty($payed)){
                     foreach ($payed as $payedItem){
                         $summ -= $payedItem->summ;

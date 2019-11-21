@@ -322,4 +322,60 @@ class Cottage extends Model
         }
         return 'https://dev.com/show-cottage/1';
     }
+
+    public static function getFullDebt(Table_cottages $cottage)
+    {
+        // получу задолженность по электроэнергии
+        $powerDebt = Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber, 'payed' => 'no'])->andWhere(['>', 'difference' , 0])->all();
+        if(!empty($powerDebt)){
+            foreach ($powerDebt as $item) {
+                // найду оплату по счёту
+                $payed = Table_payed_power::find()->where(['cottageId' => $cottage->cottageNumber, 'month' => $item->month])->all();
+                $totalPay = CashHandler::toRubles($item->totalPay);
+                if(!empty($payed)){
+                    foreach ($payed as $payedItem) {
+                        $totalPay -= CashHandler::toRubles($payedItem->summ);
+                    }
+                }
+                if($totalPay > 0){
+                    echo "Э " . $cottage->cottageNumber . " " . CashHandler::toRubles($totalPay) . '<br/>';
+                }
+            }
+        }
+        $membershipDebt = MembershipHandler::getDebt($cottage);
+        if(!empty($membershipDebt)){
+            foreach ($membershipDebt as $item) {
+                if(!empty($item->partialPayed)){
+                    echo "Ч " . $cottage->cottageNumber . " " . CashHandler::toRubles($item->amount - $item->partialPayed) . '<br/>';
+                }
+                else{
+                    echo "Ч " . $cottage->cottageNumber . " " . CashHandler::toRubles($item->amount) . '<br/>';
+                }
+            }
+        }
+        $targetDebt = TargetHandler::getDebt($cottage);
+        if(!empty($targetDebt)){
+            foreach ($targetDebt as $item) {
+                if(!empty($item->partialPayed)){
+                    echo "Ц " .  $cottage->cottageNumber . " " . CashHandler::toRubles($item->amount - $item->partialPayed) . '<br/>';
+                }
+                else{
+                    echo "Ц " .  $cottage->cottageNumber . " " . CashHandler::toRubles($item->amount) . '<br/>';
+                }
+            }
+        }
+        $singleDebt = SingleHandler::getDebtReport($cottage);
+        if(!empty($singleDebt)){
+
+            foreach ($singleDebt as $item) {
+                if(!empty($item->partialPayed)){
+                    echo "Р " .  $cottage->cottageNumber . " " . CashHandler::toRubles($item->amount - $item->partialPayed) . '<br/>';
+                }
+                else{
+                    echo "Р " .  $cottage->cottageNumber . " " . CashHandler::toRubles($item->amount) . '<br/>';
+                }
+            }
+        }
+    }
+
 }
