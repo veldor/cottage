@@ -87,8 +87,8 @@ $this->title = "Отчёт по платежам";
         <th colspan="2" class="text-center">Разовые</th>
         <th colspan="2" class="text-center">Пени</th>
         <th rowspan="2" class="text-center vertical-top">Скидка</th>
-        <th rowspan="2" class="text-center vertical-top">Депозит</th>
-        <th rowspan="2" class="text-center vertical-top">Итого</th>
+        <th rowspan="2" class="text-center vertical-top" style="-webkit-transform: rotate(90deg); transform: rotate(90deg);">Депозит</th>
+        <th rowspan="2" class="text-center vertical-top" style="-webkit-transform: rotate(90deg); transform: rotate(90deg);">Итого</th>
     </tr>
     <tr>
         <th class="text-center">Покварт.</th>
@@ -115,5 +115,9 @@ $this->title = "Отчёт по платежам";
     </tbody>
 
 </table>
+
+<table class="table table-bordered table-condensed little-text small-text">
+</table>
+
 </body>
 </html>

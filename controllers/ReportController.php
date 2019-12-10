@@ -8,6 +8,7 @@
 
 namespace app\controllers;
 
+use app\models\Cottage;
 use app\models\Report;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -26,7 +27,7 @@ class ReportController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['debt-details'],
+                        'actions' => ['debt-details', 'send'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -36,5 +37,11 @@ class ReportController extends Controller
     public function actionDebtDetails($type, $cottageNumber){
         $name =  $type . 'DebtReport';
         return Report::$name($cottageNumber);
+    }
+    public function actionSend($id){
+        echo $id;
+        $cottageInfo = Cottage::getCottageByLiteral($id);
+        $info = Cottage::getCottageInfo($id);
+        var_dump($info);
     }
 }

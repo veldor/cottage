@@ -24,6 +24,8 @@ class PrintAsset extends AssetBundle
         'css/print.css',
     ];
     public $js = [
+        'js/globals.js',
+        'js/print.js'
     ];
     public $depends = [
         'yii\web\YiiAsset',

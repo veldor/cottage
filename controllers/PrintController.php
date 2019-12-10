@@ -9,6 +9,8 @@
 namespace app\controllers;
 
 
+use app\models\Cottage;
+use app\models\Cottages;
 use app\models\PDFHandler;
 use app\models\Report;
 use yii\web\Controller;
@@ -37,13 +39,16 @@ class PrintController extends Controller
     }
 
     public function actionCottageReport($start, $end, $cottageNumber){
+        $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
         $start /= 1000;
         $end /= 1000;
         // получу информацию по всем транзакциям участка
         $info = Report::cottageReport($start, $end, $cottageNumber);
+        // получу информацию о задолженностях участка
+        
         // сохраню PDF
         $reportPdf =  $this->renderPartial('cottage-report-pdf', ['transactionsInfo' => $info,'start' => $start,'end' => $end]);
         PDFHandler::renderPDF($reportPdf, 'report.pdf', 'landscape');
-        return $this->render('cottage-report', ['transactionsInfo' => $info,'start' => $start,'end' => $end]);
+        return $this->render('cottage-report', ['transactionsInfo' => $info,'start' => $start,'end' => $end, 'cottageInfo' => $cottageInfo]);
     }
 }

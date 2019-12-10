@@ -141,4 +141,5 @@ return [
     'backup/send' => 'management/send-backup',
     'counter/discard-change/<cottageNumber:[0-9]+(-a)?>/<month:[0-9]+-[0-9]+>' => 'filling/discard-counter-change',
     'fill/counters' => 'filling/fill-counters',
+    'report/send/<id:[0-9]+(-a)?>' => 'report/send',
 ];
