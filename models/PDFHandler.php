@@ -14,16 +14,16 @@ use Yii;
 
 class PDFHandler
 {
-    public static function renderPDF($text, $billId, $cottageNumber)
+    public static function renderPDF($text, $filename, $orientation)
     {
         $dompdf = new Dompdf([
             'defaultFont' => "arial",//делаем наш шрифт шрифтом по умолчанию
         ]);
         $dompdf->loadHtml($text);
 // (Optional) Setup the paper size and orientation
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper('A4', $orientation);
         $dompdf->render();
         $output = $dompdf->output();
-        file_put_contents('invoice.pdf', $output);
+        file_put_contents($filename, $output);
     }
 }

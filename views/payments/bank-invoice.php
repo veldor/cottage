@@ -47,7 +47,6 @@ $finesText = '';
 $qr = $bankInfo->drawQR();
 
 if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'])){
-    $dueDate = TimeHandler::getPowerDueDate();
     $summ = 0;
     $oldData = null;
     $newData = null;
@@ -57,6 +56,8 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
     if(!empty($paymentContent['power'])){
         $summ = $paymentContent['power']['summ'];
         foreach ($paymentContent['power']['values'] as $value) {
+            // определю дату оплаты
+            $payUp = TimeHandler::getPayUpMonth($value['date']);
             $tempOldData = $value["old-data"];
             $tempNewData = $value["new-data"];
             if(empty($oldData)){
@@ -68,16 +69,16 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
             }
             else{
                 // очевидно, был заменён счётчик
-                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
                 $oldData = $tempOldData;
                 $newData = $tempNewData;
                 $difference = $newData - $oldData;
 
             }
         }
-        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
         foreach ($usedPower as $item) {
-            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . " ";
+            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . " (срок оплаты: до " . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' . ($payUp < time() ? " (платёж просрочен)" : '');
         }
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
@@ -91,6 +92,8 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         $usedPower = [];
         $summ = $paymentContent['additionalPower']['summ'];
         foreach ($paymentContent['additionalPower']['values'] as $value) {
+            // определю дату оплаты
+            $payUp = TimeHandler::getPayUpMonth($value['date']);
             $tempOldData = $value["old-data"];
             $tempNewData = $value["new-data"];
             if(empty($oldData)){
@@ -102,19 +105,19 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
             }
             else{
                 // очевидно, был заменён счётчик
-                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
                 $oldData = $tempOldData;
                 $newData = $tempNewData;
                 $difference = $newData - $oldData;
             }
         }
-        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference];
+        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
         foreach ($usedPower as $item) {
-            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . " ";
+            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . " (срок оплаты: до " . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' . ($payUp < time() ? " (платёж просрочен)" : '');
         }
         $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
     }
-    $powerText = 'Электроэнергия: ' . $values . ' (срок оплаты: до ' . $dueDate . " года)<br/>";
+    $powerText = 'Электроэнергия: ' . $values . ' <br/>';
 }
 if(!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])){
 

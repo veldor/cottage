@@ -518,6 +518,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         echo '<li><a id="payForDoubleCottageBtn" href="#">Оплатить</a></li>';
                         ?>
 
+                        <li><a id="changeAddInfoButton" href="#">Изменить данные</a></li>
                         <li><a id="showDoublePaymentsStory" href="#">История платежей</a></li>
                         <?php
                         if (!$cottageInfo->additionalCottageInfo['cottageInfo']->individualTariff) {

@@ -18,6 +18,8 @@ use yii\base\Model;
 class AddCottage extends Model
 {
     public $cottageNumber; // номер участка.
+    public $masterId; // номер участка.
+    public $additional;
     public $haveRights; // наличие свидетельства о собственности
     public $cottageRegistrationInformation;// данные о кадастровом номере участка
     public $cottageOwnerPersonals; // личные данные владельца участка.
@@ -51,37 +53,45 @@ class AddCottage extends Model
     public $fullChangable = false;
 
     /**
-     * @var Table_cottages
+     * @var Table_cottages|Table_additional_cottages
      */
     public $currentCondition; // сохранённая копия данных об участке
     private static $changedAttributes = ['cottageNumber', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'cottageOwnerDescription', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'];
     private static $changedFullAttributes = ['cottageNumber', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposit', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetPaysDuty'];
+    private static $addChangedAttributes = ['masterId', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'cottageOwnerDescription', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'];
+    private static $addChangedFullAttributes = ['masterId', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposit', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetPaysDuty'];
 
-    public static function checkFullChangable($cottageNumber): bool
+    /**
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @return bool
+     */
+    public static function checkFullChangable($cottageInfo): bool
     {
-        return !Table_payment_bills::find()->where(['cottageNumber' => $cottageNumber])->count();
+        if (Cottage::isMain($cottageInfo))
+            return !Table_payment_bills::find()->where(['cottageNumber' => $cottageInfo->cottageNumber])->count();
+        return !Table_payment_bills_double::find()->where(['cottageNumber' => $cottageInfo->masterId])->count();
     }
 
 
-        public function attributeLabels(): array
-        {
-            return [
-                'cottageNumber' => 'Номер участка',
-                'cottageOwnerPersonals' => 'Фамилия имя и отчество владельца',
-                'cottageOwnerPhone' => 'Контактный номер телефона владельца',
-                'cottageContacterPersonals' => 'Фамилия имя и отчество контактного лица',
-                'cottageContacterPhone' => 'Номер телефона контактного лица',
-                'cottageOwnerEmail' => 'Адрес электронной почты владельца',
-                'haveRights' => 'Справка в наличии',
-                'cottageRegisterData' => 'Наличие данных для реестра',
-                'hasContacter' => 'Добавить контакт ',
-                'cottageSquare' => 'Площадь участка',
-                'currentPowerData' => 'Текущие показания счётчика электроэнергии',
-                'membershipPayFor' => 'Месяц, по который оплачены членские взносы',
-                'targetPayFor' => 'Месяц, по который оплачены целевые взносы',
-                'payerInfo' => 'Имена плательщиков для квитанции',
-            ];
-        }
+    public function attributeLabels(): array
+    {
+        return [
+            'cottageNumber' => 'Номер участка',
+            'cottageOwnerPersonals' => 'Фамилия имя и отчество владельца',
+            'cottageOwnerPhone' => 'Контактный номер телефона владельца',
+            'cottageContacterPersonals' => 'Фамилия имя и отчество контактного лица',
+            'cottageContacterPhone' => 'Номер телефона контактного лица',
+            'cottageOwnerEmail' => 'Адрес электронной почты владельца',
+            'haveRights' => 'Справка в наличии',
+            'cottageRegisterData' => 'Наличие данных для реестра',
+            'hasContacter' => 'Добавить контакт ',
+            'cottageSquare' => 'Площадь участка',
+            'currentPowerData' => 'Текущие показания счётчика электроэнергии',
+            'membershipPayFor' => 'Месяц, по который оплачены членские взносы',
+            'targetPayFor' => 'Месяц, по который оплачены целевые взносы',
+            'payerInfo' => 'Имена плательщиков для квитанции',
+        ];
+    }
 
     const SCENARIO_ADD = 'add';
     const SCENARIO_CHANGE = 'change';
@@ -91,8 +101,8 @@ class AddCottage extends Model
     {
         return [
             self::SCENARIO_ADD => ['cottageNumber', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled'],
-            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled', 'cottageRegisterData', 'payerInfo'],
-            self::SCENARIO_CHANGE => ['cottageNumber', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageRegisterData', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation', 'payerInfo'],
+            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'masterId', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled', 'cottageRegisterData', 'payerInfo'],
+            self::SCENARIO_CHANGE => ['cottageNumber', 'masterId', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageRegisterData', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation', 'payerInfo'],
         ];
     }
 
@@ -102,6 +112,7 @@ class AddCottage extends Model
             [['cottageNumber', 'cottageOwnerPersonals', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposite', 'targetFilled'], 'required', 'on' => self::SCENARIO_ADD],
             [['cottageNumber', 'cottageOwnerPersonals'], 'required', 'on' => self::SCENARIO_CHANGE],
             ['cottageNumber', CheckCottageNoRegistred::class, 'on' => [self::SCENARIO_CHANGE, self::SCENARIO_FULL_CHANGE]],
+            ['masterId', CheckCottageNoRegistred::class, 'on' => [self::SCENARIO_CHANGE, self::SCENARIO_FULL_CHANGE]],
             [['cottageContacterPersonals'], 'required', 'when' => function () {
                 return $this->hasContacter;
             }, 'whenClient' => "function () {return $('input#addcottage-hascontacter').prop('checked');}"],
@@ -192,8 +203,7 @@ class AddCottage extends Model
                 $transaction->commit();
                 return true;
             }
-            if ($this->scenario === 'change' || $this->scenario === self::SCENARIO_FULL_CHANGE) {
-
+            if ($this->scenario === 'change' || $this->scenario === 'change-add' || $this->scenario === self::SCENARIO_FULL_CHANGE) {
                 // заполню форму безопасными данными
                 $this->currentCondition->cottageOwnerPersonals = $this->cottageOwnerPersonals;
                 $this->currentCondition->cottageRegistrationInformation = $this->cottageRegistrationInformation;
@@ -228,33 +238,67 @@ class AddCottage extends Model
                     // обновлю всё встречающиеся значения данного параметра
                     $this->currentCondition->cottageSquare = $this->cottageSquare;
                 }
-                if ($this->currentPowerData !== $this->currentCondition->currentPowerData) {
-                    $clearData = $this->currentPowerData;
-                    $this->currentCondition->currentPowerData = $clearData;
-                    $data = Table_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->all();
-                    foreach ($data as $item) {
-                        $item->oldPowerData = $clearData;
-                        $item->newPowerData = $clearData;
-                        $item->save();
+                if($this->additional){
+                    if($this->currentCondition->isPower){
+                        if ($this->currentPowerData !== $this->currentCondition->currentPowerData) {
+                            $clearData = $this->currentPowerData;
+                            $this->currentCondition->currentPowerData = $clearData;
+                            $data = Table_additional_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->all();
+                            foreach ($data as $item) {
+                                $item->oldPowerData = $clearData;
+                                $item->newPowerData = $clearData;
+                                $item->save();
+                            }
+                        }
+                        if ($this->lastPayedMonth !== $this->currentCondition->powerPayFor) {
+                            $this->currentCondition->powerPayFor = $this->lastPayedMonth;
+                            // удалю все предыдущие показания по этому участку
+                            $data = Table_additional_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->all();
+                            foreach ($data as $item) {
+                                $item->delete();
+                            }
+                            $startMonth = new Table_additional_power_months();
+                            $startMonth->cottageNumber = $this->cottageNumber;
+                            $startMonth->month = $this->currentCondition->powerPayFor;
+                            $startMonth->fillingDate = time();
+                            $startMonth->oldPowerData = $this->currentPowerData;
+                            $startMonth->newPowerData = $this->currentPowerData;
+                            $startMonth->searchTimestamp = TimeHandler::getMonthTimestamp($this->currentCondition->powerPayFor);
+                            $startMonth->payed = 'yes';
+                            $startMonth->save();
+                        }
                     }
                 }
-                if ($this->lastPayedMonth !== $this->currentCondition->powerPayFor) {
-                    $this->currentCondition->powerPayFor = $this->lastPayedMonth;
-                    // удалю все предыдущие показания по этому участку
-                    $data = Table_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->all();
-                    foreach ($data as $item) {
-                        $item->delete();
+                else{
+                    if ($this->currentPowerData !== $this->currentCondition->currentPowerData) {
+                        $clearData = $this->currentPowerData;
+                        $this->currentCondition->currentPowerData = $clearData;
+                        $data = Table_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->all();
+                        foreach ($data as $item) {
+                            $item->oldPowerData = $clearData;
+                            $item->newPowerData = $clearData;
+                            $item->save();
+                        }
                     }
-                    $startMonth = new Table_power_months();
-                    $startMonth->cottageNumber = $this->cottageNumber;
-                    $startMonth->month = $this->currentCondition->powerPayFor;
-                    $startMonth->fillingDate = time();
-                    $startMonth->oldPowerData = $this->currentPowerData;
-                    $startMonth->newPowerData = $this->currentPowerData;
-                    $startMonth->searchTimestamp = TimeHandler::getMonthTimestamp($this->currentCondition->powerPayFor);
-                    $startMonth->payed = 'yes';
-                    $startMonth->save();
+                    if ($this->lastPayedMonth !== $this->currentCondition->powerPayFor) {
+                        $this->currentCondition->powerPayFor = $this->lastPayedMonth;
+                        // удалю все предыдущие показания по этому участку
+                        $data = Table_power_months::find()->where(['cottageNumber' => $this->cottageNumber])->all();
+                        foreach ($data as $item) {
+                            $item->delete();
+                        }
+                        $startMonth = new Table_power_months();
+                        $startMonth->cottageNumber = $this->cottageNumber;
+                        $startMonth->month = $this->currentCondition->powerPayFor;
+                        $startMonth->fillingDate = time();
+                        $startMonth->oldPowerData = $this->currentPowerData;
+                        $startMonth->newPowerData = $this->currentPowerData;
+                        $startMonth->searchTimestamp = TimeHandler::getMonthTimestamp($this->currentCondition->powerPayFor);
+                        $startMonth->payed = 'yes';
+                        $startMonth->save();
+                    }
                 }
+
                 if ($this->membershipPayFor !== $this->currentCondition->membershipPayFor) {
                     $this->currentCondition->membershipPayFor = $this->membershipPayFor;
                 }
@@ -263,27 +307,54 @@ class AddCottage extends Model
                 }
                 // теперь самое сложное- ищу изменения в оплате целевых платежей
                 // просто пересохраню начисто
-                $targetDebt = 0;
-                $content = '<targets>';
-                if (!empty($this->target)) {
-                    $this->fillTargets();
-                    foreach ($this->target as $key => $value) {
-                        $full = Calculator::countFixedFloat($this->existentTargets[$key]['fixed'], $this->existentTargets[$key]['float'], $this->cottageSquare);
-                        // сравню тариф и сведения о нём
-                        if ($value['payed-of'] === 'no-payed') {
-                            // Добавлю данный взнос как полностью неоплаченный
-                            $content .= "<target payed='0' year='{$key}' float='{$this->existentTargets[$key]['float']}' fixed='{$this->existentTargets[$key]['fixed']}' square='{$this->cottageSquare}' summ='{$full}' description='{$this->existentTargets[$key]['description']}'/>";
-                            $targetDebt += $full;
-                        } elseif ($value['payed-of'] === 'partial') {
-                            $unpayed = CashHandler::rublesMath($full - $value['payed-summ']);
-                            $content .= "<target payed='{$value['payed-summ']}' year='{$key}' float='{$this->existentTargets[$key]['float']}' fixed='{$this->existentTargets[$key]['fixed']}' square='{$this->cottageSquare}' summ='{$full}' description='{$this->existentTargets[$key]['description']}'/>";
-                            $targetDebt += $unpayed;
+                if($this->additional){
+                    if($this->currentCondition->isTarget){
+                        $targetDebt = 0;
+                        $content = '<targets>';
+                        if (!empty($this->target)) {
+                            $this->fillTargets();
+                            foreach ($this->target as $key => $value) {
+                                $full = Calculator::countFixedFloat($this->existentTargets[$key]['fixed'], $this->existentTargets[$key]['float'], $this->cottageSquare);
+                                // сравню тариф и сведения о нём
+                                if ($value['payed-of'] === 'no-payed') {
+                                    // Добавлю данный взнос как полностью неоплаченный
+                                    $content .= "<target payed='0' year='{$key}' float='{$this->existentTargets[$key]['float']}' fixed='{$this->existentTargets[$key]['fixed']}' square='{$this->cottageSquare}' summ='{$full}' description='{$this->existentTargets[$key]['description']}'/>";
+                                    $targetDebt += $full;
+                                } elseif ($value['payed-of'] === 'partial') {
+                                    $unpayed = CashHandler::rublesMath($full - $value['payed-summ']);
+                                    $content .= "<target payed='{$value['payed-summ']}' year='{$key}' float='{$this->existentTargets[$key]['float']}' fixed='{$this->existentTargets[$key]['fixed']}' square='{$this->cottageSquare}' summ='{$full}' description='{$this->existentTargets[$key]['description']}'/>";
+                                    $targetDebt += $unpayed;
+                                }
+                            }
                         }
+                        $content .= '</targets>';
+                        $this->currentCondition->targetDebt = $targetDebt;
+                        $this->currentCondition->targetPaysDuty = $content;
                     }
                 }
-                $content .= '</targets>';
-                $this->currentCondition->targetDebt = $targetDebt;
-                $this->currentCondition->targetPaysDuty = $content;
+                else{
+                    $targetDebt = 0;
+                    $content = '<targets>';
+                    if (!empty($this->target)) {
+                        $this->fillTargets();
+                        foreach ($this->target as $key => $value) {
+                            $full = Calculator::countFixedFloat($this->existentTargets[$key]['fixed'], $this->existentTargets[$key]['float'], $this->cottageSquare);
+                            // сравню тариф и сведения о нём
+                            if ($value['payed-of'] === 'no-payed') {
+                                // Добавлю данный взнос как полностью неоплаченный
+                                $content .= "<target payed='0' year='{$key}' float='{$this->existentTargets[$key]['float']}' fixed='{$this->existentTargets[$key]['fixed']}' square='{$this->cottageSquare}' summ='{$full}' description='{$this->existentTargets[$key]['description']}'/>";
+                                $targetDebt += $full;
+                            } elseif ($value['payed-of'] === 'partial') {
+                                $unpayed = CashHandler::rublesMath($full - $value['payed-summ']);
+                                $content .= "<target payed='{$value['payed-summ']}' year='{$key}' float='{$this->existentTargets[$key]['float']}' fixed='{$this->existentTargets[$key]['fixed']}' square='{$this->cottageSquare}' summ='{$full}' description='{$this->existentTargets[$key]['description']}'/>";
+                                $targetDebt += $unpayed;
+                            }
+                        }
+                    }
+                    $content .= '</targets>';
+                    $this->currentCondition->targetDebt = $targetDebt;
+                    $this->currentCondition->targetPaysDuty = $content;
+                }
             }
 
             $this->currentCondition->save();
@@ -295,42 +366,59 @@ class AddCottage extends Model
         }
     }
 
-    public function fill($cottageNumber): bool
+    /**
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @return bool
+     */
+    public function fill($cottageInfo): bool
     {
         $this->fillTargets();
-        // заполню форму данными о данном участке
-        $data = Cottage::getCottageInfo($cottageNumber);
-        if (empty($data->cottageNumber)) {
-            return false;
-        }
 
         // проверю возможность изменения данных, связанных с платежами
-        $this->fullChangable = !Table_payment_bills::find()->where(['cottageNumber' => $data->cottageNumber])->count();
+        if(Cottage::isMain($cottageInfo)){
+            $this->fullChangable = !Table_payment_bills::find()->where(['cottageNumber' => $cottageInfo->cottageNumber])->count();
 
-        if ($this->fullChangable) {
-            foreach (self::$changedFullAttributes as $attribute) {
-                $this->$attribute = $data->$attribute;
-                $this->lastPayedMonth = $data->powerPayFor;
-            }
-        } else {
-            foreach (self::$changedAttributes as $attribute) {
-                $this->$attribute = $data->$attribute;
+            if ($this->fullChangable) {
+                foreach (self::$changedFullAttributes as $attribute) {
+                    $this->$attribute = $cottageInfo->$attribute;
+                    $this->lastPayedMonth = $cottageInfo->powerPayFor;
+                }
+            } else {
+                foreach (self::$changedAttributes as $attribute) {
+                    $this->$attribute = $cottageInfo->$attribute;
+                }
             }
         }
 
-        $this->payerInfo = $data->bill_payers;
+        else{
+            $this->fullChangable = !Table_payment_bills_double::find()->where(['cottageNumber' => $cottageInfo->masterId])->count();
 
-        $this->haveRights = $data->cottageHaveRights;
-        $this->cottageRegisterData = $data->cottageRegisterData;
-        $this->ownerAddressTown = $data->cottageOwnerAddress;
-        if (!empty($data->cottageContacterPersonals)) {
+            if ($this->fullChangable) {
+                foreach (self::$addChangedFullAttributes as $attribute) {
+                    $this->$attribute = $cottageInfo->$attribute;
+                    $this->lastPayedMonth = $cottageInfo->powerPayFor;
+                }
+            } else {
+                foreach (self::$addChangedAttributes as $attribute) {
+                    $this->$attribute = $cottageInfo->$attribute;
+                }
+            }
+        }
+
+
+        $this->payerInfo = $cottageInfo->bill_payers;
+
+        $this->haveRights = $cottageInfo->cottageHaveRights;
+        $this->cottageRegisterData = $cottageInfo->cottageRegisterData;
+        $this->ownerAddressTown = $cottageInfo->cottageOwnerAddress;
+        if (!empty($cottageInfo->cottageContacterPersonals)) {
             $this->hasContacter = true;
-            $this->cottageContacterPersonals = $data->cottageContacterPersonals;
-            $this->cottageContacterEmail = $data->cottageContacterEmail;
-            $this->cottageContacterPhone = $data->cottageContacterPhone;
+            $this->cottageContacterPersonals = $cottageInfo->cottageContacterPersonals;
+            $this->cottageContacterEmail = $cottageInfo->cottageContacterEmail;
+            $this->cottageContacterPhone = $cottageInfo->cottageContacterPhone;
         }
         // попробую разобрать данные адреса вдадельца
-        $addressArray = explode('&', $data->cottageOwnerAddress);
+        $addressArray = explode('&', $cottageInfo->cottageOwnerAddress);
         if (count($addressArray) === 5) {
             $this->ownerAddressIndex = $addressArray[0];
             $this->ownerAddressTown = $addressArray[1];
@@ -338,7 +426,7 @@ class AddCottage extends Model
             $this->ownerAddressBuild = $addressArray[3];
             $this->ownerAddressFlat = $addressArray[4];
         } else {
-            $this->ownerAddressTown = GrammarHandler::clearAddress($data->cottageOwnerAddress);
+            $this->ownerAddressTown = GrammarHandler::clearAddress($cottageInfo->cottageOwnerAddress);
         }
         return true;
     }

@@ -236,7 +236,8 @@ class PowerHandler extends Model
                     $difference = $this->newPowerData - $oldPowerData;
                     // получу тариф на электричество по данному месяцу. Если его не существует- исключение незаполненного тарифа
                     $tariff = self::getTariff($this->month);
-                    $powerLimit = $tariff[$this->month]['powerLimit'] - $limitUsed;
+                    $realPowerLimit = $this->cottageNumber == "88" ? 100 : $tariff[$this->month]['powerLimit'];
+                    $powerLimit = $realPowerLimit - $limitUsed;
                     if ($powerLimit < 0) {
                         $powerLimit = 0;
                     }
@@ -552,10 +553,12 @@ class PowerHandler extends Model
                     $payedSumm += CashHandler::toRubles($item->summ);
                 }
             }
-            if (CashHandler::toRubles($toPay) > CashHandler::toRubles($maxAmount - $payedSumm)) {
+            // todo сделать проверку на сумму для оплаты после замены счётчика, когда часть лимита потрачена по другому счётчику
+            /*if (CashHandler::toRubles($toPay) > CashHandler::toRubles($maxAmount - $payedSumm)) {
                 throw new ExceptionWithStatus('Сумма оплаты ' . CashHandler::toRubles($toPay) . ' за электроэнергию за ' . $key . ' больше максимальной- ' . CashHandler::toRubles($maxAmount - $payedSumm));
-            }
-            $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$tariff->powerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
+            }*/
+            $realPowerLimit = $cottage->cottageNumber == "88" ? 100 : $tariff->powerLimit;
+            $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
             $summ += $toPay;
         }
         if ($additional) {
@@ -1018,8 +1021,12 @@ class PowerHandler extends Model
     {
         // расчитаю стоимость электроэнергии
         $tariff = self::getTariff($this->month);
-        if ($difference > $tariff[$this->month]['powerLimit']) {
-            $inLimitSumm = $tariff[$this->month]['powerLimit'];
+        // для участка 88 добавлю лимит в 100 квтч
+
+        $powerLimit = $this->cottageNumber == "88" ? 100 : $tariff[$this->month]['powerLimit'];
+
+        if ($difference > $powerLimit) {
+            $inLimitSumm = $powerLimit;
             $inLimitPay = CashHandler::rublesMath($inLimitSumm * $tariff[$this->month]['powerCost']);
             $overLimitSumm = $difference - $inLimitSumm;
             $overLimitPay = CashHandler::rublesMath($overLimitSumm * $tariff[$this->month]['powerOvercost']);

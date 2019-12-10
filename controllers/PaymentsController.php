@@ -179,7 +179,7 @@ class PaymentsController extends Controller
             // генерирую PDF
             $info = ComplexPayment::getBankInvoice($identificator, $double);
             $invoice =  $this->renderPartial('bank-invoice-pdf', ['info' => $info]);
-            PDFHandler::renderPDF($invoice, $info['billInfo']['billInfo']->id, $info['billInfo']['billInfo']->cottageNumber);
+            PDFHandler::renderPDF($invoice, 'invoice.pdf', 'portrait');
             // отправлю письмо
             $billInfo = ComplexPayment::getBill($identificator, $double);
             $payDetails = Filling::getPaymentDetails($billInfo);
@@ -427,10 +427,10 @@ class PaymentsController extends Controller
      * @return array
      * @throws NotFoundHttpException
      */
-    public function actionBillReopen($billId){
+    public function actionBillReopen($billId, $double = false){
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
-            return Pay::reopenBill($billId);
+            return Pay::reopenBill($billId, $double);
         }
         throw new NotFoundHttpException('Страница не найдена');
     }

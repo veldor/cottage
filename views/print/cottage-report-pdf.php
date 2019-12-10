@@ -18,6 +18,51 @@ $this->title = "Отчёт по платежам";
 /* @var $this View */
 ?>
 
+<!DOCTYPE HTML>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Квитанции</title>
+    <style type="text/css">
+        .small-text {
+            font-size: 10px;
+        }
+        .table-bordered {
+            border: 1px solid #ddd;
+        }
+        .table {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+
+        table > thead > tr > th, .table > tbody > tr > th, .table > tfoot > tr > th, .table > thead > tr > td, .table > tbody > tr > td, .table > tfoot > tr > td {
+            padding: 8px;
+            line-height: 1.42857143;
+            vertical-align: top;
+            border-top: 1px solid #ddd;
+        }
+
+        .table-bordered > thead > tr > th, .table-bordered > tbody > tr > th, .table-bordered > tfoot > tr > th, .table-bordered > thead > tr > td, .table-bordered > tbody > tr > td, .table-bordered > tfoot > tr > td {
+            border: 1px solid #ddd;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        p{
+            line-height: 2;
+        }
+    </style>
+</head>
+<body>
+
 <h3>Отчёт по платежам участка</h3>
 
 <p>
@@ -41,8 +86,8 @@ $this->title = "Отчёт по платежам";
         <th colspan="2" class="text-center">Целевые</th>
         <th colspan="2" class="text-center">Разовые</th>
         <th colspan="2" class="text-center">Пени</th>
-        <th rowspan="2" class="text-center vertical-top">Скид.</th>
-        <th rowspan="2" class="text-center vertical-top">Деп</th>
+        <th rowspan="2" class="text-center vertical-top">Скидка</th>
+        <th rowspan="2" class="text-center vertical-top">Депозит</th>
         <th rowspan="2" class="text-center vertical-top">Итого</th>
     </tr>
     <tr>
@@ -70,8 +115,5 @@ $this->title = "Отчёт по платежам";
     </tbody>
 
 </table>
-<div class="row">
-    <div class="col-sm-12 text-center">
-        <button class="btn btn-default no-print"><span class="text-success">Отправить отчёт владельцу</span></button>
-    </div>
-</div>
+</body>
+</html>

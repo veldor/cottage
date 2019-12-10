@@ -219,16 +219,31 @@ class PersonalTariff extends Model
                     $fixed = CashHandler::toRubles($existedYear->getAttribute('fixed'));
                     $float = CashHandler::toRubles($existedYear->getAttribute('float'));
                     $payedBefore = 0;
-                    // проверю, не производилась ли оплата по данному году по данному участку
-                    if (!Table_payed_target::find()->where(['cottageId' => $cottageNumber, 'year' => $date])->count()) {
-                        // пробую найти информацию о задолженностях по оплате за этот год
-                        $dutyInfo = $targetXpath->query("/targets/target[@year='{$date}']");
-                        if ($dutyInfo->length === 1) {
-                            // получу сумму оплаченных ранее средств
-                            $payedBefore = CashHandler::toRubles($dutyInfo->item(0)->getAttribute('payed'));
-                        }
-                        $yearList[$date] = ['fixed' => $fixed, 'float' => $float, 'payed-before' => $payedBefore];
+                    if($additional){
+                        // проверю, не производилась ли оплата по данному году по данному участку
+                        if (!Table_additional_payed_target::find()->where(['cottageId' => $cottageNumber, 'year' => $date])->count()) {
+                            // пробую найти информацию о задолженностях по оплате за этот год
+                            $dutyInfo = $targetXpath->query("/targets/target[@year='{$date}']");
+                            if ($dutyInfo->length === 1) {
+                                // получу сумму оплаченных ранее средств
+                                $payedBefore = CashHandler::toRubles($dutyInfo->item(0)->getAttribute('payed'));
+                            }
+                            $yearList[$date] = ['fixed' => $fixed, 'float' => $float, 'payed-before' => $payedBefore];
 
+                        }
+                    }
+                    else{
+                        // проверю, не производилась ли оплата по данному году по данному участку
+                        if (!Table_payed_target::find()->where(['cottageId' => $cottageNumber, 'year' => $date])->count()) {
+                            // пробую найти информацию о задолженностях по оплате за этот год
+                            $dutyInfo = $targetXpath->query("/targets/target[@year='{$date}']");
+                            if ($dutyInfo->length === 1) {
+                                // получу сумму оплаченных ранее средств
+                                $payedBefore = CashHandler::toRubles($dutyInfo->item(0)->getAttribute('payed'));
+                            }
+                            $yearList[$date] = ['fixed' => $fixed, 'float' => $float, 'payed-before' => $payedBefore];
+
+                        }
                     }
                 }
             }

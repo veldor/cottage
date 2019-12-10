@@ -69,17 +69,19 @@ class CottageController extends Controller {
      * @return array
      * @throws NotFoundHttpException
      */
-    public function actionChange($cottageNumber = ''): array
+    public function actionChange($cottageNumber = '', $add = false): array
 	{
 		if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
 			Yii::$app->response->format = Response::FORMAT_JSON;
-			if (AddCottage::checkFullChangable($cottageNumber)) {
-				$form = new AddCottage(['scenario' => AddCottage::SCENARIO_CHANGE,]);
+			$cottageNumber = $cottageNumber . ($add ? "-a" : '');
+			$cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
+			if (AddCottage::checkFullChangable($cottageInfo)) {
+				$form = new AddCottage(['scenario' => AddCottage::SCENARIO_FULL_CHANGE]);
 			}
 			else {
-				$form = new AddCottage(['scenario' => AddCottage::SCENARIO_FULL_CHANGE,]);
+				$form = new AddCottage(['scenario' => AddCottage::SCENARIO_CHANGE]);
 			}
-			if ($form->fill($cottageNumber)) {
+			if ($form->fill($cottageInfo)) {
 				$view = $this->renderAjax('changeCottageForm', ['matrix' => $form]);
 				return ['status' => 1,
 					'data' => $view,
@@ -113,12 +115,23 @@ class CottageController extends Controller {
 				$form = new AddCottage(['scenario' => AddCottage::SCENARIO_ADD]);
 			}
 			elseif ($type === 'change') {
-				if (AddCottage::checkFullChangable(Yii::$app->request->post()['AddCottage']['cottageNumber'])) {
+			    $cottageInfo = Cottage::getCottageByLiteral(Yii::$app->request->post()['AddCottage']['cottageNumber']);
+				if (AddCottage::checkFullChangable($cottageInfo)) {
 					$form = new AddCottage(['scenario' => AddCottage::SCENARIO_FULL_CHANGE,]);
 				}
 				else {
 					$form = new AddCottage(['scenario' => AddCottage::SCENARIO_CHANGE,]);
 				}
+			}
+			elseif ($type === 'change-add') {
+			    $cottageInfo = Cottage::getCottageByLiteral(Yii::$app->request->post()['AddCottage']['masterId'] . '-a');
+                if (AddCottage::checkFullChangable($cottageInfo)) {
+					$form = new AddCottage(['scenario' => AddCottage::SCENARIO_FULL_CHANGE,]);
+				}
+				else {
+					$form = new AddCottage(['scenario' => AddCottage::SCENARIO_CHANGE,]);
+				}
+                $form->additional = 1;
 			}
 			$form->load(Yii::$app->request->post());
 			if ($form->validate() && $form->save()) {

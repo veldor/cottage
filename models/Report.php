@@ -390,7 +390,7 @@ class Report extends Model
             /** @var MembershipDebt[] $info */
             $info = MembershipHandler::getDebt($cottageInfo);
             foreach ($info as $key => $item) {
-                $content .= "<tr><td>$key</td><td>{$cottageInfo->cottageSquare}</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->amount}  &#8381;</td></tr>";
+                $content .= "<tr><td>{$item->quarter}</td><td>{$cottageInfo->cottageSquare}</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->amount}  &#8381;</td></tr>";
             }
             $content .= '</tbody></table>';
             return $content;

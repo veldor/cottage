@@ -746,4 +746,24 @@ class MembershipHandler extends Model {
         }
         return null;
     }
+
+    /**
+     * @param $billInfo Table_payment_bills|Table_payment_bills_double
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @return bool
+     */
+    public static function noTimeForPay($billInfo, $cottageInfo){
+        $paysDom = new DOMHandler($billInfo->bill_content);
+        $membershipPayments = $paysDom->query("//membership/quarter");
+        if($membershipPayments->length > 0){
+            /** @var DOMElement $firstPayed */
+            $firstPayed = $membershipPayments->item(0);
+            $firstPayedQuarter = $firstPayed->getAttribute("date");
+            $firstQuarterToPay = TimeHandler::getNextQuarter($cottageInfo->membershipPayFor);
+            if($firstPayedQuarter > $firstQuarterToPay){
+                return true;
+            }
+        }
+        return false;
+    }
 }

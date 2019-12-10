@@ -12,7 +12,7 @@ return [
 	'save/additional-cottage/<cottageNumber:[0-9]+>' => 'cottage/additional-save',
 	'change-cottage/<cottageNumber:[0-9]+>' => 'cottage/change',
 	'change-cottage' => 'cottage/change',
-	'add-cottage/save/<type:add|change>' => 'cottage/save',
+	'add-cottage/save/<type:add|change|change-add>' => 'cottage/save',
 	'show-cottage/<cottageNumber:[0-9]+>' => 'cottage/show',
 //    END COTTAGE BLOCK
 //    TARRIFS BLOCK
@@ -84,6 +84,7 @@ return [
     'pay/close/<double:double>/<identificator:[0-9]+>' => 'payments/close',
 //    END COMPLEX PAYMENT BLOCK
 	'get-form/change/<cottageNumber:[0-9]+>' => 'cottage/change',
+	'get-form/change-<add:add>/<cottageNumber:[0-9]+>' => 'cottage/change',
 //    NOTIFIER BLOCK======================================================================================
 	'send/duties/<cottageNumber:[0-9]+>' => 'notify/duties',
 	'send/reg-info/<cottageNumber:[0-9]+>' => 'notify/reg-info',
@@ -122,7 +123,7 @@ return [
     'serial-payments/confirm' => 'filling/confirm-serial-payments',
     'mailing/get-list' => 'notify/get-mail-list',
     'mailing/<own:main|double>/<type:owner|contacter>/<cottageNumber:[0-9]+>' => 'notify/mailing',
-    'chain/<billId:[0-9]+>/<transactionId:[0-9]+>' => 'payments/chain',
+    'chain/<billId:[0-9]+(-A)?>/<transactionId:[0-9]+>' => 'payments/chain',
     'chain/confirm' => 'payments/chain-confirm',
     'chain/confirm-manual' => 'payments/chain-confirm-manual',
     //    CHECKS ==================================================================================
@@ -131,6 +132,7 @@ return [
     'change/transaction-time' => 'payments/change-transaction-date',
     'fines/count/<cottageNumber:[0-9]+(-a)?>' => 'payments/count-fines',
     'bill/reopen/<billId:[0-9]+>' => 'payments/bill-reopen',
+    'bill/reopen/<double:double>/<billId:[0-9]+>' => 'payments/bill-reopen',
 //    FINES ==================================================================================
     'fines/<action:enable|disable>/<finesId:[0-9]+>' => 'fines/change',
     'transaction/change-date/<id:[0-9]+(-a)?>' => 'payments/change-transaction-date',

@@ -9,6 +9,7 @@
 namespace app\controllers;
 
 
+use app\models\PDFHandler;
 use app\models\Report;
 use yii\web\Controller;
 use yii\filters\AccessControl;
@@ -40,6 +41,9 @@ class PrintController extends Controller
         $end /= 1000;
         // получу информацию по всем транзакциям участка
         $info = Report::cottageReport($start, $end, $cottageNumber);
+        // сохраню PDF
+        $reportPdf =  $this->renderPartial('cottage-report-pdf', ['transactionsInfo' => $info,'start' => $start,'end' => $end]);
+        PDFHandler::renderPDF($reportPdf, 'report.pdf', 'landscape');
         return $this->render('cottage-report', ['transactionsInfo' => $info,'start' => $start,'end' => $end]);
     }
 }

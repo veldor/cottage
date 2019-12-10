@@ -596,4 +596,8 @@ class ComplexPayment extends Model
         $identificator = $result['billId'];
         return ['billId' => $identificator, 'cottageNumber' => $cottageNumber, 'double' => !$main];
     }
+
+    static function isDouble($billId){
+        return !!stripos($billId, "A");
+    }
 }

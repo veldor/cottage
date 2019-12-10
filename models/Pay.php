@@ -88,30 +88,30 @@ class Pay extends Model
         throw new ExceptionWithStatus('Счёт не найден', 3);
     }
 
-    public static function reopenBill($billId)
+    public static function reopenBill($billId, $double)
     {
-        $billInfo = ComplexPayment::getBill($billId);
-        if (!empty($billInfo)) {
-            // если используется сумма с депозита и счёт не оплачивался- спишу её
-            // заморожу средства на депозите
-            if($billInfo->depositUsed > 0 && $billInfo->payedSumm == 0){
-                $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber);
-                $cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->deposit) - $billInfo->depositUsed);
-                $cottageInfo->save();
+            $billInfo = ComplexPayment::getBill($billId, $double);
+            if (!empty($billInfo)) {
+                // если используется сумма с депозита и счёт не оплачивался- спишу её
+                // заморожу средства на депозите
+                if($billInfo->depositUsed > 0 && $billInfo->payedSumm == 0){
+                    $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . ($double ? '-a' : ''));
+                    $cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->deposit) - $billInfo->depositUsed);
+                    $cottageInfo->save();
+                }
+                // если счёт открыт- пишу, что он открыт
+                if ($billInfo->isPayed === 0) {
+                    return ['status' => 2, 'message' => 'Счёт ещё открыт!'];
+                }
+                // проверю, не открыт ли счёт у данного участка
+                if (!empty(Pay::getUnpayedBill(Cottage::getCottageByLiteral($billInfo->cottageNumber)))) {
+                    return ['status' => 4, 'message' => 'Сначала нужно закрыть все открытые счета участка!'];
+                }
+                $billInfo->isPayed = 0;
+                $billInfo->save();
+                return ['status' => 1, 'message' => 'Счёт успешно открыт заново!'];
             }
-            // если счёт открыт- пишу, что он открыт
-            if ($billInfo->isPayed === 0) {
-                return ['status' => 2, 'message' => 'Счёт ещё открыт!'];
-            }
-            // проверю, не открыт ли счёт у данного участка
-            if (!empty(Pay::getUnpayedBill(Cottage::getCottageByLiteral($billInfo->cottageNumber)))) {
-                return ['status' => 4, 'message' => 'Сначала нужно закрыть все открытые счета участка!'];
-            }
-            $billInfo->isPayed = 0;
-            $billInfo->save();
-            return ['status' => 1, 'message' => 'Счёт успешно открыт заново!'];
-        }
-        return ['status' => 3, 'message' => 'Счёт не найден!'];
+            return ['status' => 3, 'message' => 'Счёт не найден!'];
     }
 
     public static function isDoubleBill($billId)

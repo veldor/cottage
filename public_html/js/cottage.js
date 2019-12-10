@@ -784,6 +784,105 @@ function basementFunctional() {
     });
 
     let changeBtn = $('#changeInfoButton');
+    let changeAddBtn = $('#changeAddInfoButton');
+    changeAddBtn.on('click.change', function (e) {
+        e.preventDefault();
+        let modal = makeModal('Изменение информации об участке.');
+        modal.find('div.modal-content').addClass('test-transparent');
+        sendAjax('get', '/get-form/change-add/' + cottageNumber, callback);
+
+        function callback(answer) {
+            if (answer.status === 1) {
+                let data = $(answer['data']);
+                modal.find('div.modal-body').append(data);
+                const membership = $('input#addcottage-membershippayfor');
+                membership.on('input.fill', function () {
+                    // если введённое значение совпадает с шаблоном ввода- отправлю запрос на проверку заполненности тарифов
+                    const re = /^\s*(\d{4})\W*([1-4])\s*$/;
+                    let found;
+                    if (found = membership.val().match(re)) {
+                        sendAjax('get', '/check/membership/interval/' + found[1] + '-' + found[2], callback);
+
+                        function callback(e) {
+                            if (e.status === 1) {
+                                // открою новое окно для заполнения тарифа
+                                if (membershipFillWindow)
+                                    membershipFillWindow.close();
+                                membershipFillWindow = window.open('fill/membership/' + found[1] + '-' + found[2], '_blank');
+                                membershipFillWindow.focus();
+                                $(membershipFillWindow).on('load.trigger', function () {
+                                    // при закрытии окна повторно отсылаю данные поля на проверку
+                                    $(membershipFillWindow).on('unload.test', function () {
+                                        membership.trigger('input');
+                                        membership.trigger('change');
+                                    });
+                                })
+                            } else if (e.status === 2) {
+                                if (membershipFillWindow)
+                                    membershipFillWindow.close();
+                            }
+                        }
+                    }
+                });
+                // парсинг имени
+                let namePattern = /^\s*([ёа-я-]+)\s+([ёа-я]+)\s+([ёа-я]+)\s*$/i;
+                let nameInputs = modal.find('input#addcottage-cottageownerpersonals, input#addcottage-cottagecontacterpersonals');
+                nameInputs.on('blur.testName', function () {
+                    let match;
+                    match = $(this).val().match(namePattern);
+                    if (match) {
+                        let text = "Фамилия: " + match[1] + ", имя: " + match[2] + ", отчество: " + match[3];
+                        $(this).parent().find("div.hint-block").text(text);
+                    } else {
+                        $(this).parent().find("div.hint-block").html('<b class="text-success">Обязательное поле.</b> Буквы, пробелы и тире.');
+                    }
+                });
+
+                // парсинг номера телефона
+                let phoneInputs = modal.find('input#addcottage-cottageownerphone, input#addcottage-cottagecontacterphone');
+                phoneInputs.on('input.testName', function () {
+                    let hint = $(this).parent().find('div.hint-block');
+                    let link = $(this).val();
+                    let filtredVal = link.replace(/[^0-9]/g, '');
+                    if (filtredVal.length === 7) {
+                        hint.html('Распознан номер +7 831 ' + filtredVal.substr(0, 3) + '-' + filtredVal.substr(3, 2) + '-' + filtredVal.substr(5, 2));
+                    } else if (filtredVal.length === 10) {
+                        hint.html('Распознан номер +7 ' + filtredVal.substr(0, 3) + ' ' + filtredVal.substr(3, 3) + '-' + filtredVal.substr(6, 2) + '-' + filtredVal.substr(8, 2));
+                    } else if (filtredVal.length === 11) {
+                        hint.html('Распознан номер +7 ' + filtredVal.substr(1, 3) + ' ' + filtredVal.substr(4, 3) + '-' + filtredVal.substr(7, 2) + '-' + filtredVal.substr(9, 2));
+                    } else if (link.length > 0) {
+                        hint.html('Номер не распознан!');
+                    } else {
+                        hint.html('<b class="text-info">Необязательное поле.</b> Десять цифр, без +7.');
+                    }
+                });
+
+                let addContacter = modal.find('input#addcottage-hascontacter');
+                let contacterDiv = modal.find('fieldset#contacterInfo');
+                addContacter.on('change.switch', function () {
+                    if ($(this).prop('checked'))
+                        contacterDiv.removeClass('hidden');
+                    else
+                        contacterDiv.addClass('hidden');
+                });
+                data.on('submit', function (e) {
+                    e.preventDefault();
+                    let i = 0;
+                    let loadedForm;
+                    while (data[i]) {
+                        if (data[i].nodeName === "FORM") {
+                            loadedForm = data[i];
+                            break;
+                        }
+                        i++;
+                    }
+                    const url = "/add-cottage/save/change-add";
+                    sendAjax('post', url, simpleAnswerHandler, loadedForm, true);
+                })
+
+            }
+        }
+    });
     changeBtn.on('click.change', function (e) {
         e.preventDefault();
         let modal = makeModal('Изменение информации об участке.');
@@ -1004,7 +1103,7 @@ function editBill(identificator, double) {
 
             function reopenClosedBill() {
                 if (double) {
-                    makeInformer('info', 'Повторное открытие счёта', 'Сообщите мне о том, что увидели это сообщение при попытке открытия счёта');
+                    sendAjax('post', '/bill/reopen/double/' + identificator, simpleAnswerHandler);
                 } else {
                     sendAjax('post', '/bill/reopen/' + identificator, simpleAnswerHandler);
                 }

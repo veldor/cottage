@@ -130,4 +130,9 @@ class CashHandler extends Model
         $summ = CashHandler::toRubles($summ);
         return str_replace(',', '.', $summ);
     }
+
+    public static function countPartialPercent(float $plannedTotal, float $payedWhole)
+    {
+        return round($payedWhole / $plannedTotal, 4) * 100;
+    }
 }

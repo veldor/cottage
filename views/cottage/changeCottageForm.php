@@ -9,6 +9,7 @@ $form = ActiveForm::begin(['id' => 'changeCottageForm', 'options' => ['class' =>
 /** @var AddCottage $matrix */
 echo "<fieldset class='color-salad'><legend>Сведения об участке</legend>";
 echo $form->field($matrix, 'cottageNumber', ['template' => "{input}"])->hiddenInput()->label(false);
+echo $form->field($matrix, 'masterId', ['template' => "{input}"])->hiddenInput()->label(false);
 echo $form->field($matrix, 'fullChangable', ['template' => "{input}"])->hiddenInput()->label(false);
 echo $form->field($matrix, 'haveRights', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}

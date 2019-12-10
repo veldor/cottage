@@ -24,32 +24,47 @@ class TransactionsHandler extends Model
     }
 
 
+    /**
+     * @param $billId
+     * @param $transactionId
+     * @return TransactionComparison
+     * @throws ExceptionWithStatus
+     */
     public static function handle($billId, $transactionId)
     {
+        // обработаю счёт с дополнительного участка
+        $isDouble = ComplexPayment::isDouble($billId);
+
         // получу информацию о счёте и транзакции
-        $billInfo = ComplexPayment::getBill($billId);
-        if(empty($billInfo)){
+        $billInfo = ComplexPayment::getBill($billId, $isDouble);
+        if (empty($billInfo)) {
             throw new ExceptionWithStatus("Счёт не найден", 6);
         }
         $transactionInfo = self::getTransaction($transactionId);
-        if(empty($transactionInfo)){
+        if (empty($transactionInfo)) {
             throw new ExceptionWithStatus("Транзакция не найдена", 7);
         }
-        $cottageInfo = Cottage::getCottageInfo($billInfo->cottageNumber);
-        if($billInfo->isPayed){
+        $cottageInfo = Cottage::getCottageInfo($billInfo->cottageNumber, $isDouble);
+
+        if ($billInfo->isPayed) {
             throw new ExceptionWithStatus("Счёт закрыт", 2);
         }
-        if(!empty($transactionInfo->bounded_bill_id)){
+        if (!empty($transactionInfo->bounded_bill_id)) {
             throw new ExceptionWithStatus("Транзакция уже связана со счётом " . $transactionInfo->bounded_bill_id, 3);
         }
+
+        // проверю, не осуществляется ли попытка преждевременной оплаты членских взносов
+        if (MembershipHandler::noTimeForPay($billInfo, $cottageInfo)) {
+            throw new ExceptionWithStatus("Попытка оплаты кватрала членских платежей вне очереди ", 4);
+        }
+
         // проверю суммы счёта\транзакции
         $billSumm = CashHandler::toRubles($billInfo->totalSumm);
         $fromDeposit = CashHandler::toRubles($billInfo->depositUsed);
         $discount = CashHandler::toRubles($billInfo->discount);
-        if(!empty($billInfo->payedSumm)){
+        if (!empty($billInfo->payedSumm)) {
             $payedBefore = CashHandler::toRubles($billInfo->payedSumm);
-        }
-        else{
+        } else {
             $payedBefore = 0;
         }
         $fullSumm = CashHandler::toRubles($billSumm - $fromDeposit - $discount - $payedBefore);
@@ -58,7 +73,10 @@ class TransactionsHandler extends Model
         $comparsion = new TransactionComparison();
         $comparsion->billId = $billId;
         $comparsion->transactionId = $transactionId;
-        $comparsion->billCottageNumber = $billInfo->cottageNumber;
+        if ($isDouble)
+            $comparsion->billCottageNumber = $billInfo->cottageNumber . '-A';
+        else
+            $comparsion->billCottageNumber = $billInfo->cottageNumber;
         $comparsion->transactionCottageNumber = $transactionInfo->account_number;
         $comparsion->billFio = $cottageInfo->cottageOwnerPersonals;
         $comparsion->transactionFio = $transactionInfo->fio;
@@ -79,10 +97,9 @@ class TransactionsHandler extends Model
     public function changeDate()
     {
         // найду транзакцию
-        if(!$this->double){
+        if (!$this->double) {
             $transaction = Table_transactions::findOne($this->id);
-        }
-        else{
+        } else {
             $transaction = Table_transactions_double::findOne($this->id);
         }
         $transaction->payDate = TimeHandler::getCustomTimestamp($this->payDate);
@@ -93,11 +110,10 @@ class TransactionsHandler extends Model
 
     public function fill($id)
     {
-        if(GrammarHandler::isMain($id)){
+        if (GrammarHandler::isMain($id)) {
             $transaction = Table_transactions::findOne($id);
             $this->double = 0;
-        }
-        else{
+        } else {
             $transaction = Table_transactions_double::findOne(GrammarHandler::getNumber($id));
             $this->double = 1;
         }

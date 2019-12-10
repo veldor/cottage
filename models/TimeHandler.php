@@ -605,6 +605,7 @@ class TimeHandler extends Model {
         $nowTimestamp = self::getCurrentTimestamp();
         return $timestamp < $nowTimestamp;
     }
+
     public static function getPayUpQuarter($quarter){
         // получу первый месяц квартала
         $explodedQuarter = explode('-', $quarter);
@@ -668,4 +669,5 @@ class TimeHandler extends Model {
     {
         return strftime('%Y-%m-%d', $timestamp);
     }
+
 }
