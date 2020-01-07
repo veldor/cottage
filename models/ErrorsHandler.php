@@ -47,7 +47,10 @@ private static $sName = 'Повелитель';
 				throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
 			}
 		}
-		file_put_contents(self::$root . '/errors/' . 'errors.txt',  $errorInfo . "\r\n\r\n\r\n", FILE_APPEND);
+		// пишу ошибки в файл только если учётка не админская
+        if (!Yii::$app->user->can('manage')) {
+            file_put_contents(self::$root . '/errors/' . 'errors.txt', $errorInfo . "\r\n\r\n\r\n", FILE_APPEND);
+        }
 	}
 
 	public static function arrayToString($arr){

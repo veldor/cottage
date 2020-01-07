@@ -42,6 +42,8 @@ class PrintController extends Controller
         $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
         $start /= 1000;
         $end /= 1000;
+        // прибавлю 23 часа к значению конца периода
+        $end += 60 * 60 * 20;
         // получу информацию по всем транзакциям участка
         $info = Report::cottageReport($start, $end, $cottageNumber);
         // получу информацию о задолженностях участка

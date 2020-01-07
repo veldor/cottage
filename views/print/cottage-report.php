@@ -74,17 +74,19 @@ if (!empty($months)) {
                         $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
                         // теперь попробую найти оплату по данному пени
                         $savedFine = Table_penalties::findOne(['cottage_number' => $cottageInfo->cottageNumber, 'pay_type' => 'power', 'period' => $month->month]);
-                        $payedFines = Table_payed_fines::find()->where(['fine_id' => $savedFine->id])->andWhere(['<', 'pay_date', $end])->all();
-                        $payedFineAmount = 0;
-                        if (!empty($payedFines)) {
-                            foreach ($payedFines as $payedFine) {
-                                $payedFineAmount += CashHandler::toRubles($payedFine->summ);
+                        if($savedFine->is_enabled){
+                            $payedFines = Table_payed_fines::find()->where(['fine_id' => $savedFine->id])->andWhere(['<', 'pay_date', $end])->all();
+                            $payedFineAmount = 0;
+                            if (!empty($payedFines)) {
+                                foreach ($payedFines as $payedFine) {
+                                    $payedFineAmount += CashHandler::toRubles($payedFine->summ);
+                                }
                             }
-                        }
-                        $fineDuty = CashHandler::toRubles($totalFines - $payedFineAmount);
-                        if ($fineDuty > 0) {
-                            $finesDetails .= "Э* " . $month->month . ' : ' . $fineDuty . "<br/>\n";
-                            $finesSumm += $fineDuty;
+                            $fineDuty = CashHandler::toRubles($totalFines - $payedFineAmount);
+                            if ($fineDuty > 0) {
+                                $finesDetails .= "Э* " . $month->month . ' : ' . $fineDuty . "<br/>\n";
+                                $finesSumm += $fineDuty;
+                            }
                         }
 
                     }
@@ -137,7 +139,6 @@ if (!empty($list)) {
         if (empty($payed)) {
             $membershipDetails .= $item . ' : ' . $accrued . "<br/>\n";
             $total += $accrued;
-
             $payUp = TimeHandler::getPayUpQuarterTimestamp($item);
             if ($payUp < FinesHandler::START_POINT) {
                 $payUp = FinesHandler::START_POINT;
@@ -176,7 +177,7 @@ if (!empty($list)) {
                 $payedAmount += CashHandler::toRubles($pay->summ);
             }
             $payedAmount = CashHandler::toRubles($payedAmount);
-            if ($payedAmount < $total) {
+            if ($payedAmount < $accrued) {
                 $difference = CashHandler::toRubles($accrued - $payedAmount);
                 $membershipDetails .= $item . ' : ' . $difference . "<br/>\n";
                 $total += $difference;
@@ -246,7 +247,6 @@ foreach ($yearsList as $year) {
                             $finesDetails .= "Ц* " . $item . ' : ' . $fineDuty . "<br/>\n";
                             $finesSumm += $fineDuty;
                         }
-
                     }
                 }
             }
@@ -257,20 +257,22 @@ foreach ($yearsList as $year) {
                 $payedAmount += CashHandler::toRubles($pay->summ);
             }
             $payedAmount = CashHandler::toRubles($payedAmount);
-            if ($payedAmount < $total) {
-                $difference = CashHandler::toRubles($accrued - $payedAmount);
-                $targetDetails .= $year . ' : ' . $difference . "<br/>\n";
-                $total += $difference;
+            if ($payedAmount < $accrued) {
+                // проверю, есть ли задолженность в таблице, если нет- пропущу
+                $dutyInTable = TargetHandler::getDebt($cottageInfo);
+                if(!empty($dutyInTable[$year])){
+                    $difference = CashHandler::toRubles($accrued - $payedAmount);
+                    $targetDetails .= $year . ' : ' . $difference . "<br/>\n";
+                    $total += $difference;
+                }
             }
-            // проверю, есть ли счета
+            // проверю пени
             $payUp = Table_tariffs_target::find()->where(['year' => $year])->one()->payUpTime;
             if ($payUp < FinesHandler::START_POINT) {
                 $payUp = FinesHandler::START_POINT;
             }
             // если месяц не оплачен и прошел срок выплат- считаю пени
             if ($payUp < $end) {
-                // посчитаю сумму пени
-                // посчитаю количество дней задолженности
                 $dayDifference = TimeHandler::checkDayDifference($payUp, $end);
                 if ($dayDifference > 0) {
                     $finesPerDay = CashHandler::countPercent($accrued, FinesHandler::PERCENT);
@@ -287,13 +289,13 @@ foreach ($yearsList as $year) {
                         }
                         $fineDuty = CashHandler::toRubles($totalFines - $payedFineAmount);
                         if ($fineDuty > 0) {
-                            $finesDetails .= "Ц* " . $year . ' : ' . $fineDuty . "<br/>\n";
+                            $finesDetails .= "Ц* " . $item . ' : ' . $fineDuty . "<br/>\n";
                             $finesSumm += $fineDuty;
                         }
                     }
-
                 }
             }
+
         }
         $targetDuty = CashHandler::toRubles($total);
     }
