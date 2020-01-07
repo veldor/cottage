@@ -129,12 +129,16 @@ class MembershipHandler extends Model {
             if(!empty($tariffs)){
                 foreach ($tariffs as $tariff) {
                     $answerItem = new MembershipDebt();
+                    $answerItem->tariff = $tariff;
                     $answerItem->quarter = $tariff->quarter;
                     $answerItem->tariffFixed = $tariff->fixed_part;
                     $answerItem->tariffFloat = $tariff->changed_part;
                     $answerItem->amount = Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottage->cottageSquare);
                     if(!empty($partialPayed) && $tariff->quarter === $partialPayed['date']){
                         $answerItem->partialPayed = $partialPayed['summ'];
+                    }
+                    else{
+                        $answerItem->partialPayed = 0;
                     }
                     $answer[] = $answerItem;
                 }

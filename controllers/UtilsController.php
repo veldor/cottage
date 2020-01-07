@@ -4,6 +4,7 @@
 namespace app\controllers;
 
 
+use app\models\Fix;
 use app\models\PenaltiesHandler;
 use app\models\Utils;
 use Yii;
@@ -24,7 +25,7 @@ class UtilsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['addresses', 'count-penalties'],
+                        'actions' => ['addresses', 'count-penalties', 'fix'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -39,5 +40,11 @@ class UtilsController extends Controller
     public function actionCountPenalties(){
         Yii::$app->response->format = Response::FORMAT_JSON;
         return PenaltiesHandler::countPenalties();
+    }
+    public function actionFix(){
+        // пофиксирую, если есть что
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        Fix::fix();
+        return ['status' => 1];
     }
 }

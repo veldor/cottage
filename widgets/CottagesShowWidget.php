@@ -51,7 +51,13 @@ class CottagesShowWidget extends Widget{
                 $content = '';
                 $smoothSumm = null;
                 if($cottage->targetDebt > 0){
-                    $smoothSumm = CashHandler::toSmoothRubles($cottage->targetDebt);
+                    try{
+                        $smoothSumm = CashHandler::toSmoothRubles($cottage->targetDebt);
+                    }
+                    catch (\Exception $e){
+                        echo $cottage->targetDebt;
+                        die;
+                    }
                     $content .= "<p>Целевые: <b class=\"text-danger\">{$smoothSumm}</b></p>";
                 }
                 if($cottage->powerDebt > 0){

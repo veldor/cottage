@@ -13,8 +13,8 @@ class FinesHandler extends Model
 
     public static $types = ['membership' => 'членские взносы', 'target' => 'целевые взносы', 'power' => 'электроэнергия'];
 
-    private const PERCENT = 0.5;
-    private const START_POINT = 1561939201;
+    public const PERCENT = 0.5;
+    public const START_POINT = 1561939201;
 
     public static function getFines($cottageNumber)
     {
@@ -353,5 +353,10 @@ class FinesHandler extends Model
                 }
             }
         }
+    }
+
+    public static function getFinesForDate(Table_cottages $cottageInfo, string $end)
+    {
+
     }
 }

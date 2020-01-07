@@ -196,6 +196,43 @@ class Cloud extends Model
         }
     }
 
+    /**
+     * @param $info
+     * @param $subject
+     * @param $body
+     * @param $file
+     * @param $filename
+     * @return array
+     * @throws ExceptionWithStatus
+     */
+    public static function sendMessageWithFile($info, $subject, $body, $file, $filename): array
+    {
+        $body = "<h1 class='text-center'>Добрый день, %USERNAME%</h1>" . $body;
+        $text = Yii::$app->controller->renderPartial('/mail/simple_template', ['text' => $body]);
+        $main = Cottage::isMain($info);
+        $ownerMail = $info->cottageOwnerEmail;
+        if($main){
+            $contacterEmail = $info->cottageContacterEmail;
+        }
+        try {
+            if (!empty($ownerMail)) {
+                $finalText = GrammarHandler::insertPersonalAppeal($text, $info->cottageOwnerPersonals);
+                self::send($ownerMail, GrammarHandler::handlePersonals($info->cottageOwnerPersonals), $subject, $finalText, ['url' => $file,'name' =>  $filename]);
+                // отправлю письмо адресату
+            }
+            if (!empty($contacterEmail)) {
+                $finalText = GrammarHandler::insertPersonalAppeal($text, $info->cottageContacterPersonals);
+                self::send($contacterEmail, GrammarHandler::handlePersonals($info->cottageContacterPersonals), $subject, $finalText, ['url' => $file,'name' =>  $filename]);
+                // отправлю письмо адресату
+            }
+            $finalText = GrammarHandler::insertPersonalAppeal($text, $info->cottageOwnerPersonals);
+            self::send(Info::MAIL_REPORTS_ADDRESS, GrammarHandler::handlePersonals($info->cottageOwnerPersonals), $subject, $finalText, ['url' => $file,'name' =>  $filename]);
+            return ['status' => 1];
+        } catch (ExceptionWithStatus $e) {
+            throw $e;
+        }
+    }
+
     public static function sendInvoiceMail($text, $billInfo)
     {
         // проверю получателей

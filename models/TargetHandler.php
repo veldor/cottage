@@ -294,7 +294,7 @@ class TargetHandler extends Model
         } else {
             $pay->setAttribute('payed', $summ + $payed);
         }
-        $cottageInfo->targetDebt -= $summ;
+        $cottageInfo->targetDebt = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->targetDebt) - CashHandler::toRubles($summ));
         $cottageInfo->targetPaysDuty = $dom->save();
         // зарегистрирую платёж
         if ($main) {

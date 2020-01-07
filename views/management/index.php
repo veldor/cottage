@@ -16,5 +16,6 @@ $this->title = 'Всякие разные настройки';
         }?>
         <button class="btn btn-primary" id="checkUpdateButton">Проверить обновления </button>
         <button class="btn btn-default" id="sendBackupButton"><span class="text-info">Отправить бекап</span></button>
+        <button class="btn btn-default" id="fixButton"><span class="text-info">Нажать для исправления</span></button>
     </div>
 </div>

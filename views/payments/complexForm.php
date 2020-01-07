@@ -57,7 +57,7 @@ echo "<div class='text-center'> <h3>$cottageName</h3>";
 if (!empty($membershipDuty)) {
     echo "<table class='table table-condensed table-striped'><tr><th>Платить</th><th>Квартал</th><th>Сумма</th><th>К оплате</th></tr>";
     foreach ($membershipDuty as $item) {
-        $summToPay = $item->amount - $item->partialPayed;
+        $summToPay = CashHandler::toRubles(CashHandler::toRubles($item->amount) - CashHandler::toRubles($item->partialPayed));
         if ($summToPay > 0) {
             echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[membership][{$item->quarter}][value]' name='ComplexPayment[membership][{$item->quarter}][pay]'/></td><td>{$item->quarter}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$item->quarter}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
         }

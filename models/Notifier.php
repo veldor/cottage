@@ -327,4 +327,9 @@ EOT;
         // отправлю сообщение с заданным текстом по заданному адресу
         Cloud::send($address, $person, $subject, $text);
     }
+
+    public static function sendNotificationWithFile($cottageInfo, $subject, $body, $file, $filename)
+    {
+        Cloud::sendMessageWithFile($cottageInfo, $subject, $body, $file, $filename);
+    }
 }

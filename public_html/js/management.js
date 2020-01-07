@@ -4,6 +4,11 @@ $(function () {
     globalOptions();
 });
 function handleFixes() {
+    const fixBtn = $('#fixButton');
+    fixBtn.on('click.fix', function () {
+       sendAjax('post', '/fix', simpleAnswerHandler);
+    });
+
     const refPower = $('button#refreshPowerData');
     refPower.on('click', function () {
         sendAjax('post', '/fix/refresh-power', callback);

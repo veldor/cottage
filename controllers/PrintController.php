@@ -47,7 +47,7 @@ class PrintController extends Controller
         // получу информацию о задолженностях участка
         
         // сохраню PDF
-        $reportPdf =  $this->renderPartial('cottage-report-pdf', ['transactionsInfo' => $info,'start' => $start,'end' => $end]);
+        $reportPdf =  $this->renderPartial('cottage-report-pdf', ['transactionsInfo' => $info,'start' => $start,'end' => $end, 'cottageInfo' => $cottageInfo]);
         PDFHandler::renderPDF($reportPdf, 'report.pdf', 'landscape');
         return $this->render('cottage-report', ['transactionsInfo' => $info,'start' => $start,'end' => $end, 'cottageInfo' => $cottageInfo]);
     }

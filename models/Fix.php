@@ -9,6 +9,8 @@
 namespace app\models;
 
 
+use app\models\tables\Table_bill_fines;
+use app\models\tables\Table_penalties;
 use yii\base\Model;
 
 class Fix extends Model
@@ -237,7 +239,18 @@ class Fix extends Model
         }
     }
 
-    public static function fix()
+    public static function fix(){
+        // удалю из базы данных все пени, которые не выставлены в счета
+        $fines = Table_penalties::find()->all();
+        foreach ($fines as $fine) {
+            // проверю, не выставлено ли пени в счёт
+            if(!Table_bill_fines::find()->where(['fines_id' => $fine->id])->count()){
+                $fine->delete();
+            }
+        }
+    }
+
+    /*public static function fix()
     {
         $partial = [];
         // найду все транзакции
@@ -555,5 +568,5 @@ class Fix extends Model
                 $bill->save();
             }
         }
-    }
+    }*/
 }

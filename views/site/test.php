@@ -3,6 +3,7 @@
 use app\assets\AppAsset;
 use app\models\CashHandler;
 use app\models\Cottage;
+use app\models\MembershipHandler;
 use app\models\PowerHandler;
 use app\models\Table_cottages;
 use app\models\Table_payed_power;
@@ -13,11 +14,34 @@ use yii\web\View;
 
 AppAsset::register($this);
 
-// получу все задолженности по всем участкам
+// получу задолженности по членским
+echo '<?xml version="1.0"?><debt>';
 $cottages = Cottage::getRegistred();
 foreach ($cottages as $cottage) {
-    $debt = Cottage::getFullDebt($cottage);
+    // получу задолженность по членским взносам
+    $debt = MembershipHandler::getDebt($cottage);
+    $duty = 0;
+    if(!empty($debt)){
+        $details = "";
+        foreach ($debt as $item) {
+            if($item->quarter < "2020-1"){
+                $duty += $item->amount;
+                $details .= "{$item->quarter} : {$item->amount} \n";
+            }
+        }
+        if($duty > 0){
+            echo "<item><участок>" . $cottage->cottageNumber . "</участок><детали>$details</детали><долг>" . CashHandler::toRubles($duty) . "</долг></item>\n";
+
+        }
+    }
+    //echo $cottage-> cottageNumber . " > " . $debt->
 }
+echo "</debt>";
+// получу все задолженности по всем участкам
+/*$cottages = Cottage::getRegistred();
+foreach ($cottages as $cottage) {
+    $debt = Cottage::getFullDebt($cottage);
+}*/
 
 /*$array = ["Апрель" => "2019-04", "Май" => "2019-05", "Июнь" => "2019-06", "Июль" => "2019-07", "Август" => "2019-08", "Сентябрь" => "2019-09", ];
 $cottages = Table_cottages::find()->orderBy('cottageNumber')->all();

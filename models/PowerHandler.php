@@ -489,15 +489,17 @@ class PowerHandler extends Model
                 } else {
                     $partialPayed = 0;
                 }
-
-                $answerItem = new PowerDebt();
-                $answerItem->powerData = $rate;
-                $answerItem->tariff = Table_tariffs_power::findOne(['targetMonth' => $rate->month]);
-                // проверю оплату
-                $answerItem->partialPayed = $partialPayed;
-                // посчитаю сумму без учёта льготного лимита
-                $answerItem->withoutLimitAmount = CashHandler::toRubles($answerItem->powerData->difference * $answerItem->tariff->powerOvercost);
-                $answer[] = $answerItem;
+                // если оплачено меньше суммы долга
+                if(CashHandler::toRubles($partialPayed) != $rate->totalPay){
+                    $answerItem = new PowerDebt();
+                    $answerItem->powerData = $rate;
+                    $answerItem->tariff = Table_tariffs_power::findOne(['targetMonth' => $rate->month]);
+                    // проверю оплату
+                    $answerItem->partialPayed = $partialPayed;
+                    // посчитаю сумму без учёта льготного лимита
+                    $answerItem->withoutLimitAmount = CashHandler::toRubles($answerItem->powerData->difference * $answerItem->tariff->powerOvercost);
+                    $answer[] = $answerItem;
+                }
             }
         }
         return $answer;
