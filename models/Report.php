@@ -178,7 +178,7 @@ class Report extends Model
                         $toDepositSumm = 0;
                     }
                     $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
-                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . "</td></tr>";
+                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}</td><td class='quarter-cell'>" .substr($memList, 0, strlen($memList) - 6) . "</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>" . substr($powCounterValue, 0, strlen($powCounterValue) - 6) . "</td><td class='pow-total'>" . substr($powUsed, 0, strlen($powUsed) - 6) . "</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>" . substr($tarList, 0, strlen($tarList) - 6) ."</td><td class='target-total'>$tarSumm</td><td>" . substr($singleList, 0, strlen($singleList) - 6) . "</td><td>$singleSumm</td><td>" . substr($finesList, 0, strlen($finesList) - 6) . "</td><td>$finesSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . "</td></tr>";
                 } else {
                     $date = TimeHandler::getDateFromTimestamp($transaction->bankDate);
                     // получу оплаченные сущности
