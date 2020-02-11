@@ -1,4 +1,4 @@
-const cottageNumber = location.pathname.split('/')[2];
+        const cottageNumber = location.pathname.split('/')[2];
 
 function individualTariff() {
     let individualTariffActivator = $('#indivTariffBtn');

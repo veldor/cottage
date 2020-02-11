@@ -5,6 +5,7 @@ use app\models\CashHandler;
 use app\models\Cottage;
 use app\models\DOMHandler;
 use app\models\GrammarHandler;
+use app\models\Reminder;
 use app\models\Table_payed_power;
 use app\models\Table_power_months;
 use app\models\TimeHandler;
@@ -17,6 +18,9 @@ use yii\web\View;
 ShowLoadingAsset::register($this);
 CottageAsset::register($this);
 
+if(Reminder::requreRemind()){
+    Yii::$app->session->addFlash('info', 'Пора напомнить о членских взносах! <a href="/membership/remind" target="_blank" class="btn btn-default"><span class="text-info">Напомнить</span></a>');
+}
 
 /** @var Cottage $cottageInfo */
 $this->title = 'Участок № ' . $cottageInfo->globalInfo->cottageNumber;

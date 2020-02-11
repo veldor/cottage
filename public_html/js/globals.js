@@ -781,21 +781,21 @@ function stringify(data) {
     }
 }
 
-// ТИПИЧНАЯ ОБРАБОТКА ОТВЕТА AJAX
-function simpleAnswerHandler(data) {
-    if (data['status']) {
-        if (data['status'] === 1) {
-            let message = data['message'] ? data['message'] : 'Операция успешно завершена';
-            makeInformerModal("Успешно", message);
+    // ТИПИЧНАЯ ОБРАБОТКА ОТВЕТА AJAX
+    function simpleAnswerHandler(data) {
+        if (data['status']) {
+            if (data['status'] === 1) {
+                let message = data['message'] ? data['message'] : 'Операция успешно завершена';
+                makeInformerModal("Успешно", message);
+            }
+            else {
+                makeInformer('info', 'Ошибка, статус: ' + data['status'], stringify(data['message']));
+            }
         }
         else {
-            makeInformer('info', 'Ошибка, статус: ' + data['status'], stringify(data['message']));
+            makeInformer('alert', 'Ошибка', stringify(data));
         }
     }
-    else {
-        makeInformer('alert', 'Ошибка', stringify(data));
-    }
-}
 // ТИПИЧНАЯ ОБРАБОТКА ОТВЕТА AJAX
 function simpleAnswerInformerHandler(data) {
     if (data['status']) {

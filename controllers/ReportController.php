@@ -11,7 +11,10 @@ namespace app\controllers;
 use app\models\Cottage;
 use app\models\GrammarHandler;
 use app\models\Notifier;
+use app\models\Reminder;
 use app\models\Report;
+use app\models\Table_cottages;
+use app\models\TimeHandler;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -31,7 +34,7 @@ class ReportController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['debt-details', 'send'],
+                        'actions' => ['debt-details', 'send', 'remind-membership', 'send-membership-remind', 'membership-remind-finished'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -51,5 +54,24 @@ class ReportController extends Controller
         Notifier::sendNotificationWithFile($cottageInfo, "Сверка", $text, $file, "отчёт по платежам.pdf");
         Yii::$app->response->format = Response::FORMAT_JSON;
         return ['status' => 1, 'message' => "Отправлено"];
+    }
+
+    public function actionRemindMembership(): string
+    {
+        // получу участки, которые не оплатили текущий квартал
+        $debtors = Table_cottages::find()->where(['<', 'membershipPayFor', TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())])->all();
+        return $this->render('debtors_list', ['debtors' => $debtors]);
+    }
+    public function actionSendMembershipRemind($cottageNumber): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
+        Notifier::sendNotification($cottageInfo, 'Срок оплаты взносов', 'Сегодня последний день установленного срока для оплаты членского взноса за ' . TimeHandler::getFullFromShortQuarter(TimeHandler::getCurrentQuarter()) . '. Пожалуйста, не забывайте производить платежи своевременно. С завтрашнего дня при отсутствии оплаты начнется начисление пени.');
+        return ['status' => 1];
+    }
+    public function actionMembershipRemindFinished(): void
+    {
+        // завершу рассылку
+        Reminder::finishRemind();
     }
 }
