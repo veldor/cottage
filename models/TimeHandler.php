@@ -704,4 +704,21 @@ class TimeHandler extends Model
         return $list;
     }
 
+    public static function isLastDay(): bool
+    {
+        // нас интересует первый месяц квартала
+        $date = new DateTime();
+        $month = (int)$date->format('m');
+        if($month % 3 === 1){
+            $currentDay = $date->format('d');
+            $date->modify('last day of this month');
+            $lastDay = $date->format('d');
+            if($currentDay === $lastDay){
+                // сегодня день х
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

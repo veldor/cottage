@@ -37,7 +37,7 @@ class ComparisonHandler extends Model
         // найду платёж
         $billInfo = ComplexPayment::getBill($this->billId, $isDouble);
         $transactionInfo = TransactionsHandler::getTransaction($this->transactionId);
-        if (empty($billInfo) || empty($transactionInfo)) {
+        if ($billInfo === null || $transactionInfo === null) {
             throw new ExceptionWithStatus('Не найден элемент транзакции', 2);
         }
         // получу необходимую для оплаты сумму
@@ -196,10 +196,10 @@ class ComparisonHandler extends Model
             $transactionInfo->save();
             $billInfo->save();
             $cottageInfo->save();
-            if(!!$this->sendConfirmation){
+            $transaction->commitTransaction();
+            if((bool)$this->sendConfirmation){
                 Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
             }
-            $transaction->commitTransaction();
             return ['status' => 1];
         }
         else{
@@ -377,14 +377,14 @@ class ComparisonHandler extends Model
             $transactionInfo->bounded_bill_id = $billInfo->id;
             $transactionInfo->save();
             $billInfo->save();
-            if(!empty($additionalCottageInfo)){
+            if($additionalCottageInfo !== null){
                 $additionalCottageInfo->save();
             }
             $cottageInfo->save();
-            if(!!$this->sendConfirmation){
+            $transaction->commitTransaction();
+            if((bool)$this->sendConfirmation){
                 Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
             }
-            $transaction->commitTransaction();
             return ['status' => 1];
         }
 
@@ -398,7 +398,7 @@ class ComparisonHandler extends Model
     {
         $billInfo = ComplexPayment::getBill($this->billId);
         $transactionInfo = TransactionsHandler::getTransaction($this->transactionId);
-        if (empty($billInfo) || empty($transactionInfo)) {
+        if ($billInfo === null || $transactionInfo === null) {
             throw new ExceptionWithStatus('Не найден элемент транзакции', 2);
         }
         $transactionInfo->bounded_bill_id = $this->billId;

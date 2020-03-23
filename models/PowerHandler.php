@@ -916,7 +916,6 @@ class PowerHandler extends Model
         $this->month = TimeHandler::getCurrentShortMonth();
     }
 
-
     /**
      * @param $cottageNumber
      * @param $additional

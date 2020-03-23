@@ -4,6 +4,7 @@ namespace app\controllers;
 
 use app\models\Cottage;
 use app\models\migration\Migration;
+use app\models\Reminder;
 use app\models\TariffsKeeper;
 use app\models\YaAuth;
 use Yii;

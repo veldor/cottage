@@ -2,6 +2,7 @@
 
 /* @var $this yii\web\View */
 use app\assets\IndexAsset;
+use app\models\Reminder;
 use nirvana\showloading\ShowLoadingAsset;
 use app\widgets\CottagesShowWidget;
 
@@ -9,6 +10,10 @@ use app\widgets\CottagesShowWidget;
 /* @var $this yii\web\View */
 ShowLoadingAsset::register($this);
 IndexAsset::register($this);
+
+if(Reminder::requreRemind()){
+    Yii::$app->session->addFlash('info', 'Пора напомнить о членских взносах! <a href="/membership/remind" target="_blank" class="btn btn-default"><span class="text-info">Напомнить</span></a>');
+}
 
 $this->title = 'Центр управления';
 ?>

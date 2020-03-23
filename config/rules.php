@@ -143,4 +143,7 @@ return [
     'fill/counters' => 'filling/fill-counters',
     'report/send/<id:[0-9]+(-a)?>' => 'report/send',
     'fix' => 'utils/fix',
+    'membership/remind' => 'report/remind-membership',
+    'membership/remind/<cottageNumber:[0-9]+(-a)?>' => 'report/send-membership-remind',
+    'membership/remind-finished' => 'report/membership-remind-finished'
 ];
