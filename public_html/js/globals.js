@@ -1,7 +1,8 @@
+/*exported handleAjaxActivators */
 let navbar;
 
 function individualIntegrityCheckResults(result) {
-    if(result['hasErrors'] === 1){
+    if (result['hasErrors'] === 1) {
         // перенаправлю на страницу заполнения индивидуальных тарифов
         makeInformer('info', 'Не заполнены тарифы', 'Необходимо заполнить индивидуальные тарифы <br/> <a href="/individual/fill" target="_blank" class="btn btn-info">Заполнить</a>');
         //location.replace('/individual/fill');
@@ -12,6 +13,7 @@ function integrityChecks() {
     // проверю целостность системы индивидуальных тарифов
     sendSilentAjax('get', '/check/individual', individualIntegrityCheckResults);
 }
+
 $(function () {
     navbar = $('ul#w1');
     checkSoftwareUpdates();
@@ -21,19 +23,20 @@ $(function () {
     // активирую переход к участку по ссылке
     $('#goToCottageActivator').on('click.go', function () {
         let cottageValue = $('#goToCottageInput').val();
-        if(cottageValue){
+        if (cottageValue) {
             location.replace('/show-cottage/' + cottageValue);
         }
     });
     $('#goToCottageInput').on('keypress.go', function (e) {
-        if(e.charCode === 13){
+        if (e.charCode === 13) {
             let cottageValue = $('#goToCottageInput').val();
-            if(cottageValue){
+            if (cottageValue) {
                 location.replace('/show-cottage/' + cottageValue);
             }
         }
     });
 });
+
 function serialize(obj) {
     const str = [];
     for (let p in obj)
@@ -49,11 +52,9 @@ function sendAjax(method, url, callback, attributes, isForm) {
     // проверю, не является ли ссылка на арртибуты ссылкой на форму
     if (attributes && attributes instanceof jQuery && attributes.is('form')) {
         attributes = attributes.serialize();
-    }
-    else if (isForm) {
+    } else if (isForm) {
         attributes = $(attributes).serialize();
-    }
-    else {
+    } else {
         attributes = serialize(attributes);
     }
     if (method === 'get') {
@@ -77,8 +78,7 @@ function sendAjax(method, url, callback, attributes, isForm) {
             }
             //callback(false)
         });
-    }
-    else if (method === 'post') {
+    } else if (method === 'post') {
         $.ajax({
             data: attributes,
             method: method,
@@ -105,11 +105,9 @@ function sendSilentAjax(method, url, callback, attributes, isForm) {
     // проверю, не является ли ссылка на арртибуты ссылкой на форму
     if (attributes && attributes instanceof jQuery && attributes.is('form')) {
         attributes = attributes.serialize();
-    }
-    else if (isForm) {
+    } else if (isForm) {
         attributes = $(attributes).serialize();
-    }
-    else {
+    } else {
         attributes = serialize(attributes);
     }
     if (method === 'get') {
@@ -128,8 +126,7 @@ function sendSilentAjax(method, url, callback, attributes, isForm) {
             }
             callback(false)
         });
-    }
-    else if (method === 'post') {
+    } else if (method === 'post') {
         $.ajax({
             data: attributes,
             method: method,
@@ -235,8 +232,7 @@ function handleUnsended(e) {
         function callback(data) {
             if (data === '0') {
                 makeInformer('success', 'Успешно', 'Все сообщения успешно отправлены адресатам');
-            }
-            else {
+            } else {
                 makeInformer('warning', 'Неудача', 'Не удалось отправить сообщения. Возможно, вы используете нестабильное подключение к интернету. Попробуйте ещё раз позднее.');
             }
             checkMessages();
@@ -255,8 +251,7 @@ function handleUnsended(e) {
             if (data === '0') {
                 $('li#unsendedErrorsButton').remove();
                 makeInformer('success', 'Успешно', 'Ошибки успешно отправлены');
-            }
-            else {
+            } else {
                 makeInformer('warning', 'Неудача', 'Не удалось отправить сообщение. Возможно, вы используете нестабильное подключение к интернету. Попробуйте ещё раз позднее.');
             }
             checkMessages();
@@ -287,17 +282,14 @@ function answer(e) {
         // noinspection JSValidateTypes
         navbar.prepend('<li id="updatesButton"><a id="installUpdatesButton" href="/management/index" type="button" class="btn  btn-info btn-lg" data-toggle="tooltip" data-placement="bottom" title="Найдены обновнения ПО. Нажмите, чтобы установить."><span class="glyphicon glyphicon-cloud-download text-default"></span></a></li>');
         $('button#installUpdatesButton').tooltip();
-    }
-    else if (!e['status']) {
+    } else if (!e['status']) {
         // обновлений не найдено, убираю значок обновления, если он есть
         $('li#updatesButton').remove();
-    }
-    else if (e['status'] === 9) {
+    } else if (e['status'] === 9) {
         // noinspection JSValidateTypes
         navbar.prepend('<li id="no-auth"><a href="/management/index" id="no-auth-indicator" class="btn btn-default btn-lg" data-toggle="tooltip" data-placement="bottom" title="Необходимо войти в почтовый аккаунт"><span class="yandex-connect text-warning">Я</span></a></li>');
         $('span#no-auth-indicator').tooltip();
-    }
-    else if (e['status'] === 10) {
+    } else if (e['status'] === 10) {
         // noinspection JSValidateTypes
         navbar.prepend('<li id="no-connection"><a href="#" id="no-connection-indicator" class="btn btn-danger btn-lg" data-toggle="tooltip" data-placement="bottom" title="Отсутствует подключение к интернету. Обновления и отправка почты недоступны."><span class="glyphicon glyphicon-ban-circle text-default"></span></a></li>');
         $('span#no-connection-indicator').tooltip();
@@ -306,10 +298,10 @@ function answer(e) {
 
 // Функция вызова пустого модального окна
 function makeModal(header, text, delayed) {
-    if(delayed){
+    if (delayed) {
         // открытие модали поверх другой модали
         let modal = $("#myModal");
-        if(modal.length == 1){
+        if (modal.length == 1) {
             modal.modal('hide');
             let newModal = $('<div id="myModal" class="modal fade mode-choose"><div class="modal-dialog  modal-lg"><div class="modal-content"><div class="modal-header">' + header + '</div><div class="modal-body">' + text + '</div><div class="modal-footer"><button class="btn btn-danger"  data-dismiss="modal" type="button" id="cancelActionButton">Отмена</button></div></div></div>');
             modal.on('hidden.bs.modal', function () {
@@ -332,22 +324,22 @@ function makeModal(header, text, delayed) {
             return newModal;
         }
     }
-        if (!text)
-            text = '';
-        let modal = $('<div id="myModal" class="modal fade mode-choose"><div class="modal-dialog  modal-lg"><div class="modal-content"><div class="modal-header">' + header + '</div><div class="modal-body">' + text + '</div><div class="modal-footer"><button class="btn btn-danger"  data-dismiss="modal" type="button" id="cancelActionButton">Отмена</button></div></div></div>');
-        $('body').append(modal);
-        dangerReload();
-        modal.modal({
-            keyboard: true,
-            show: true
-        });
-        modal.on('hidden.bs.modal', function () {
-            normalReload();
-            modal.remove();
-            $('div.wrap div.container, div.wrap nav').removeClass('blured');
-        });
-        $('div.wrap div.container, div.wrap nav').addClass('blured');
-        return modal;
+    if (!text)
+        text = '';
+    let modal = $('<div id="myModal" class="modal fade mode-choose"><div class="modal-dialog  modal-lg"><div class="modal-content"><div class="modal-header">' + header + '</div><div class="modal-body">' + text + '</div><div class="modal-footer"><button class="btn btn-danger"  data-dismiss="modal" type="button" id="cancelActionButton">Отмена</button></div></div></div>');
+    $('body').append(modal);
+    dangerReload();
+    modal.modal({
+        keyboard: true,
+        show: true
+    });
+    modal.on('hidden.bs.modal', function () {
+        normalReload();
+        modal.remove();
+        $('div.wrap div.container, div.wrap nav').removeClass('blured');
+    });
+    $('div.wrap div.container, div.wrap nav').addClass('blured');
+    return modal;
 }
 
 function makeInformerModal(header, text, acceptAction, declineAction) {
@@ -383,8 +375,7 @@ function makeInformerModal(header, text, acceptAction, declineAction) {
         modal.modal('hide');
         if (acceptAction) {
             acceptAction();
-        }
-        else {
+        } else {
             location.reload();
         }
     });
@@ -425,8 +416,7 @@ function loadForm(url, modal, postUrl) {
                     if (e && e.status === 1) {
                         // успешно добавлено, перезагружаю страницу
                         location.reload();
-                    }
-                    else if (e && e.status === 0) {
+                    } else if (e && e.status === 0) {
                         // получаю список ошибок, вывожу его
                         let errorsList = '';
                         for (let i in e['errors']) {
@@ -481,7 +471,7 @@ function enableElement(elem, newText) {
 }
 
 function toRubles(summ) {
-    if (typeof(summ) === 'string')
+    if (typeof (summ) === 'string')
         summ = summ.replace(',', '.');
     summ = parseFloat(summ);
     return parseFloat(summ.toFixed(2));
@@ -529,8 +519,7 @@ function handleCashInput(input) {
         if ($(this).val().match(re)) {
             $(this).addClass('ready').removeClass('failed');
             $(this).parent().addClass('has-success').removeClass('has-error');
-        }
-        else {
+        } else {
             $(this).removeClass('ready').addClass('failed');
             $(this).parent().removeClass('has-success').addClass('has-error');
         }
@@ -538,8 +527,7 @@ function handleCashInput(input) {
     input.on('blur.int', function () {
         if ($(this).val().match(re)) {
             makeInputRight($(this));
-        }
-        else {
+        } else {
             makeInputWrong($(this));
         }
     });
@@ -587,21 +575,17 @@ function handlePowerInputs(modal, squareInput) {
             $(this).focus();
             makeInformer('info', 'Информация', 'Значение платежа должно быть больше нуля');
             par.addClass('has-error').removeClass('has-success');
-        }
-        else if ($(this).val() === '') {
+        } else if ($(this).val() === '') {
             $(this).focus();
             makeInformer('info', 'Информация', 'Введите сумму в рублях');
             par.addClass('has-error').removeClass('has-success');
-        }
-        else if (val >= summ) {
+        } else if (val >= summ) {
             $(this).focus();
             makeInformer('info', 'Информация', 'Сумма не может быть больше полной суммы платежа');
             par.addClass('has-error').removeClass('has-success');
-        }
-        else if ($(this).val().match(re)) {
+        } else if ($(this).val().match(re)) {
             par.removeClass('has-error').addClass('has-success');
-        }
-        else {
+        } else {
             $(this).focus();
             par.addClass('has-error').removeClass('has-success');
             makeInformer('danger', 'Ошибка', 'Неверное число!');
@@ -639,14 +623,12 @@ function handlePowerInputs(modal, squareInput) {
             // год оплачен полностью, убираю параметр disabled, добавляю параметр readonly, выставляю полную сумму платежа
             myInput.prop('disabled', false).addClass('readonly').removeClass('disabled').prop('readonly', true).val(toRubles(summ.text()));
             par.removeClass('has-error').addClass('has-success');
-        }
-        else if (type === 'no-payed') {
+        } else if (type === 'no-payed') {
             myInputHelp.text('');
             // год оплачен полностью, убираю параметр disabled, добавляю параметр readonly, выставляю полную сумму платежа
             myInput.prop('disabled', true).addClass('disabled').removeClass('readonly').prop('readonly', false).val(0);
             par.removeClass('has-error').addClass('has-success');
-        }
-        else if (type === 'partial') {
+        } else if (type === 'partial') {
             // год оплачен полностью, убираю параметр disabled, добавляю параметр readonly, выставляю полную сумму платежа
             myInput.prop('disabled', false).removeClass('readonly disabled').prop('readonly', false).val('').focus();
             par.removeClass('has-error has-success');
@@ -683,8 +665,7 @@ function handlePowerInputs(modal, squareInput) {
                             firstUnfilled.parents('div.col-lg-5').eq(0).find('div.help-block').text("Выберите один из вариантов");
                             par.addClass('has-error').removeClass('has-success');
                             e.preventDefault();
-                        }
-                        else {
+                        } else {
                             // если выбрана частичная оплата- проверю правильность заполнения текстового поля
                             let firstFilled = modal.find('input.target-radio[name="' + powerRadioNames[i] + '"]:checked').eq(0);
                             let par = firstFilled.parents('div.form-group').eq(0);
@@ -694,8 +675,7 @@ function handlePowerInputs(modal, squareInput) {
                                     par.addClass('has-error');
                                     e.preventDefault();
                                 }
-                            }
-                            else {
+                            } else {
                                 firstFilled.parents('div.col-lg-5').eq(0).find('div.help-block').text("");
                                 par.removeClass('has-error').addClass('has-success');
                             }
@@ -714,6 +694,7 @@ function handleMembershipInput(input) {
         let found = input.val().match(re);
         if (found) {
             sendAjax('get', '/check/membership/interval/' + found[1] + '-' + found[2], callback);
+
             function callback(e) {
                 if (e.status === 1) {
                     // открою новое окно для заполнения тарифа
@@ -728,8 +709,7 @@ function handleMembershipInput(input) {
                             input.trigger('change');
                         });
                     })
-                }
-                else if (e.status === 2) {
+                } else if (e.status === 2) {
                     if (membershipFillWindow)
                         membershipFillWindow.close();
                 }
@@ -745,8 +725,7 @@ function handleIntInput(input, button) {
         input.on('input', function () {
             if (/^\+?(0|[1-9]\d*)$/.test(input.val())) {
                 button.prop('disabled', false);
-            }
-            else {
+            } else {
                 button.prop('disabled', true);
             }
         });
@@ -760,8 +739,7 @@ function handleFloatInput(input, button) {
         input.on('input', function () {
             if (/^\+?(\d*[.,]?\d{0,2})$/.test(input.val())) {
                 button.prop('disabled', false);
-            }
-            else {
+            } else {
                 button.prop('disabled', true);
             }
         });
@@ -771,8 +749,7 @@ function handleFloatInput(input, button) {
 function stringify(data) {
     if (typeof data === 'string') {
         return data;
-    }
-    else if (typeof data === 'object') {
+    } else if (typeof data === 'object') {
         let answer = '';
         for (let i in data) {
             answer += data[i] + '<br/>';
@@ -787,27 +764,24 @@ function simpleAnswerHandler(data) {
         if (data['status'] === 1) {
             let message = data['message'] ? data['message'] : 'Операция успешно завершена';
             makeInformerModal("Успешно", message);
-        }
-        else {
+        } else {
             makeInformer('info', 'Ошибка, статус: ' + data['status'], stringify(data['message']));
         }
-    }
-    else {
+    } else {
         makeInformer('alert', 'Ошибка', stringify(data));
     }
 }
+
 // ТИПИЧНАЯ ОБРАБОТКА ОТВЕТА AJAX
 function simpleAnswerInformerHandler(data) {
     if (data['status']) {
         if (data['status'] === 1) {
             let message = data['message'] ? data['message'] : 'Операция успешно завершена';
-            makeInformer('success',"Успешно", message);
-        }
-        else {
+            makeInformer('success', "Успешно", message);
+        } else {
             makeInformer('info', 'Ошибка, статус: ' + data['status'], stringify(data['message']));
         }
-    }
-    else {
+    } else {
         makeInformer('alert', 'Ошибка', stringify(data));
     }
 }
@@ -816,12 +790,10 @@ function simpleModalHandler(data) {
     if (data.status) {
         if (data.status === 1) {
             return makeModal(data.header, data.view);
-        }
-        else {
+        } else {
             makeInformer('info', 'Ошибка, статус: ' + data['status'], stringify(data['message']));
         }
-    }
-    else {
+    } else {
         makeInformer('alert', 'Ошибка', stringify(data));
     }
     return null;
@@ -846,10 +818,10 @@ function enableTabNavigation() {
         history.replaceState(null, null, url);
     }
 
-    $('a[data-toggle="tab"]').on("click", function() {
+    $('a[data-toggle="tab"]').on("click", function () {
         let newUrl;
         const hash = $(this).attr("href");
-        if(hash === "#home") {
+        if (hash === "#home") {
             newUrl = url.split("#")[0];
         } else {
             newUrl = url.split("#")[0] + hash;
@@ -861,3 +833,92 @@ function enableTabNavigation() {
 function toMathRubles(value) {
     return value.replace(',', '.');
 }
+
+// скрою существующую модаль
+function closeModal() {
+    let modal = $("#myModal");
+    if (modal.length === 1) {
+        modal.modal('hide');
+    }
+}
+
+// обработаю ответ на передачу формы через AJAX ========================================================================
+function ajaxFormAnswerHandler(data) {
+    "use strict";
+    if (data.status === 1) {
+        // если передана ссылка на скачивание файла- открою её в новом окне
+        if(data.href){
+            // закрою модальное окно
+            closeModal();
+            console.log('saving file');
+            for(let i = 0; i < data.href.length; i++){
+                let newWindow = window.open(data.href[i]);
+            }
+        }
+    } else if (data.message) {
+        makeInformer('danger', "Ошибка", data.message);
+    }
+}
+
+// обработка формы, переданной через AJAX ==============================================================================
+function handleModalForm(data) {
+    "use strict";
+    let readyToSend = false;
+    if (data.status && data.status === 1) {
+        let modal = makeModal(data.header, data.data);
+        let form = modal.find('form');
+        form.on('afterValidate', function (event, messages) {
+            if (messages) {
+                let key;
+                for (key in messages) {
+                    if (messages.hasOwnProperty(key)) {
+                        if (messages[key].length > 0) {
+                            readyToSend = false;
+                            return;
+                        }
+                    }
+                }
+                readyToSend = true;
+            }
+        });
+        // при подтверждении форму не отправляю, жду валидации
+        form.on('submit.sendByAjax', function (e) {
+            console.log('submit');
+            e.preventDefault();
+            console.log(readyToSend);
+            if (readyToSend === true) {
+                sendAjax('post',
+                    form.attr('action'),
+                    ajaxFormAnswerHandler,
+                    form,
+                    true);
+                readyToSend = false;
+            }
+        });
+    }
+}
+
+// обработка активаторов AJAX-запросов =================================================================================
+function handleAjaxActivators() {
+    "use strict";
+    // найду активаторы AJAX-запросов
+    let activators = $('.activator');
+    activators.on('click.request', function () {
+        let action = $(this).attr('data-action');
+        if (action) {
+            // отправлю запрос на форму
+            sendAjax(
+                "get",
+                action,
+                handleModalForm
+            )
+        } else {
+            makeInformer(
+                "danger",
+                "Ошибка",
+                "Кнопке не назначено действие"
+            )
+        }
+    });
+}
+

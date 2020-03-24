@@ -145,5 +145,8 @@ return [
     'fix' => 'utils/fix',
     'membership/remind' => 'report/remind-membership',
     'membership/remind/<cottageNumber:[0-9]+(-a)?>' => 'report/send-membership-remind',
-    'membership/remind-finished' => 'report/membership-remind-finished'
+    'membership/remind-finished' => 'report/membership-remind-finished',
+
+// NEW FUNCTIONS
+    'download/<file:.+>' => 'download/download',
 ];

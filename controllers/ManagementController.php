@@ -10,6 +10,8 @@ namespace app\controllers;
 
 use app\models\Cloud;
 use app\models\UpdateSite;
+use ErrorException;
+use Exception;
 use Yii;
 use yii\web\Controller;
 use yii\filters\AccessControl;
@@ -19,12 +21,15 @@ use yii\widgets\ActiveForm;
 
 class ManagementController extends Controller
 {
-    public function behaviors()
+    /**
+     * @return array
+     */
+    public function behaviors() :array
     {
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'denyCallback' => function($rule, $action){
+                'denyCallback' => function () {
                     return $this->redirect('/login', 301);
                 },
                 'rules' => [
@@ -37,6 +42,7 @@ class ManagementController extends Controller
             ],
         ];
     }
+
     public function actionIndex()
     {
         if (empty($_SESSION['ya_auth'])) {
@@ -44,7 +50,13 @@ class ManagementController extends Controller
         }
         return $this->render('index');
     }
-    public function actionGetUpdateForm(){
+
+    /**
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionGetUpdateForm(): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $form = new UpdateSite();
@@ -53,60 +65,85 @@ class ManagementController extends Controller
                 'data' => $view,
             ];
         }
-        else
-            throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
-    public function actionValidateUpdate(){
+
+    /**
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionValidateUpdate(): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $form = new UpdateSite();
             $form->load(Yii::$app->request->post());
             return ActiveForm::validate($form);
         }
-        else
-            throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
-    public function actionCreateUpdate(){
+
+    /**
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionCreateUpdate(): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $form = new UpdateSite();
             $form->load(Yii::$app->request->post());
             return $form->createUpdate();
         }
-        else
-            throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
-    public function actionCheckUpdate(){
+
+    /**
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionCheckUpdate(): ?array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
-            try{
+            try {
                 $form = new UpdateSite();
                 return $form->checkUpdate();
-            }
-            catch (\Exception $e){
-                if($e->getCode() === 8){
+            } catch (Exception $e) {
+                if ($e->getCode() === 8) {
                     return ['status' => 9, 'message' => 'Нужно авторизоваться в яндексе.'];
                 }
                 return ['status' => 10, 'message' => 'Проблемы с соединением.'];
             }
         }
-        else
-            throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
-    public function actionInstallUpdate(){
+
+    /**
+     * @return array|null
+     * @throws NotFoundHttpException
+     * @throws ErrorException
+     */
+    public function actionInstallUpdate(): ?array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $form = new UpdateSite();
             return $form->installUpdate();
         }
-        else
-            throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionSendBackup(){
+    /**
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionSendBackup(): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             return Cloud::sendBackup();
         }
+        throw new NotFoundHttpException('Страница не найдена');
     }
 }
