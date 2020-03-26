@@ -187,13 +187,16 @@ class TotalDutyReport extends Model
                         $membershipDetailsXml .= '<членские_взносы_общая_задолженность>' . CashHandler::toRubles($totalMembershipDuty, true) . '</членские_взносы_общая_задолженность>' . $membershipDutyDetails;
                     }
                     // посчитаю переплаты
-                    $overpays = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber])->andWhere(['>', 'paymentDate', $timestamp])->all();
+                    $overpays = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber])->andWhere(['<', 'paymentDate', $timestamp])->all();
+                    $thisQuarter = TimeHandler::quarterFromYearMonth(TimeHandler::getShortMonthFromTimestamp($timestamp));
                     if(!empty($overpays)){
                         $overpayDetails = '';
                         $overpayAmount = 0;
                         foreach ($overpays as $overpay) {
-                            $overpayAmount += $overpay->summ;
-                            $overpayDetails .= $overpay->quarter . ': ' . CashHandler::toRubles($overpay->summ) . "\r\n";
+                            if($overpay->quarter > $thisQuarter){
+                                $overpayAmount += $overpay->summ;
+                                $overpayDetails .= $overpay->quarter . ': ' . CashHandler::toRubles($overpay->summ) . "\r\n";
+                            }
                         }
                         if($overpayAmount > 0){
                             $membershipDetailsXml .= '<членские_взносы_переплата>' . CashHandler::toRubles($overpayAmount) . '</членские_взносы_переплата>' . '<членские_взносы_делали_переплаты>' . $overpayDetails . '</членские_взносы_делали_переплаты>';
