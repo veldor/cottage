@@ -287,18 +287,18 @@ function handleMailing() {
     }
 }
 
-$(function () {
-    handle();
-    handlePartialPayments();
-    handleMailing();
-    enableTabNavigation();
+    $(function () {
+        handle();
+        handlePartialPayments();
+        handleMailing();
+        enableTabNavigation();
 
-    $(window).on('beforeunload.closeChild', function () {
-        if (invoiceWindow) {
-            invoiceWindow.close();
-        }
+        $(window).on('beforeunload.closeChild', function () {
+            if (invoiceWindow) {
+                invoiceWindow.close();
+            }
+        });
     });
-});
 
 function handle() {
     // при выборе файла с данными счётчиков- отправлю форму
