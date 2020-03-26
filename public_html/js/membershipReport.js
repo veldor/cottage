@@ -15,6 +15,10 @@ function handle() {
        $(this).prop('disabled', 'disabled');
         sendDebt(debtors, counter, debtorsSize);
     });
+    let resetBtn = $('button#clearBtn');
+    resetBtn.on('click.reset', function () {
+        $('input[type="checkbox"]').prop('checked', false);
+    });
 
 }
 

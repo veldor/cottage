@@ -27,6 +27,7 @@ class BankDetails extends Model
     public $purpose;
     public $lastName;
     public $summ;
+    public $payerAddress;
     public $cottageNumber;
 
     public function drawQR()

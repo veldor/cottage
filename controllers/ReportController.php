@@ -59,7 +59,7 @@ class ReportController extends Controller
     public function actionRemindMembership(): string
     {
         // получу участки, которые не оплатили текущий квартал
-        $debtors = Table_cottages::find()->where(['<', 'membershipPayFor', TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())])->all();
+        $debtors = Table_cottages::find()->where(['<', 'membershipPayFor', TimeHandler::getCurrentQuarter()])->all();
         return $this->render('debtors_list', ['debtors' => $debtors]);
     }
     public function actionSendMembershipRemind($cottageNumber): array

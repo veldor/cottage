@@ -24,7 +24,7 @@
 		"chillerlan/php-qrcode": "dev-master",
 		"ext-dom": "*",
 		"ckeditor/ckeditor": "4.*",
-        "dompdf/dompdf": "^0.8.3",
+        "dompdf/dompdf": "^0.8.4",
         "bogdaan/viber-bot-php": "^0.0.12",
       "ext-json": "*",
         "mihaildev/yii2-ckeditor": "*",
