@@ -113,7 +113,7 @@ class CashHandler extends Model
 
     public static function countPercent($summ, float $percent)
     {
-        return (double) $summ / 100 * $percent;
+        return self::toRubles($summ) / 100 * $percent;
     }
 
     /**

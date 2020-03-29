@@ -17,5 +17,6 @@ $this->title = 'Всякие разные настройки';
         <button class="btn btn-primary" id="checkUpdateButton">Проверить обновления </button>
         <button class="btn btn-default" id="sendBackupButton"><span class="text-info">Отправить бекап</span></button>
         <button class="btn btn-default activator" id="createReportBtn" data-action="/report/choose-date"><span class="text-info">Сформировать отчёт</span></button>
+        <button class="btn btn-default activator" data-action="/service/recount-fines"><span class="text-info">Пересчитать пени</span></button>
     </div>
 </div>

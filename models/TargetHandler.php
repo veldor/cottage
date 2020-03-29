@@ -10,6 +10,7 @@ namespace app\models;
 
 
 use app\models\selections\TargetDebt;
+use app\models\selections\TargetInfo;
 use app\validators\CashValidator;
 use DOMElement;
 use InvalidArgumentException;
@@ -19,19 +20,18 @@ use yii\base\Model;
 class TargetHandler extends Model
 {
     public $year;
-    public $fixed;
-    public $float;
-    public $description;
+    public float $fixed;
+    public float $float;
+    public string $description;
 
-    const SCENARIO_NEW_TARIFF = 'new_tariff';
+    public const SCENARIO_NEW_TARIFF = 'new_tariff';
 
-    public static function getPayUpTime($year)
+    public static function getPayUpTime($year): int
     {
-        $result = Table_tariffs_target::findOne(['year' => $year]);
-        return $result->payUpTime;
+        return Table_tariffs_target::findOne(['year' => $year])->payUpTime;
     }
 
-    public static function changePayTime(int $id, $timestamp)
+    public static function changePayTime(int $id, $timestamp): void
     {
         // найду все платежи данного счёта
         $pays = Table_payed_target::find()->where(['billId' => $id])->all();
@@ -42,6 +42,43 @@ class TargetHandler extends Model
                 $pay->save();
             }
         }
+    }
+
+    /**
+     * Получение информации о целевых платежах
+     * @param Table_cottages $cottage <p>Участок</p>
+     * @return TargetInfo[] <p>Массив данных о целевых взносах</p>
+     */
+    public static function getTargetInfo(Table_cottages $cottage): array
+    {
+        /** @var float[] $info */
+        $info = [];
+        $result = [];
+        // получу информацию о долгах на данный момент
+        $duties = self::getDebt($cottage);
+        if(!empty($duties)){
+            foreach ($duties as $duty) {
+                $info[$duty->year] = CashHandler::toRubles($duty->amount - $duty->partialPayed);
+            }
+        }
+        // теперь найду все прошедшие оплаты и прибавлю их к выборке
+        $pays = Table_payed_target::findAll(['cottageId' => $cottage->cottageNumber]);
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                if(!empty($info[$pay->year])){
+                    $info[$pay->year] = CashHandler::toRubles($info[$pay->year] + $pay->summ);
+                }
+                else{
+                    $info[$pay->year] = $pay->summ;
+                }
+            }
+        }
+        if(!empty($info)){
+            foreach ($info as $key => $item) {
+                $result [] = new TargetInfo(['year' => $key, 'amount' => $item]);
+            }
+        }
+        return $result;
     }
 
 

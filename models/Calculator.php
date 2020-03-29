@@ -13,7 +13,15 @@ use yii\base\Model;
 
 class Calculator extends Model
 {
-    public static function countFixedFloat($fixed, $float, $square){
+    /**
+     * Расчёт суммы фиксированной ставки и ставки по площади
+     * @param $fixed <p>Фиксированная часть</p>
+     * @param $float <p>Оплата с участка</p>
+     * @param $square <p>Площадь участка</p>
+     * @return float
+     */
+    public static function countFixedFloat($fixed, $float, $square): float
+    {
         return CashHandler::rublesMath($fixed + ($float / 100 * $square));
     }
     public static function countFixedFloatPlus($fixed, $float, $square){

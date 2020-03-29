@@ -1,5 +1,8 @@
 <?php
 
+date_default_timezone_set('Europe/Moscow');
+setlocale(LC_ALL,  'ru_RU.UTF-8', 'Rus');
+
 defined('YII_DEBUG') or define('YII_DEBUG', true);
 defined('YII_ENV') or define('YII_ENV', 'dev');
 

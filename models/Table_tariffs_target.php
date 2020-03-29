@@ -25,8 +25,24 @@ use yii\db\ActiveRecord;
 
 class Table_tariffs_target extends ActiveRecord
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'tariffs_target';
+    }
+
+    /**
+     * Верну массив тарифов с ключами- годами оплаты
+     * @return array
+     */
+    public static function getArrayTariffs(): array
+    {
+        $answer = [];
+        $tariffs = self::find()->all();
+        if(!empty($tariffs)){
+            foreach ($tariffs as $tariff) {
+                $answer[$tariff->year] = $tariff;
+            }
+        }
+        return $answer;
     }
 }

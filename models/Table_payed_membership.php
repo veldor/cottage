@@ -18,13 +18,13 @@ use yii\db\ActiveRecord;
  * @property int $cottageId [int(10) unsigned]
  * @property int $billId [int(10) unsigned]
  * @property string $quarter [varchar(10)]
- * @property string $summ [float unsigned]
+ * @property float $summ [float unsigned]
  * @property int $paymentDate [int(20) unsigned]
  */
 
 class Table_payed_membership extends ActiveRecord
 {
-    public static function tableName()
+    public static function tableName() :string
     {
         return 'payed_membership';
     }

@@ -3,225 +3,47 @@
 namespace app\models;
 
 
+use app\models\selections\MembershipDebt;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
+use Exception;
 use yii\base\Model;
 
 class FinesHandler extends Model
 {
 
-    public static $types = ['membership' => 'членские взносы', 'target' => 'целевые взносы', 'power' => 'электроэнергия'];
+    public static array $types = ['membership' => 'членские взносы', 'target' => 'целевые взносы', 'power' => 'электроэнергия'];
 
     public const PERCENT = 0.5;
     public const START_POINT = 1561939201;
 
     public static function getFines($cottageNumber)
     {
-        return Table_penalties::find()->where(['cottage_number' => $cottageNumber])->all();
+        return Table_penalties::find()->where(['cottage_number' => $cottageNumber])->orderBy(['pay_type' => SORT_ASC, 'period' => SORT_ASC,])->all();
     }
 
-    public static function check($cottageNumber)
+    /**
+     * @param $cottageNumber
+     * @throws ExceptionWithStatus
+     * @throws Exception
+     */
+    public static function check($cottageNumber): void
     {
         $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
-        $powerDuties = PowerHandler::getDebtReport($cottageInfo);
-        if (!empty($powerDuties)) {
-            foreach ($powerDuties as $powerDuty) {
-                if ($powerDuty->powerData->difference > 0) {
-                    // получу дату оплаты долга
-                    $payUp = TimeHandler::getPayUpMonth($powerDuty->powerData->month);
-                    if ($payUp < self::START_POINT) {
-                        $payUp = self::START_POINT;
-                    }
-                    // посчитаю количество дней, прошедших с момента крайнего дня оплаты до этого дня
-                    $dayDifference = TimeHandler::checkDayDifference($payUp);
-                    if ($dayDifference > 0) {
-                        $totalPay = CashHandler::rublesMath(CashHandler::toRubles($powerDuty->powerData->totalPay));
-                        $fines = CashHandler::countPercent($totalPay, self::PERCENT);
-                        $totalFines = $fines * $dayDifference;
-                        $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $powerDuty->powerData->month, 'pay_type' => 'power'])->one();
-                        if (empty($existentFine)) {
-                            $existentFine = new Table_penalties();
-                            $existentFine->cottage_number = $cottageNumber;
-                            $existentFine->pay_type = 'power';
-                            $existentFine->period = $powerDuty->powerData->month;
-                            $existentFine->payUpLimit = $payUp;
-                            $existentFine->payed_summ = 0;
-                            $existentFine->is_full_payed = 0;
-                            $existentFine->is_partial_payed = 0;
-                            $existentFine->is_enabled = 1;
-                        }
-                        $existentFine->summ = $totalFines;
-                        $existentFine->save();
-                    }
-                }
-            }
-        }
-
-        $membershipDuties = MembershipHandler::getDebt($cottageInfo);
-        if (!empty($membershipDuties)) {
-            foreach ($membershipDuties as $membershipDuty) {
-                // получу дату оплаты долга
-                $payUp = TimeHandler::getPayUpQuarterTimestamp($membershipDuty->quarter);
-                if ($payUp < self::START_POINT) {
-                    $payUp = self::START_POINT;
-                }
-                // посчитаю количество дней, прошедших с момента крайнего дня оплаты до этого дня
-                $dayDifference = TimeHandler::checkDayDifference($payUp);
-                if ($dayDifference > 0) {
-                    $fines = CashHandler::countPercent($membershipDuty->amount, self::PERCENT);
-                    $totalFines = $fines * $dayDifference;
-                    $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $membershipDuty->quarter, 'pay_type' => 'membership'])->one();
-                    if (empty($existentFine)) {
-                        $existentFine = new Table_penalties();
-                        $existentFine->cottage_number = $cottageNumber;
-                        $existentFine->pay_type = 'membership';
-                        $existentFine->period = $membershipDuty->quarter;
-                        $existentFine->payUpLimit = $payUp;
-                        $existentFine->payed_summ = 0;
-                        $existentFine->is_full_payed = 0;
-                        $existentFine->is_partial_payed = 0;
-                        $existentFine->is_enabled = 1;
-                    }
-                    $existentFine->summ = $totalFines;
-                    $existentFine->save();
-                }
-            }
-        }
-        $targetDuties = TargetHandler::getDebt($cottageInfo);
-        if (!empty($targetDuties)) {
-            foreach ($targetDuties as $targetDuty) {
-                // получу дату оплаты долга
-                $payUp = Table_tariffs_target::find()->where(['year' => $targetDuty->year])->one()->payUpTime;
-                if ($payUp < self::START_POINT) {
-                    $payUp = self::START_POINT;
-                }
-                // посчитаю количество дней, прошедших с момента крайнего дня оплаты до этого дня
-                $dayDifference = TimeHandler::checkDayDifference($payUp);
-                if ($dayDifference > 0) {
-                    $fines = CashHandler::countPercent($targetDuty->amount - $targetDuty->partialPayed, self::PERCENT);
-                    $totalFines = $fines * $dayDifference;
-                    $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $targetDuty->year, 'pay_type' => 'target'])->one();
-                    if (empty($existentFine)) {
-                        $existentFine = new Table_penalties();
-                        $existentFine->cottage_number = $cottageNumber;
-                        $existentFine->pay_type = 'target';
-                        $existentFine->period = $targetDuty->year;
-                        $existentFine->payUpLimit = $payUp;
-                        $existentFine->payed_summ = 0;
-                        $existentFine->is_full_payed = 0;
-                        $existentFine->is_partial_payed = 0;
-                        $existentFine->is_enabled = 1;
-                    }
-                    $existentFine->summ = $totalFines;
-                    $existentFine->save();
-                }
-            }
-        }
+        self::checkCottage($cottageInfo);
         if ($cottageInfo->haveAdditional) {
-            $cottageNumber = $cottageNumber . '-a';
+            $cottageNumber .= '-a';
             // расчитаю пени для дополнительного участка
-            $additionalCottageInfo = Cottage::getCottageByLiteral($cottageNumber);
-            $powerDuties = PowerHandler::getDebtReport($additionalCottageInfo);
-            if (!empty($powerDuties)) {
-                foreach ($powerDuties as $powerDuty) {
-                    if ($powerDuty->powerData->difference > 0) {
-                        // получу дату оплаты долга
-                        $payUp = TimeHandler::getPayUpMonth($powerDuty->powerData->month);
-                        if ($payUp < self::START_POINT) {
-                            $payUp = self::START_POINT;
-                        }
-                        // посчитаю количество дней, прошедших с момента крайнего дня оплаты до этого дня
-                        $dayDifference = TimeHandler::checkDayDifference($payUp);
-                        if ($dayDifference > 0) {
-                            $totalPay = CashHandler::rublesMath(CashHandler::toRubles($powerDuty->withoutLimitAmount) - CashHandler::toRubles($powerDuty->partialPayed));
-                            $fines = CashHandler::countPercent($totalPay, self::PERCENT);
-                            $totalFines = $fines * $dayDifference;
-                            $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $powerDuty->powerData->month, 'pay_type' => 'power'])->one();
-                            if (empty($existentFine)) {
-                                $existentFine = new Table_penalties();
-                                $existentFine->cottage_number = $cottageNumber;
-                                $existentFine->pay_type = 'power';
-                                $existentFine->period = $powerDuty->powerData->month;
-                                $existentFine->payUpLimit = $payUp;
-                                $existentFine->payed_summ = 0;
-                                $existentFine->is_full_payed = 0;
-                                $existentFine->is_partial_payed = 0;
-                                $existentFine->is_enabled = 1;
-                            }
-                            $existentFine->summ = $totalFines;
-                            $existentFine->save();
-                        }
-                    }
-                }
-            }
-            $membershipDuties = MembershipHandler::getDebt($additionalCottageInfo);
-            if (!empty($membershipDuties)) {
-                foreach ($membershipDuties as $membershipDuty) {
-                    // получу дату оплаты долга
-                    $payUp = TimeHandler::getPayUpQuarterTimestamp($membershipDuty->quarter);
-                    if ($payUp < self::START_POINT) {
-                        $payUp = self::START_POINT;
-                    }
-                    // посчитаю количество дней, прошедших с момента крайнего дня оплаты до этого дня
-                    $dayDifference = TimeHandler::checkDayDifference($payUp);
-                    if ($dayDifference > 0) {
-                        $fines = CashHandler::countPercent($membershipDuty->amount, self::PERCENT);
-                        $totalFines = $fines * $dayDifference;
-                        $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $membershipDuty->quarter, 'pay_type' => 'membership'])->one();
-                        if (empty($existentFine)) {
-                            $existentFine = new Table_penalties();
-                            $existentFine->cottage_number = $cottageNumber;
-                            $existentFine->pay_type = 'membership';
-                            $existentFine->period = $membershipDuty->quarter;
-                            $existentFine->payUpLimit = $payUp;
-                            $existentFine->payed_summ = 0;
-                            $existentFine->is_full_payed = 0;
-                            $existentFine->is_partial_payed = 0;
-                            $existentFine->is_enabled = 1;
-                        }
-                        $existentFine->summ = $totalFines;
-                        $existentFine->save();
-                    }
-                }
-            }
-            $targetDuties = TargetHandler::getDebt($additionalCottageInfo);
-            if (!empty($targetDuties)) {
-                foreach ($targetDuties as $targetDuty) {
-                    // получу дату оплаты долга
-                    $payUp = Table_tariffs_target::find()->where(['year' => $targetDuty->year])->one()->payUpTime;
-                    if ($payUp < self::START_POINT) {
-                        $payUp = self::START_POINT;
-                    }
-                    // посчитаю количество дней, прошедших с момента крайнего дня оплаты до этого дня
-                    $dayDifference = TimeHandler::checkDayDifference($payUp);
-                    if ($dayDifference > 0) {
-                        $fines = CashHandler::countPercent($targetDuty->amount, self::PERCENT);
-                        $totalFines = $fines * $dayDifference;
-                        $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $targetDuty->year, 'pay_type' => 'target'])->one();
-                        if (empty($existentFine)) {
-                            $existentFine = new Table_penalties();
-                            $existentFine->cottage_number = $cottageNumber;
-                            $existentFine->pay_type = 'target';
-                            $existentFine->period = $targetDuty->year;
-                            $existentFine->payUpLimit = $payUp;
-                            $existentFine->payed_summ = 0;
-                            $existentFine->is_full_payed = 0;
-                            $existentFine->is_partial_payed = 0;
-                            $existentFine->is_enabled = 1;
-                        }
-                        $existentFine->summ = $totalFines;
-                        $existentFine->save();
-                    }
-                }
-            }
+            $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
+            self::checkCottage($cottageInfo);
         }
     }
 
-    public static function disableFine($finesId)
+    public static function disableFine($finesId): array
     {
         $fine = Table_penalties::findOne($finesId);
-        if (empty($fine)) {
+        if ($fine === null) {
             return ['status' => 2, 'message' => 'Пени за данный период не найдены'];
         }
         $fine->is_enabled = 0;
@@ -231,10 +53,10 @@ class FinesHandler extends Model
         return ['status' => 1, 'message' => 'Пени за период не расчитываются' . $js];
     }
 
-    public static function enableFine($finesId)
+    public static function enableFine($finesId): array
     {
         $fine = Table_penalties::findOne($finesId);
-        if (empty($fine)) {
+        if ($fine === null) {
             return ['status' => 2, 'message' => 'Пени за данный период не найдены'];
         }
         $fine->is_enabled = 1;
@@ -244,67 +66,27 @@ class FinesHandler extends Model
         return ['status' => 1, 'message' => 'Пени за период расчитываются' . $js];
     }
 
-    public static function getFinesSumm($cottageId)
+    public static function getFinesSumm($cottageId): float
     {
         $summ = 0;
         $fines = Table_penalties::find()->where(['cottage_number' => $cottageId])->all();
         if (!empty($fines)) {
             foreach ($fines as $fine) {
-                if ($fine->is_enabled)
+                if ($fine->is_enabled) {
                     $summ += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
+                }
             }
         }
         return CashHandler::toRubles($summ);
     }
 
     /**
-     * @param Table_view_fines_info[] $fines
-     * @param $transaction Table_transactions
-     * @throws ExceptionWithStatus
-     */
-    public static function makePayed(array $fines, $transaction)
-    {
-        foreach ($fines as $fine) {
-            self::payFine($fine->fines_id, $fine->start_summ, $transaction->id);
-        }
-    }
-
-    /**
-     * @param int $fines_id
-     * @param double $summ
-     * @param int $transactionId
-     * @throws ExceptionWithStatus
-     */
-    private static function payFine(int $fines_id, $summ, int $transactionId)
-    {
-        $fine = Table_penalties::findOne($fines_id);
-        $payLeft = $fine->summ - $fine->payed_summ;
-        if ($summ > $payLeft) {
-            throw new ExceptionWithStatus("Попытка заплатить за пени больше необходимого");
-        } elseif ($summ == $payLeft) {
-            $fine->is_full_payed = 1;
-            $fine->is_partial_payed = 0;
-        } else {
-            $fine->is_full_payed = 0;
-            $fine->is_partial_payed = 1;
-        }
-        $fine->payed_summ += $summ;
-        $fine->save();
-        $payed = new Table_payed_fines();
-        $payed->fine_id = $fine->id;
-        $payed->transaction_id = $transactionId;
-        $payed->summ = $summ;
-        $payed->pay_date = time();
-        $payed->save();
-    }
-
-    /**
      * @param $bill Table_payment_bills|Table_payment_bills_double
      * @param $paymentSumm double
-     * @param $cottageInfo Table_cottages|Table_additional_cottages
      * @param $transaction Table_transactions|Table_transactions_double
+     * @throws ExceptionWithStatus
      */
-    public static function handlePartialPayment($bill, $paymentSumm, $cottageInfo, $transaction)
+    public static function handlePartialPayment($bill, $paymentSumm, $transaction): void
     {
         // найду пени
         $fines = Table_view_fines_info::find()->where(['bill_id' => $bill->id])->all();
@@ -314,49 +96,667 @@ class FinesHandler extends Model
             if ($summToPay > 0) {
                 // найду главную запись пени
                 $fineInfo = Table_penalties::findOne($fine->fines_id);
-                // если введённой суммы хватает для погашения- регистрирую оплату, если меньше
-                if ($paymentSumm > $summToPay) {
-                    $paymentSumm -= $summToPay;
-                    // оплачиваю полностью
-                    $payedFine = new Table_payed_fines();
-                    $payedFine->fine_id = $fine->fines_id;
-                    $payedFine->transaction_id = $transaction->id;
-                    $payedFine->pay_date = $transaction->bankDate;
-                    $payedFine->summ = $summToPay;
-                    $payedFine->save();
-                    $fineInfo->payed_summ += $summToPay;
-                    if (CashHandler::toRubles($fineInfo->summ) == CashHandler::toRubles($fineInfo->payed_summ)) {
-                        $fineInfo->is_partial_payed = 0;
-                        $fineInfo->is_full_payed = 1;
+                if ($fineInfo !== null) {
+                    // если введённой суммы хватает для погашения- регистрирую оплату, если меньше
+                    if ($paymentSumm > $summToPay) {
+                        $paymentSumm -= $summToPay;
+                        // оплачиваю полностью
+                        self::registerPay($transaction, $fine, $summToPay, $fineInfo);
                     } else {
-                        $fineInfo->is_partial_payed = 1;
+                        self::registerPay($transaction, $fine, $paymentSumm, $fineInfo);
+                        break;
                     }
-                    $fineInfo->save();
                 } else {
-                    // оплачиваю полностью
-                    $payedFine = new Table_payed_fines();
-                    $payedFine->fine_id = $fine->fines_id;
-                    $payedFine->transaction_id = $transaction->id;
-                    $payedFine->pay_date = $transaction->bankDate;
-                    $payedFine->summ = $paymentSumm;
-                    $payedFine->save();
-
-                    $fineInfo->payed_summ += $paymentSumm;
-                    if (CashHandler::toRubles($fineInfo->summ) == CashHandler::toRubles($fineInfo->payed_summ)) {
-                        $fineInfo->is_partial_payed = 0;
-                        $fineInfo->is_full_payed = 1;
-                    } else {
-                        $fineInfo->is_partial_payed = 1;
-                    }
-                    $fineInfo->save();
-                    break;
+                    throw new ExceptionWithStatus('Не найдена основная запись');
                 }
             }
         }
     }
 
-    public static function getFinesForDate(Table_cottages $cottageInfo, string $end)
+    /**
+     * @throws Exception
+     */
+    public static function recalculateFines(): void
     {
+        $time = time();
+        // получу список участков
+        $cottages = Cottage::getRegistred();
+        if (!empty($cottages)) {
+            foreach ($cottages as $cottage) {
+                // получу все данные по электроэнергии
+                $registeredPowerData = Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber])->all();
+                if (!empty($registeredPowerData)) {
+                    foreach ($registeredPowerData as $registeredPowerDatum) {
+                        $payUp = self::getPayUp('month', $registeredPowerDatum->month);
+                        if ($registeredPowerDatum->totalPay > 0) {
+                            // поищу оплаты по этому месяцу
+                            $pays = Table_payed_power::find()->where(['cottageId' => $cottage->cottageNumber, 'month' => $registeredPowerDatum->month])->all();
+                            // если платежей за период не было- тогда платёж не оплачен до сих пор, проверю, не просрочен ли он, если просрочен- просто посчитаю сумму просрочки по обычной формуле
+                            if (empty($pays)) {
+                                if ($payUp < $time) {
+                                    $fineAmount = self::countFine($registeredPowerDatum->totalPay, TimeHandler::checkDayDifference($payUp));
+                                    // пересчитаю пени
+                                    self::setPowerFineData($cottage, $registeredPowerDatum, $fineAmount, $payUp);
+                                }
+                            } else {
+                                // тут нужно проверить, были ли платежи проведены в отведённое время или просрочены
+                                $fullAmount = self::handlePeriodPayments($pays, $payUp, $registeredPowerDatum->totalPay);
+                                // если начислено пени- сохраню его
+                                if ($fullAmount > 0) {
+                                    // обновлю данные по пени
+                                    self::setPowerFineData($cottage, $registeredPowerDatum, $fullAmount, $payUp);
+                                }
+                            }
+                        }
+                    }
+                }
+                // теперь пересчитаю данные по членским взносам
+                $firstCountedQuarter = MembershipHandler::getFirstFilledQuarter($cottage);
+                $quarterList = TimeHandler::getQuarterList($firstCountedQuarter);
+                if (!empty($quarterList)) {
+                    foreach ($quarterList as $key => $value) {
+                        $payUp = self::getPayUp('quarter', $key);
+                        $tariff = MembershipHandler::getCottageTariff($cottage, $key);
+                        $totalPay = Calculator::countFixedFloat($tariff->fixed, $tariff->float, $cottage->cottageSquare);
+                        // поищу оплаты по кварталу
+                        $pays = Table_payed_membership::findAll(['cottageId' => $cottage->cottageNumber, 'quarter' => $key]);
+                        if (empty($pays)) {
+                            if ($payUp < $time) {
+                                $fineAmount = self::countFine($totalPay, TimeHandler::checkDayDifference($payUp));
+                                // пересчитаю пени
+                                self::setMembershipFineData($cottage, $key, $fineAmount, $payUp);
+                            }
+                        } else {
+                            $fullAmount = self::handlePeriodPayments($pays, $payUp, $totalPay);
+                            // если начислено пени- сохраню его
+                            if ($fullAmount > 0) {
+                                // обновлю данные по пени
+                                self::setMembershipFineData($cottage, $key, $fullAmount, $payUp);
+                            }
+                        }
+                    }
+                }
+                // получу полные сведения о целевых взносах по участку
+                $targetInfo = TargetHandler::getTargetInfo($cottage);
+                if (!empty($targetInfo)) {
+                    foreach ($targetInfo as $item) {
+                        // получу тариф на год
+                        $targetTariff = Table_tariffs_target::findOne(['year' => $item->year]);
+                        if ($targetTariff !== null) {
+                            $payUp = self::getPayUp('year', $targetTariff->payUpTime);
+                            $pays = Table_payed_target::findAll(['cottageId' => $cottage->cottageNumber, 'year' => $item->year]);
+                            if (empty($pays)) {
+                                if ($payUp < $time) {
+                                    $fineAmount = self::countFine($item->amount, TimeHandler::checkDayDifference($payUp));
+                                    // пересчитаю пени
+                                    self::setTargetFineData($cottage, $item->year, $fineAmount, $payUp);
+                                }
+                            } else {
+                                $fullAmount = self::handlePeriodPayments($pays, $payUp, $item->amount);
+                                // если начислено пени- сохраню его
+                                if ($fullAmount > 0) {
+                                    // обновлю данные по пени
+                                    self::setTargetFineData($cottage, $item->year, $fullAmount, $payUp);
+                                }
+                            }
+                        } else {
+                            throw new ExceptionWithStatus('Не удалось найти тарифы целевых взносов за ' . $item->year);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
+    /**
+     * @param string $totalPay
+     * @param $daysLeft
+     * @return float|int
+     */
+    private static function countFine(string $totalPay, $daysLeft)
+    {
+        $perDay = CashHandler::countPercent($totalPay, self::PERCENT);
+        return $perDay * $daysLeft;
+    }
+
+    /**
+     * Добавление пени
+     * @param $cottageNumber <p>Номер участка</p>
+     * @param $type <p>Тип платежа</p>
+     * @param $period <p>Период оплаты</p>
+     * @param $payUpLimit <p>Срок оплаты</p>
+     * @param $amount <p>Сумма пени</p>
+     */
+    private static function createFine($cottageNumber, $type, $period, $payUpLimit, $amount): void
+    {
+        $newFine = new Table_penalties();
+        $newFine->cottage_number = $cottageNumber;
+        $newFine->pay_type = $type;
+        $newFine->period = $period;
+        $newFine->payUpLimit = $payUpLimit;
+        $newFine->payed_summ = 0;
+        $newFine->is_full_payed = 0;
+        $newFine->is_partial_payed = 0;
+        $newFine->is_enabled = 1;
+        $newFine->summ = CashHandler::toRubles($amount);
+        $newFine->save();
+    }
+
+    /**
+     * Получение срока оплаты перида
+     * @param string $type <p>Тип периода</p>
+     * @param string $period <p>Период</p>
+     * @return int <p>Метка времени срока оплаты</p>
+     * @throws ExceptionWithStatus
+     */
+    private static function getPayUp(string $type, string $period): int
+    {
+        switch ($type) {
+            case 'month':
+                $payUp = TimeHandler::getPayUpMonth($period);
+                break;
+            case 'quarter':
+                $payUp = TimeHandler::getPayUpQuarterTimestamp($period);
+                break;
+            case 'year':
+                $payUp = $period;
+                break;
+            default:
+                throw new ExceptionWithStatus('Неизвестный тип оплаты ' . $type);
+        }
+        if ($payUp < self::START_POINT) {
+            $payUp = self::START_POINT;
+        }
+        return $payUp;
+    }
+
+    /**
+     * Обновление информации о пени
+     * @param $cottage <p>Номер участка</p>
+     * @param $registeredPowerDatum <p>Данные о потреблении электроэнергии</p>
+     * @param $fullAmount <p>Сумма пени</p>
+     * @param int $payUpDate <p>Срок оплаты</p>
+     */
+    private static function setPowerFineData($cottage, $registeredPowerDatum, $fullAmount, int $payUpDate): void
+    {
+        if (Cottage::isMain($cottage)) {
+            $cottageNumber = $cottage->cottageNumber;
+        } else {
+            $cottageNumber = $cottage->masterId . '-a';
+        }
+        $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $registeredPowerDatum->month, 'pay_type' => 'power'])->one();
+        if ($existentFine) {
+            $existentFine->summ = CashHandler::toRubles($fullAmount);
+            $existentFine->save();
+            //echo "электричество {$cottage->cottageNumber} {$registeredPowerDatum->month} Пересчитано\n";
+        } else {
+            self::createFine(
+                $cottageNumber,
+                'power',
+                $registeredPowerDatum->month,
+                $payUpDate,
+                $fullAmount
+            );
+            //echo "электричество {$cottage->cottageNumber} {$registeredPowerDatum->month} Создано\n";
+        }
+    }
+
+    /**
+     * Обновление информации о пени
+     * @param $cottage <p>Номер участка</p>
+     * @param $quarter <p>Квартал оплаты</p>
+     * @param $fullAmount <p>Сумма пени</p>
+     * @param int $payUpDate <p>Срок оплаты</p>
+     */
+    private static function setMembershipFineData($cottage, $quarter, $fullAmount, int $payUpDate): void
+    {
+        if (Cottage::isMain($cottage)) {
+            $cottageNumber = $cottage->cottageNumber;
+        } else {
+            $cottageNumber = $cottage->masterId . '-a';
+        }
+        $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $quarter, 'pay_type' => 'membership'])->one();
+        if ($existentFine) {
+            $existentFine->summ = CashHandler::toRubles($fullAmount);
+            $existentFine->save();
+            //echo "членские {$cottage->cottageNumber} {$quarter} Пересчитано\n";
+        } else {
+            self::createFine(
+                $cottageNumber,
+                'membership',
+                $quarter,
+                $payUpDate,
+                $fullAmount
+            );
+            //echo "членские {$cottage->cottageNumber} {$quarter} Создано\n";
+        }
+    }
+
+    /**
+     * Обновление информации о пени
+     * @param $cottage <p>Номер участка</p>
+     * @param $year <p>Квартал оплаты</p>
+     * @param $fullAmount <p>Сумма пени</p>
+     * @param int $payUpDate <p>Срок оплаты</p>
+     */
+    private static function setTargetFineData($cottage, $year, $fullAmount, int $payUpDate): void
+    {
+        if (Cottage::isMain($cottage)) {
+            $cottageNumber = $cottage->cottageNumber;
+        } else {
+            $cottageNumber = $cottage->masterId . '-a';
+        }
+        $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $year, 'pay_type' => 'target'])->one();
+        if ($existentFine) {
+            $existentFine->summ = CashHandler::toRubles($fullAmount);
+            $existentFine->save();
+            //echo "целевые {$cottage->cottageNumber} {$year} Пересчитано {$fullAmount}\n";
+        } else {
+            self::createFine(
+                $cottageNumber,
+                'target',
+                $year,
+                $payUpDate,
+                $fullAmount
+            );
+            //echo "целевые {$cottage->cottageNumber} {$year} Создано {$fullAmount}\n";
+        }
+    }
+
+    /**
+     * Получение данных о расчётах пени
+     * @param Table_penalties $item
+     * @return string
+     * @throws Exception
+     */
+    public static function getFineStructure(Table_penalties $item): string
+    {
+        // получу информацию о платеже
+        switch ($item->pay_type) {
+            case 'power':
+                return self::getPowerFineData($item);
+            case 'membership':
+                return self::getMembershipFineData($item);
+            case 'target':
+                return self::getTargetFineData($item);
+        }
+        throw new ExceptionWithStatus('Неверные данные о пени');
+    }
+
+    /**
+     * @param Table_penalties $item
+     * @return string
+     * @throws Exception
+     */
+    private static function getPowerFineData(Table_penalties $item): string
+    {
+        $answer = '';
+        // найду информацию об участке
+        $cottageInfo = Cottage::getCottageByLiteral($item->cottage_number);
+        // получу стоимость месяца
+        $amount = Table_power_months::findOne(['cottageNumber' => $item->cottage_number, 'month' => $item->period])->totalPay;
+        $answer .= 'Сумма платежа: <b class="text-info">' . CashHandler::toSmoothRubles($amount) . '</b><br/>';
+        // получу оплаты по кварталу
+        $pays = Table_payed_power::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'month' => $item->period])->all();
+        $payUp = self::getPayUp('month', $item->period);
+        $answer .= 'Срок оплаты: <b class="text-info">' . TimeHandler::getDatetimeFromTimestamp(TimeHandler::getPayUpMonth($item->period)) . '</b><br/>';
+        $answer = self::handleInnerPays($pays, $payUp, $answer, $amount);
+        return $answer;
+    }
+
+    /**
+     * @param Table_penalties $item
+     * @return string
+     * @throws Exception
+     */
+    private static function getMembershipFineData(Table_penalties $item): string
+    {
+        $answer = '';
+        // найду информацию об участке
+        $cottageInfo = Cottage::getCottageByLiteral($item->cottage_number);
+        $isMain = Cottage::isMain($cottageInfo);
+
+        // получу стоимость квартала
+        if ($cottageInfo->individualTariff) {
+            $tariff = PersonalTariff::getMembershipRate($cottageInfo, $item->period);
+            if (!empty($tariff)) {
+                $fixed = $tariff['fixed'];
+                $float = $tariff['float'];
+            } else {
+                $tariff = Table_tariffs_membership::findOne(['quarter' => $item->period]);
+                $fixed = $tariff->fixed_part;
+                $float = $tariff->changed_part;
+            }
+        } else {
+            $tariff = Table_tariffs_membership::findOne(['quarter' => $item->period]);
+            $fixed = $tariff->fixed_part;
+            $float = $tariff->changed_part;
+        }
+        $startAmount = Calculator::countFixedFloat(
+            $fixed,
+            $float,
+            $cottageInfo->cottageSquare);
+        $answer .= 'Сумма взноса: <b class="text-info">' . CashHandler::toSmoothRubles($startAmount) . '</b><br/>';
+        // получу оплаты по кварталу
+        if ($isMain) {
+            $pays = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->period])->all();
+        } else {
+            $pays = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $item->period])->all();
+        }
+        $payUp = self::getPayUp('quarter', $item->period);
+        $answer .= 'Срок оплаты: <b class="text-info">' . TimeHandler::getPayUpQuarter($item->period) . '</b><br/>';
+        $answer = self::handleInnerPays($pays, $payUp, $answer, $startAmount);
+        return $answer;
+    }
+
+    /**
+     * @param Table_penalties $item
+     * @return string
+     * @throws ExceptionWithStatus
+     * @throws Exception
+     */
+    private static function getTargetFineData(Table_penalties $item): string
+    {
+        $answer = '';
+        // найду информацию об участке
+        $cottageInfo = Cottage::getCottageByLiteral($item->cottage_number);
+        $isMain = Cottage::isMain($cottageInfo);
+        $yearTariff = Table_tariffs_target::findOne(['year' => $item->period]);
+        if ($yearTariff !== null) {
+            // получу стоимость квартала
+            if ($cottageInfo->individualTariff) {
+                $tariff = PersonalTariff::getTargetRate($cottageInfo, $item->period);
+                if (!empty($tariff)) {
+                    $fixed = $tariff['fixed'];
+                    $float = $tariff['float'];
+                } else {
+                    $fixed = $yearTariff->fixed_part;
+                    $float = $yearTariff->float_part;
+                }
+            } else {
+                $fixed = $yearTariff->fixed_part;
+                $float = $yearTariff->float_part;
+            }
+            $startAmount = Calculator::countFixedFloat(
+                $fixed,
+                $float,
+                $cottageInfo->cottageSquare);
+            $answer .= 'Сумма взноса: <b class="text-info">' . CashHandler::toSmoothRubles($startAmount) . '</b><br/>';
+            // получу оплаты по кварталу
+            if ($isMain) {
+                $pays = Table_payed_target::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'year' => $item->period])->all();
+            } else {
+                $pays = Table_additional_payed_target::find()->where(['cottageId' => $cottageInfo->masterId, 'year' => $item->period])->all();
+            }
+            $payUp = self::getPayUp('year', $yearTariff->payUpTime);
+            $answer .= 'Срок оплаты: <b class="text-info">' . TimeHandler::getDatetimeFromTimestamp($yearTariff->payUpTime) . '</b><br/>';
+            $answer = self::handleInnerPays($pays, $payUp, $answer, $startAmount);
+            return $answer;
+        }
+        throw new ExceptionWithStatus('Не найден тариф на год: ' . $item->period);
+    }
+
+    /**
+     * @param $pays
+     * @param int $payUp
+     * @param string $answer
+     * @param float $amount
+     * @return string
+     * @throws Exception
+     */
+    private static function handleInnerPays($pays, int $payUp, string $answer, float $amount): string
+    {
+        if (empty($pays)) {
+            // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
+            $difference = TimeHandler::checkDayDifference($payUp);
+            $answer .= 'Просрочено дней: <b class="text-danger">' . $difference . '</b><br/>';
+            $answer .= '<b class="text-danger">Платёж ещё не поступил</b><br/>';
+            $perDay = CashHandler::countPercent($amount, self::PERCENT);
+            $answer .= 'За день просрочки: <b class="text-danger">' . CashHandler::toSmoothRubles($perDay) . '</b><br/>';
+            $accruals = self::countFine($amount, $difference);
+            $answer .= 'Начислено пени: <b class="text-danger">' . CashHandler::toSmoothRubles($accruals) . '</b><br/>';
+        } else {
+            $lastPayDate = null;
+            $payed = 0;
+            foreach ($pays as $pay) {
+                $answer .= 'Платёж <b class="text-success">' . TimeHandler::getDatetimeFromTimestamp($pay->paymentDate) . '</b><br/>';
+                $answer .= 'Сумма: <b class="text-success">' . CashHandler::toSmoothRubles($pay->summ) . '</b><br/>';
+                $answer .= 'Осталось заплатить: <b class="text-info">' . CashHandler::toSmoothRubles(CashHandler::toRubles($amount - ($payed + $pay->summ))) . '</b><br/>';
+                // если платёж просрочен
+                if ($pay->paymentDate > $payUp) {
+                    $answer .= '<b class="text-danger">Платёж просрочен!</b><br/>';
+                    // посчитаю количество дней просрочки
+                    if ($lastPayDate === null) {
+                        $lastPayDate = $payUp;
+                    }
+                    $difference = TimeHandler::checkDayDifference($lastPayDate, $pay->paymentDate);
+                    $answer .= "Просрочено дней: <b class=\"text-danger\">$difference</b><br/>";
+                    $nowAmount = CashHandler::toRubles($amount - $payed);
+                    $perDay = CashHandler::countPercent($nowAmount, self::PERCENT);
+                    $answer .= 'За день просрочки: <b class="text-danger">' . CashHandler::toSmoothRubles($perDay) . '</b><br/>';
+                    $accruals = self::countFine($nowAmount, $difference);
+                    $answer .= 'Начислено пени: <b class="text-danger">' . CashHandler::toSmoothRubles($accruals) . '</b><br/>';
+                    $payed = CashHandler::toRubles($payed + $pay->summ);
+                    $lastPayDate = $pay->paymentDate;
+                } else {
+                    $answer .= '<b class="text-success">Оплачено в срок</b><br/>';
+                    $payed = CashHandler::toRubles($payed + $pay->summ);
+                    $lastPayDate = $payUp;
+                }
+            }
+            // проверю полноту оплаты
+            if ($payed < $amount) {
+                // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
+                $difference = TimeHandler::checkDayDifference($lastPayDate);
+                $nowAmount = CashHandler::toRubles($amount - $payed);
+                $answer .= '<b class="text-danger">Счёт оплачен не полностью!</b><br/>';
+                $answer .= 'Осталось заплатить: <b class="text-info">' . CashHandler::toSmoothRubles($nowAmount) . '</b><br/>';
+                $answer .= 'Просрочено дней: <b class="text-danger">' . $difference . '</b><br/>';
+                $perDay = CashHandler::countPercent($nowAmount, self::PERCENT);
+                if ($perDay < 0.01) {
+                    $answer .= 'За день просрочки: <b class="text-danger">' . $perDay . ' коп.</b><br/>';
+                } else {
+                    $answer .= 'За день просрочки: <b class="text-danger">' . CashHandler::toSmoothRubles($perDay) . '</b><br/>';
+                }
+                $accruals = self::countFine($nowAmount, $difference);
+                $answer .= 'Начислено пени: <b class="text-danger">' . CashHandler::toSmoothRubles($accruals) . '</b><br/>';
+            }
+        }
+        return $answer;
+    }
+
+    /**
+     * @param $pays
+     * @param int $payUp
+     * @param $totalPay
+     * @return float
+     * @throws Exception
+     */
+    private static function handlePeriodPayments($pays, int $payUp, $totalPay): float
+    {
+        $lastPayDate = null;
+        $payed = 0;
+        $fullAmount = 0;
+        foreach ($pays as $pay) {
+            // проверю, если дата платежа раньше ограничения- просто сохраню сумму платежа
+            if ($pay->paymentDate < $payUp) {
+                $payed = CashHandler::toRubles($payed + $pay->summ);
+                $lastPayDate = $pay->paymentDate;
+            } else {
+                // платёж просрочен.
+                //Если есть дата последнего платежа, считаю разницу дней от неё, иначе- от срока оплаты платежа
+                if ($lastPayDate === null) {
+                    $lastPayDate = $payUp;
+                }
+                // посчитаю количество просроченных дней
+                $daysLeft = TimeHandler::checkDayDifference($lastPayDate, $pay->paymentDate);
+                if ($daysLeft > 0) {
+                    // добавлю сумму к пени
+                    $fullAmount += self::countFine($totalPay - $payed, $daysLeft);
+                }
+                $lastPayDate = $pay->paymentDate;
+                $payed = CashHandler::toRubles($payed + $pay->summ);
+            }
+        }
+        // если после всех платежей ещё остался долг- считаю начисления начиная с последней даты оплаты до этого дня
+        if (CashHandler::toRubles($payed) < CashHandler::toRubles($totalPay)) {
+            $daysLeft = TimeHandler::checkDayDifference($lastPayDate);
+            if ($daysLeft > 0) {
+                $fullAmount += self::countFine($totalPay - $payed, $daysLeft);
+            }
+        }
+        return $fullAmount;
+    }
+
+    /**
+     * @param array $powerDuties
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @throws ExceptionWithStatus
+     * @throws Exception
+     */
+    private static function recalculatePowerDuties(array $powerDuties, $cottageInfo): void
+    {
+        $isMain = Cottage::isMain($cottageInfo);
+        foreach ($powerDuties as $powerDuty) {
+            $payUp = self::getPayUp('month', $powerDuty->powerData->month);
+            if ($powerDuty->powerData->totalPay > 0) {
+                // поищу оплаты по этому месяцу
+                if ($isMain) {
+                    $pays = Table_payed_power::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'month' => $powerDuty->powerData->month])->all();
+                } else {
+                    $pays = Table_additional_payed_power::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'month' => $powerDuty->powerData->month])->all();
+                }
+                // если платежей за период не было- тогда платёж не оплачен до сих пор, проверю, не просрочен ли он, если просрочен- просто посчитаю сумму просрочки по обычной формуле
+                if (empty($pays)) {
+                    if ($payUp < time()) {
+                        $fineAmount = self::countFine($powerDuty->powerData->totalPay, TimeHandler::checkDayDifference($payUp));
+                        // пересчитаю пени
+                        self::setPowerFineData($cottageInfo, $powerDuty->powerData, $fineAmount, $payUp);
+                    }
+                } else {
+                    // тут нужно проверить, были ли платежи проведены в отведённое время или просрочены
+                    $fullAmount = self::handlePeriodPayments($pays, $payUp, $powerDuty->powerData->totalPay);
+                    // если начислено пени- сохраню его
+                    if ($fullAmount > 0) {
+                        // обновлю данные по пени
+                        self::setPowerFineData($cottageInfo, $powerDuty->powerData, $fullAmount, $payUp);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @param MembershipDebt[] $membershipDuties
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @throws ExceptionWithStatus
+     * @throws Exception
+     */
+    private static function recalculateMembershipDuties(array $membershipDuties, $cottageInfo): void
+    {
+        $isMain = Cottage::isMain($cottageInfo);
+        foreach ($membershipDuties as $membershipDuty) {
+            $payUp = self::getPayUp('quarter', $membershipDuty->quarter);
+            if ($membershipDuty->partialPayed > 0) {
+                if ($isMain) {
+                    $pays = Table_payed_membership::findAll(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $membershipDuty->quarter]);
+                } else {
+                    $pays = Table_additional_payed_membership::findAll(['cottageId' => $cottageInfo->masterId, 'quarter' => $membershipDuty->quarter]);
+                }
+                $fullAmount = self::handlePeriodPayments($pays, $payUp, $membershipDuty->amount);
+                // если начислено пени- сохраню его
+                if ($fullAmount > 0) {
+                    // обновлю данные по пени
+                    self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fullAmount, $payUp);
+                }
+            } else if ($payUp < time()) {
+                $fineAmount = self::countFine($membershipDuty->amount, TimeHandler::checkDayDifference($payUp));
+                // пересчитаю пени
+                self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fineAmount, $payUp);
+            }
+        }
+    }
+
+    /**
+     * @param $targetDuties
+     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @throws ExceptionWithStatus
+     * @throws Exception
+     */
+    private static function recalculateTargetDuties($targetDuties, $cottageInfo): void
+    {
+        $isMain = Cottage::isMain($cottageInfo);
+        foreach ($targetDuties as $targetDuty) {
+            $leftToPay = CashHandler::toRubles($targetDuty->amount - $targetDuty->partialPayed);
+            $targetTariff = Table_tariffs_target::findOne(['year' => $targetDuty->year]);
+            if ($targetTariff !== null) {
+                $payUp = self::getPayUp('year', $targetTariff->payUpTime);
+                if ($isMain) {
+                    $pays = Table_payed_target::findAll(['cottageId' => $cottageInfo->cottageNumber, 'year' => $targetDuty->year]);
+                } else {
+                    $pays = Table_additional_payed_target::findAll(['cottageId' => $cottageInfo->masterId, 'year' => $targetDuty->year]);
+                }
+                if (empty($pays)) {
+                    if ($payUp < time()) {
+                        $fineAmount = self::countFine($leftToPay, TimeHandler::checkDayDifference($payUp));
+                        // пересчитаю пени
+                        self::setTargetFineData($cottageInfo, $targetDuty->year, $fineAmount, $payUp);
+                    }
+                } else {
+                    $fullAmount = self::handlePeriodPayments($pays, $payUp, $leftToPay);
+                    // если начислено пени- сохраню его
+                    if ($fullAmount > 0) {
+                        // обновлю данные по пени
+                        self::setTargetFineData($cottageInfo, $targetDuty->year, $fullAmount, $payUp);
+                    }
+                }
+            } else {
+                throw new ExceptionWithStatus('Не удалось найти тарифы целевых взносов за ' . $targetDuty->year);
+            }
+        }
+    }
+
+    /**
+     * @param $cottageInfo
+     * @throws ExceptionWithStatus
+     */
+    private static function checkCottage($cottageInfo): void
+    {
+        $powerDuties = PowerHandler::getDebtReport($cottageInfo);
+        if (!empty($powerDuties)) {
+            self::recalculatePowerDuties($powerDuties, $cottageInfo);
+        }
+        $membershipDuties = MembershipHandler::getDebt($cottageInfo);
+        if (!empty($membershipDuties)) {
+            self::recalculateMembershipDuties($membershipDuties, $cottageInfo);
+        }
+        $targetDuties = TargetHandler::getDebt($cottageInfo);
+        if (!empty($targetDuties)) {
+            self::recalculateTargetDuties($targetDuties, $cottageInfo);
+        }
+    }
+
+    /**
+     * @param $transaction
+     * @param $fine
+     * @param float $summToPay
+     * @param Table_penalties|null $fineInfo
+     */
+    public static function registerPay($transaction, $fine, float $summToPay, Table_penalties $fineInfo): void
+    {
+        $payedFine = new Table_payed_fines();
+        $payedFine->fine_id = $fine->fines_id;
+        $payedFine->transaction_id = $transaction->id;
+        $payedFine->pay_date = $transaction->bankDate;
+        $payedFine->summ = $summToPay;
+        $payedFine->save();
+        $fineInfo->payed_summ += $summToPay;
+        if (CashHandler::toRubles($fineInfo->summ) === CashHandler::toRubles($fineInfo->payed_summ)) {
+            $fineInfo->is_partial_payed = 0;
+            $fineInfo->is_full_payed = 1;
+        } else {
+            $fineInfo->is_partial_payed = 1;
+        }
+        $fineInfo->save();
     }
 }

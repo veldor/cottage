@@ -161,7 +161,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             </tbody>
             <tr>
                 <td>Итоговая задолженность</td>
-                <td><?= $cottageInfo->totalDebt > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->totalDebt) . "</b>" : "<b class='text-success'>Отсутствует</b>" ?></td>
+                <td><?= $cottageInfo->totalDebt > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->totalDebt) . '</b>' : "<b class='text-success'>Отсутствует</b>" ?></td>
             </tr>
             <tr>
                 <td>Депозит участка</td>

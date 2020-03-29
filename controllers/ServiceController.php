@@ -8,6 +8,7 @@
 
 namespace app\controllers;
 
+use app\models\FinesHandler;
 use app\models\PowerCounter;
 use Yii;
 use yii\filters\AccessControl;
@@ -16,7 +17,7 @@ use yii\web\Response;
 
 class ServiceController extends Controller
 {
-    public function behaviors()
+    public function behaviors():array
     {
         return [
             'access' => [
@@ -27,13 +28,18 @@ class ServiceController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['change-counter'],
+                        'actions' => ['change-counter', 'recount-fines'],
                         'roles' => ['writer'],
                     ],
                 ],
             ],
         ];
     }
+
+    /**
+     * @param $cottageNumber
+     * @return array|bool
+     */
     public function actionChangeCounter($cottageNumber){
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet){
             Yii::$app->response->format = Response::FORMAT_JSON;
@@ -53,10 +59,15 @@ class ServiceController extends Controller
             if ($model->validate() && $model->save()) {
                 return ['status' => 1];
             }
-            else{
-                return ['status' => 0, 'errors' => $model->errors];
-            }
+
+            return ['status' => 0, 'errors' => $model->errors];
         }
         return false;
+    }
+
+    public function actionRecountFines(): void
+    {
+        // пересчитаю пени
+        FinesHandler::recalculateFines();
     }
 }

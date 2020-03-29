@@ -5,6 +5,7 @@ namespace app\controllers;
 use app\models\AddCottage;
 use app\models\AdditionalCottage;
 use app\models\Cottage;
+use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\FinesHandler;
 use app\models\PersonalTariff;
@@ -151,6 +152,7 @@ class CottageController extends Controller {
      * @return string
      * @throws NotFoundHttpException
      * @throws ErrorException
+     * @throws ExceptionWithStatus
      */
 	public function actionShow($cottageNumber): string
 	{

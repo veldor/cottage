@@ -8,50 +8,39 @@
 
 namespace app\models;
 
-use DateInterval;
 use DateTime;
+use Exception;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
 
 date_default_timezone_set('Europe/Moscow');
-setlocale(LC_ALL, 'ru_RU.utf8');
 
 class TimeHandler extends Model
 {
 
-    public static $months = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря',];
+    public static array $months = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря',];
 
     // ============================ ПЕРЕВОД МЕТКИ ВРЕМЕНИ В ДЕНЬ НЕДЕЛИ ==> "1539590835" <== "понедельник"  ================================================
-    public static function timestampToRuDatetime($timestamp)
-    {
-        return strftime('%A', $timestamp);
-    }
 
     // ============================= ПОЛУЧЕНИЕ ТЕКУЩЕЙ ДАТЫ  <== "понедельник. Октябрь, 15, 2018"  ===================================================
     public static function getCurrentMonth()
     {
-        return strftime('%A. %B, %d, %Y ', time());
+        return GrammarHandler::convertToUTF(strftime('%A. %B, %d, %Y ', time()));
     }
 
     public static function getCurrentDay()
     {
-        return strftime('%Y-%m-%d', strtotime(date('Y-m-d')));
+        return GrammarHandler::convertToUTF(strftime('%Y-%m-%d', strtotime(date('Y-m-d'))));
     }
 
     // ========================== ПРЕДЫДУЩИЙ МЕСЯЦ <== "Сентябрь 2018 года"  ==========================================================================
     public static function getPreviousMonth()
     {
-        return strftime('%B %Y', strtotime(date('Y-m') . " -1 month")) . " года";
-    }
-
-    // =============================== МЕСЯЦ ПО МЕТКЕ ВРЕМЕНИ  ==> "1539590835" <== "Октябрь 2018"   ==========================================================
-    public static function getMonthFromTimestamp($timestamp)
-    {
-        return strftime('%B %Y', $timestamp);
+        return GrammarHandler::convertToUTF(strftime('%B %Y', strtotime(date('Y-m') . ' -1 month')) . ' года');
     }
 
     // =========================== ДАТА И ВРЕМЯ ПО МЕТКЕ ВРЕМЕНИ  ==> "1539590835" <== "Октябрь, 15 2018 ; 11:07"   =============================================
-    public static function getDatetimeFromTimestamp($timestamp)
+    public static function getDatetimeFromTimestamp($timestamp): string
     {
         $date = new DateTime();
         $date->setTimestamp($timestamp);
@@ -67,25 +56,25 @@ class TimeHandler extends Model
     // =========================== ДАТА ПО МЕТКЕ ВРЕМЕНИ  ==> "1539590835" <== "Октябрь, 15 2018"   =============================================
     public static function getDateFromTimestamp($timestamp)
     {
-        return strftime('%d-%m-%Y', $timestamp);
+        return GrammarHandler::convertToUTF(strftime('%d-%m-%Y', $timestamp));
     }
 
     // ========================== ПРЕДЫДУЩИЙ МЕСЯЦ <== "2018-09"   ======================
     public static function getTwoMonthAgo()
     {
-        return strftime('%Y-%m', strtotime(date('Y-m') . " -2 month"));
+        return GrammarHandler::convertToUTF(strftime('%Y-%m', strtotime(date('Y-m') . ' -2 month')));
     }
 
     // ========================== ПРЕДЫДУЩИЙ МЕСЯЦ <== "2018-09"   ======================
     public static function getPreviousShortMonth()
     {
-        return strftime('%Y-%m', strtotime(date('Y-m') . " -1 month"));
+        return GrammarHandler::convertToUTF(strftime('%Y-%m', strtotime(date('Y-m') . ' -1 month')));
     }
 
     // ========================== ТЕКУЩИЙ МЕСЯЦ  <== "2018-10"   ======================
     public static function getCurrentShortMonth()
     {
-        return strftime('%Y-%m', strtotime(date('Y-m')));
+        return GrammarHandler::convertToUTF(strftime('%Y-%m', strtotime(date('Y-m'))));
     }
 
     // ========================== ТЕКУЩИЙ КВАРТАЛ <== "2018-4"   ======================
@@ -93,30 +82,21 @@ class TimeHandler extends Model
     {
         $year = strftime('%Y', strtotime(date('Y-m')));
         $quarter = self::quarterFromMonth(strftime('%m', strtotime(date('Y-m'))));
-        return "$year-$quarter";
+        return GrammarHandler::convertToUTF("$year-$quarter");
     }
-
-    // =========================================== ТЕКУЩИЙ КВАРТАЛ <== "4 квартал 2018 года"   ==============================================
-    public static function getFullCurrentQuarter()
-    {
-        $year = strftime('%Y', strtotime(date('Y-m')));
-        $quarter = self::quarterFromMonth(strftime('%m', strtotime(date('Y-m'))));
-        return "$quarter квартал $year года";
-    }
-
     // ====================== ПОЛНОЕ НАИМЕНОВАНИЕ КВАРТАЛА ИЗ УКОРОЧЕННОГО ==> "2018-4" <== "4 квартал 2018 года"   =================================
-    public static function getFullFromShortQuarter($quarter)
+    public static function getFullFromShortQuarter($quarter): string
     {
         // считаю разницу между введённым значением и текущим кварталом
         $match = null;
-        preg_match('/^(\d{4})\W*([1-4]{1})$/', $quarter, $match);
+        preg_match('/^(\d{4})\W*([1-4])$/', $quarter, $match);
         return "$match[2] квартал $match[1] года";
     }
 
     // ====================== ПОЛНОЕ НАИМЕНОВАНИЕ МЕСЯЦА ИЗ УКОРОЧЕННОГО ==> "2018-10" <== "Октябрь 2018"   =================================
     public static function getFullFromShotMonth($shortMonth)
     {
-        return strftime('%B %Y', \DateTime::createFromFormat('Y-m-d', $shortMonth . '-10')->getTimestamp());
+        return GrammarHandler::convertToUTF(strftime('%B %Y', DateTime::createFromFormat('Y-m-d', $shortMonth . '-10')->getTimestamp()));
     }
 
     // ========================== КВАРТАЛ ИЗ МЕСЯЦА ==> "10" <== "4"   ======================
@@ -143,30 +123,6 @@ class TimeHandler extends Model
         return false;
     }
 
-    // ========================== ГОД-КВАРТАЛ ИЗ ДАТЫ ==> "2018-10" <== "2018-4"   ======================
-    public static function getQuarterFromMonth($date)
-    {
-        $arr = explode('-', $date);
-        switch ((int)$arr[1]) {
-            case 1:
-            case 2:
-            case 3:
-                return "$arr[0]-1";
-            case 4:
-            case 5:
-            case 6:
-                return "$arr[0]-2";
-            case 7:
-            case 8:
-            case 9:
-                return "$arr[0]-3";
-            case 10:
-            case 11:
-            case 12:
-                return "$arr[0]-4";
-        }
-        return false;
-    }
 
     // =========================================== ТЕКУЩИЙ ГОД <== "2018"   ==============================================
     public static function getThisYear()
@@ -235,7 +191,7 @@ class TimeHandler extends Model
     {
         // получу отметку времения 2 числа первого месяца данного года - второго, чтобы исключить поправку на часовой пояс
         $match = null;
-        preg_match('/^(\d{4})\W*([1-4]{1})$/', $q, $match);
+        preg_match('/^(\d{4})\W*([1-4])$/', $q, $match);
         $quarter = $match[2] * 3 - 2;
         return strtotime("2-$quarter-$match[1]");
     }
@@ -253,27 +209,31 @@ class TimeHandler extends Model
     public static function getNextQuarter($quarter): string
     {
         $match = null;
-        preg_match('/^(\d{4})\W*([1-4]{1})$/', $quarter, $match);
+        preg_match('/^(\d{4})\W*([1-4])$/', $quarter, $match);
         if ($match[2] > 3) {
             return $match[1] + 1 . '-1';
         }
         return $match[1] . '-' . ($match[2] + 1);
     }
 
-    // ======================== ВОЗВРАЩАЕТ МАССИВ СО СПИСКОМ КВАРТАЛОВ ОТ ТЕКУЩЕГО ДО ПЕРЕДАННОГО ==>"2018-1" <== "МАССИВ КВАРТАЛОВ" ======================
-    public static function getQuarterList($q)
+    /**
+     * ВОЗВРАЩАЕТ МАССИВ СО СПИСКОМ КВАРТАЛОВ ОТ ТЕКУЩЕГО ДО ПЕРЕДАННОГО
+     * @param $firstCountedQuarter <p>Квартал, от которого будет вестись отсчёт(исключая переданный)</p>
+     * @return array <p>Массив кварталов в формате 2020-1 => ['quarterNumber' => 1, 'year' => 2020]</p>
+     */
+    public static function getQuarterList($firstCountedQuarter): array
     {
-        if (is_string($q)) {
-            $start = self::isQuarter($q);
+        if (is_string($firstCountedQuarter)) {
+            $start = self::isQuarter($firstCountedQuarter);
             $end = self::isQuarter(self::getCurrentQuarter());
-        } elseif (is_array($q)) {
-            $start = self::isQuarter($q['start']);
-            $end = self::isQuarter($q['finish']);
+        } elseif (is_array($firstCountedQuarter)) {
+            $start = self::isQuarter($firstCountedQuarter['start']);
+            $end = self::isQuarter($firstCountedQuarter['finish']);
         } else {
             throw new InvalidArgumentException('Неверный параметр даты');
         }
         // составлю массив кварталов
-        $unpayed = null;
+        $no_payed = [];
         $count = self::checkQuarterDifference($start['full'], $end['full']);
         if ($count === 0) {
             return [];
@@ -293,10 +253,10 @@ class TimeHandler extends Model
             } else {
                 ++$quarter;
             }
-            $unpayed[$year . '-' . $quarter] = ['quarterNumber' => $quarter, 'year' => $year];
+            $no_payed[$year . '-' . $quarter] = ['quarterNumber' => $quarter, 'year' => $year];
             --$count;
         }
-        return $unpayed;
+        return $no_payed;
     }
 
     /**
@@ -305,16 +265,16 @@ class TimeHandler extends Model
      * @param $endMonth string
      * @return array|null
      */
-    public static function getMonthsList($month, $endMonth = '')
+    public static function getMonthsList($month, $endMonth = ''): ?array
     {
         // составлю массив месяцев
-        $unpayed = null;
+        $no_payed = null;
         $count = self::checkMonthDifference($month, $endMonth);
         if ($count) {
             $month = self::isMonth($month)['full'];
             $match = null;
             preg_match('/^(\d{4})\W*(\d{2})$/', $month, $match);
-            list(, $year, $startMonth) = $match;
+            [, $year, $startMonth] = $match;
             if ($count > 0) {
                 while ($count > 0) {
                     if ($startMonth === '12' || $startMonth === 12) {
@@ -326,7 +286,7 @@ class TimeHandler extends Model
                             $startMonth = '0' . $startMonth;
                         }
                     }
-                    $unpayed[$year . '-' . $startMonth] = ['monthNumber' => $startMonth, 'year' => $year];
+                    $no_payed[$year . '-' . $startMonth] = ['monthNumber' => $startMonth, 'year' => $year];
                     --$count;
                 }
             } else if ($count < 0) {
@@ -335,7 +295,7 @@ class TimeHandler extends Model
                     if ($startMonth < 10) {
                         $startMonth = '0' . $startMonth;
                     }
-                    $unpayed[$year . '-' . $startMonth] = ['monthNumber' => $startMonth, 'year' => $year];
+                    $no_payed[$year . '-' . $startMonth] = ['monthNumber' => $startMonth, 'year' => $year];
                     if ($startMonth === '01' || $startMonth === 1 || $startMonth === '1') {
                         $startMonth = '12';
                         --$year;
@@ -344,9 +304,9 @@ class TimeHandler extends Model
                     }
                     ++$count;
                 }
-                $unpayed = array_reverse($unpayed);
+                $no_payed = array_reverse($no_payed);
             }
-            return $unpayed;
+            return $no_payed;
         }
         return null;
     }
@@ -539,13 +499,13 @@ class TimeHandler extends Model
         return $result;
     }
 
-    public static function getTimestampFromBank(string $pay_date, string $pay_time)
+    public static function getTimestampFromBank(string $pay_date, string $pay_time): int
     {
         $date = DateTime::createFromFormat('j-m-Y H-i-s', "$pay_date $pay_time");
         return $date->getTimestamp();
     }
 
-    public static function getCustomTimestamp(string $pay_date, string $payTime = null)
+    public static function getCustomTimestamp(string $pay_date, string $payTime = null): int
     {
         $dates = explode('-', $pay_date);
         $date = new DateTime();
@@ -564,7 +524,7 @@ class TimeHandler extends Model
         return $date->getTimestamp();
     }
 
-    public static function getPowerDueDate()
+    public static function getPowerDueDate(): string
     {
         $search = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         $replace = ['Января', 'Февраля', 'Мара', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
@@ -580,7 +540,7 @@ class TimeHandler extends Model
         return "10 " . mb_strtolower($neededDate);
     }
 
-    public static function checkOverdueQuarter($quarter)
+    public static function checkOverdueQuarter($quarter): bool
     {
         // получу первый месяц квартала
         $explodedQuarter = explode('-', $quarter);
@@ -605,7 +565,7 @@ class TimeHandler extends Model
         return self::getDatetimeFromTimestamp($timestamp);
     }
 
-    public static function getPayUpQuarterTimestamp($quarter)
+    public static function getPayUpQuarterTimestamp($quarter): int
     {
         // получу первый месяц квартала
         $explodedQuarter = explode('-', $quarter);
@@ -621,30 +581,38 @@ class TimeHandler extends Model
         return time();
     }
 
-    public static function getPayUpMonth($month)
+    public static function getPayUpMonth($month): int
     {
         $date = DateTime::createFromFormat('Y-m-j H-i-s', "{$month}-10 12-00-00");
         $date->modify('+1 month');
         return $date->getTimestamp();
     }
 
-    public static function checkDayDifference(int $payUp, int $timestamp = null)
+    /**
+     * Считаю количество дней, прошедших между двумя датами
+     * @param int $firstDate дата для отсчёта
+     * @param int|null $secondDate вторая дата для отсчёта, если назначена, период считается как разница
+     * между первой и второй датами, иначе: как разница между первой датой и текущим днём
+     * @return int
+     * @throws Exception
+     */
+    public static function checkDayDifference(int $firstDate, int $secondDate = null): int
     {
         // получу дату из временной метки
         $date = new DateTime();
-        $date->setTimestamp($payUp);
+        $date->setTimestamp($firstDate);
         $nowDatetime = new DateTime();
-        if(!empty($timestamp))
-            $nowDatetime->setTimestamp($timestamp);
+        if($secondDate !== null)
+            $nowDatetime->setTimestamp($secondDate);
         $interval = $date->diff($nowDatetime);
         $diff = $interval->format('%R%a');
         if ($diff > 0) {
             return $diff;
         }
-        return false;
+        return 0;
     }
 
-    public static function getPrevQuarter(string $quarter)
+    public static function getPrevQuarter(string $quarter): string
     {
         $info = self::isQuarter($quarter);
         if ($info['quarter'] === 1) {
@@ -658,27 +626,27 @@ class TimeHandler extends Model
 
     public static function dateInputDateFromTimestamp(int $timestamp)
     {
-        return strftime('%Y-%m-%d', $timestamp);
+        return GrammarHandler::convertToUTF(strftime('%Y-%m-%d', $timestamp));
     }
 
-    public static function quarterFromYearMonth(string $yearMonth)
+    public static function quarterFromYearMonth(string $yearMonth): string
     {
         // получу год и месяц
-        $date = explode("-", $yearMonth);
-        return $date[0] . "-" . self::quarterFromMonth($date[1]);
+        $date = explode('-', $yearMonth);
+        return $date[0] . '-' . self::quarterFromMonth($date[1]);
     }
 
     public static function getYearFromTimestamp(string $timestamp)
     {
-        return strftime('%Y', $timestamp);
+        return GrammarHandler::convertToUTF(strftime('%Y', $timestamp));
     }
 
     public static function getShortMonthFromTimestamp($timestamp)
     {
-        return strftime('%Y-%m', $timestamp);
+        return GrammarHandler::convertToUTF(strftime('%Y-%m', $timestamp));
     }
 
-    public static function getQuartersList(string $firstQuarter, string $lastQuarter)
+    public static function getQuartersList(string $firstQuarter, string $lastQuarter): array
     {
         $start = self::isQuarter($firstQuarter);
         $finish = self::isQuarter($lastQuarter);
@@ -691,10 +659,10 @@ class TimeHandler extends Model
         return $list;
     }
 
-    public static function getYearsList(int $firstYear, string $lastYear)
+    public static function getYearsList(int $firstYear, string $lastYear): array
     {
         $list[] = $firstYear;
-        if ($firstYear != $lastYear) {
+        if ($firstYear !== $lastYear) {
             $current = ++$firstYear;
             while ($current <= $lastYear) {
                 $list[] = $current;

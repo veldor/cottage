@@ -31,7 +31,7 @@ use yii\db\ActiveRecord;
 
 class Table_power_months extends ActiveRecord
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'months_power';
     }

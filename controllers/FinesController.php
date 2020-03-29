@@ -8,6 +8,7 @@ use app\models\FinesHandler;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
+use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 class FinesController extends Controller
@@ -32,13 +33,21 @@ class FinesController extends Controller
         ];
     }
 
-    public function actionChange($action, $finesId){
+    /**
+     * @param $action
+     * @param $finesId
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionChange($action, $finesId): array
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
-        if($action === 'disable'){
+        if ($action === 'disable') {
             return FinesHandler::disableFine($finesId);
         }
-        elseif ($action === 'enable'){
+        if($action === 'enable') {
             return FinesHandler::enableFine($finesId);
         }
+        throw new NotFoundHttpException();
     }
 }

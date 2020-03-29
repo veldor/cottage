@@ -18,7 +18,10 @@ use yii\db\ActiveRecord;
 
 class Table_penalties extends ActiveRecord
 {
-    public static function tableName()
+    /**
+     * @return string
+     */
+    public static function tableName() : string
     {
         return 'penalties';
     }

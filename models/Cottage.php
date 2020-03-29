@@ -184,7 +184,12 @@ class Cottage extends Model
         return $answer;
     }
 
-    public static function isMain($cottageInfo)
+    /**
+     * Проверка, является ли участок основным
+     * @param $cottageInfo
+     * @return bool
+     */
+    public static function isMain($cottageInfo): bool
     {
         return $cottageInfo instanceof Table_cottages;
     }

@@ -170,4 +170,8 @@ class GrammarHandler extends Model
     public static function getNumber($id){
         return (int) $id;
     }
+
+    public static function convertToUTF($text){
+        return iconv('windows-1251', 'utf-8', $text);
+    }
 }

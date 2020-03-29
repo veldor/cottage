@@ -37,7 +37,8 @@
     "ext-curl": "*",
     "ext-zip": "*",
     "kartik-v/yii2-widget-switchinput": "dev-master",
-    "kartik-v/yii2-widget-datepicker": "dev-master"
+    "kartik-v/yii2-widget-datepicker": "dev-master",
+    "ext-calendar": "*"
   },
   "require-dev": {
     "roave/security-advisories": "dev-master",

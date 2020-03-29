@@ -415,7 +415,13 @@ class PaymentsController extends Controller
             return $model->changeDate();
         }
     }
-    public function actionCountFines($cottageNumber){
+
+    /**
+     * @param $cottageNumber
+     * @return array
+     */
+    public function actionCountFines($cottageNumber): array
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
         $info = FinesHandler::getFines($cottageNumber);
         $text = $this->renderAjax('fines', ['info' => $info]);

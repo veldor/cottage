@@ -114,10 +114,14 @@ class Pay extends Model
             return ['status' => 3, 'message' => 'Счёт не найден!'];
     }
 
-    public static function isDoubleBill($billId)
+    /**
+     * @param $billId
+     * @return bool
+     */
+    public static function isDoubleBill($billId): bool
     {
         // заменю букву А
-        return !!substr_count(self::toLatin($billId), 'A');
+        return (bool)substr_count(self::toLatin($billId), 'A');
     }
 
     public static function toLatin($number)
@@ -406,7 +410,7 @@ class Pay extends Model
                 SingleHandler::handlePartialPayment($billInfo, $this->single, $cottageInfo, $billTransaction);
             }
             if ($this->fines > 0) {
-                FinesHandler::handlePartialPayment($billInfo, $this->fines, $cottageInfo, $billTransaction);
+                FinesHandler::handlePartialPayment($billInfo, $this->fines, $billTransaction);
             }
             // регистрирую транзакцию
             $billTransaction->transactionSumm = CashHandler::toRubles($this->rawSumm);

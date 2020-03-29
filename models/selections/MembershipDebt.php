@@ -2,36 +2,35 @@
 
 namespace app\models\selections;
 
-use app\models\Table_additional_power_months;
-use app\models\Table_power_months;
-use app\models\Table_tariffs_power;
+use app\models\Table_tariffs_membership;
+use yii\base\Model;
 
-class MembershipDebt
+class MembershipDebt extends Model
 {
 
     /**
-     * @var Table_tariffs_power
+     * @var Table_tariffs_membership
      */
-    public $tariff;
+    public Table_tariffs_membership $tariff;
+    /**
+     * @var float
+     */
+    public float $tariffFixed;
+    /**
+     * @var float
+     */
+    public float $tariffFloat;
+    /**
+     * @var float
+     */
+    public float $amount;
     /**
      * @var string
      */
-    public $tariffFixed;
-    /**
-     * @var string
-     */
-    public $tariffFloat;
-    /**
-     * @var string
-     */
-    public $amount;
-    /**
-     * @var string
-     */
-    public $quarter;
+    public string $quarter;
 
     /**
-     * @var string
+     * @var float
      */
-    public $partialPayed;
+    public float $partialPayed;
 }
