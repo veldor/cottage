@@ -121,10 +121,9 @@ class FinesHandler extends Model
     {
         $time = time();
         // получу список участков
-        if($cottageNumber === null){
+        if ($cottageNumber === null) {
             $cottages = Cottage::getRegistred();
-        }
-        else{
+        } else {
             $cottages = Table_cottages::findAll(['cottageNumber' => $cottageNumber]);
         }
         if (!empty($cottages)) {
@@ -693,6 +692,7 @@ class FinesHandler extends Model
     {
         $isMain = Cottage::isMain($cottageInfo);
         foreach ($targetDuties as $targetDuty) {
+            // неоплаченный остаток
             $leftToPay = CashHandler::toRubles($targetDuty->amount - $targetDuty->partialPayed);
             $targetTariff = Table_tariffs_target::findOne(['year' => $targetDuty->year]);
             if ($targetTariff !== null) {
@@ -709,7 +709,7 @@ class FinesHandler extends Model
                         self::setTargetFineData($cottageInfo, $targetDuty->year, $fineAmount, $payUp);
                     }
                 } else {
-                    $fullAmount = self::handlePeriodPayments($pays, $payUp, $leftToPay);
+                    $fullAmount = self::handlePeriodPayments($pays, $payUp, $targetDuty->amount);
                     // если начислено пени- сохраню его
                     if ($fullAmount > 0) {
                         // обновлю данные по пени

@@ -16,7 +16,6 @@ function integrityChecks() {
 
 $(function () {
     navbar = $('ul#w1');
-    checkSoftwareUpdates();
     checkUnsendedMessages();
     integrityChecks();
 
@@ -195,14 +194,6 @@ function closeAlert(alertDiv) {
     });
 }
 
-
-function checkSoftwareUpdates() {
-    check();
-    setInterval(function () {
-        check()
-    }, 600000);
-}
-
 function checkUnsendedMessages() {
     checkMessages();
     setInterval(function () {
@@ -259,42 +250,6 @@ function handleUnsended(e) {
     }
 }
 
-// function checkSystemFixes() {
-//     sendAjax('post', '/check-fix', answer, []);
-//
-//     function answer(e) {
-//     }
-// }
-
-function check() {
-    sendSilentAjax('get', '/updates/check', answer);
-}
-
-function answer(e) {
-    let updatesBtn = navbar.find('#updatesButton');
-    updatesBtn.remove();
-    let noAuthBtn = navbar.find('#no-auth');
-    noAuthBtn.remove();
-    let noConnectionBtn = navbar.find('#no-connection');
-    noConnectionBtn.remove();
-
-    if (e['status'] === 1) {
-        // noinspection JSValidateTypes
-        navbar.prepend('<li id="updatesButton"><a id="installUpdatesButton" href="/management/index" type="button" class="btn  btn-info btn-lg" data-toggle="tooltip" data-placement="bottom" title="Найдены обновнения ПО. Нажмите, чтобы установить."><span class="glyphicon glyphicon-cloud-download text-default"></span></a></li>');
-        $('button#installUpdatesButton').tooltip();
-    } else if (!e['status']) {
-        // обновлений не найдено, убираю значок обновления, если он есть
-        $('li#updatesButton').remove();
-    } else if (e['status'] === 9) {
-        // noinspection JSValidateTypes
-        navbar.prepend('<li id="no-auth"><a href="/management/index" id="no-auth-indicator" class="btn btn-default btn-lg" data-toggle="tooltip" data-placement="bottom" title="Необходимо войти в почтовый аккаунт"><span class="yandex-connect text-warning">Я</span></a></li>');
-        $('span#no-auth-indicator').tooltip();
-    } else if (e['status'] === 10) {
-        // noinspection JSValidateTypes
-        navbar.prepend('<li id="no-connection"><a href="#" id="no-connection-indicator" class="btn btn-danger btn-lg" data-toggle="tooltip" data-placement="bottom" title="Отсутствует подключение к интернету. Обновления и отправка почты недоступны."><span class="glyphicon glyphicon-ban-circle text-default"></span></a></li>');
-        $('span#no-connection-indicator').tooltip();
-    }
-}
 
 // Функция вызова пустого модального окна
 function makeModal(header, text, delayed) {
