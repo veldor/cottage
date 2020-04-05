@@ -116,6 +116,7 @@ class FinesHandler extends Model
     /**
      * @param int|null $cottageNumber
      * @throws ExceptionWithStatus
+     * @throws Exception
      */
     public static function recalculateFines($cottageNumber = null): void
     {
@@ -281,8 +282,9 @@ class FinesHandler extends Model
      * @param $registeredPowerDatum <p>Данные о потреблении электроэнергии</p>
      * @param $fullAmount <p>Сумма пени</p>
      * @param int $payUpDate <p>Срок оплаты</p>
+     * @param bool $createIfNotFound
      */
-    private static function setPowerFineData($cottage, $registeredPowerDatum, $fullAmount, int $payUpDate): void
+    private static function setPowerFineData($cottage, $registeredPowerDatum, $fullAmount, int $payUpDate, $createIfNotFound = false): void
     {
         if (Cottage::isMain($cottage)) {
             $cottageNumber = $cottage->cottageNumber;
@@ -294,7 +296,7 @@ class FinesHandler extends Model
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "электричество {$cottage->cottageNumber} {$registeredPowerDatum->month} Пересчитано\n";
-        } else {
+        } elseif($createIfNotFound) {
             self::createFine(
                 $cottageNumber,
                 'power',
@@ -312,8 +314,9 @@ class FinesHandler extends Model
      * @param $quarter <p>Квартал оплаты</p>
      * @param $fullAmount <p>Сумма пени</p>
      * @param int $payUpDate <p>Срок оплаты</p>
+     * @param bool $createIfNotFound
      */
-    private static function setMembershipFineData($cottage, $quarter, $fullAmount, int $payUpDate): void
+    private static function setMembershipFineData($cottage, $quarter, $fullAmount, int $payUpDate, $createIfNotFound = false): void
     {
         if (Cottage::isMain($cottage)) {
             $cottageNumber = $cottage->cottageNumber;
@@ -325,7 +328,7 @@ class FinesHandler extends Model
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "членские {$cottage->cottageNumber} {$quarter} Пересчитано\n";
-        } else {
+        } elseif($createIfNotFound) {
             self::createFine(
                 $cottageNumber,
                 'membership',
@@ -343,8 +346,9 @@ class FinesHandler extends Model
      * @param $year <p>Квартал оплаты</p>
      * @param $fullAmount <p>Сумма пени</p>
      * @param int $payUpDate <p>Срок оплаты</p>
+     * @param bool $createIfNotFound
      */
-    private static function setTargetFineData($cottage, $year, $fullAmount, int $payUpDate): void
+    private static function setTargetFineData($cottage, $year, $fullAmount, int $payUpDate, $createIfNotFound = false): void
     {
         if (Cottage::isMain($cottage)) {
             $cottageNumber = $cottage->cottageNumber;
@@ -356,7 +360,7 @@ class FinesHandler extends Model
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "целевые {$cottage->cottageNumber} {$year} Пересчитано {$fullAmount}\n";
-        } else {
+        } elseif ($createIfNotFound) {
             self::createFine(
                 $cottageNumber,
                 'target',
@@ -364,7 +368,6 @@ class FinesHandler extends Model
                 $payUpDate,
                 $fullAmount
             );
-            //echo "целевые {$cottage->cottageNumber} {$year} Создано {$fullAmount}\n";
         }
     }
 
@@ -636,7 +639,7 @@ class FinesHandler extends Model
                     if ($payUp < time()) {
                         $fineAmount = self::countFine($powerDuty->powerData->totalPay, TimeHandler::checkDayDifference($payUp));
                         // пересчитаю пени
-                        self::setPowerFineData($cottageInfo, $powerDuty->powerData, $fineAmount, $payUp);
+                        self::setPowerFineData($cottageInfo, $powerDuty->powerData, $fineAmount, $payUp, true);
                     }
                 } else {
                     // тут нужно проверить, были ли платежи проведены в отведённое время или просрочены
@@ -644,7 +647,7 @@ class FinesHandler extends Model
                     // если начислено пени- сохраню его
                     if ($fullAmount > 0) {
                         // обновлю данные по пени
-                        self::setPowerFineData($cottageInfo, $powerDuty->powerData, $fullAmount, $payUp);
+                        self::setPowerFineData($cottageInfo, $powerDuty->powerData, $fullAmount, $payUp, true);
                     }
                 }
             }
@@ -672,12 +675,12 @@ class FinesHandler extends Model
                 // если начислено пени- сохраню его
                 if ($fullAmount > 0) {
                     // обновлю данные по пени
-                    self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fullAmount, $payUp);
+                    self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fullAmount, $payUp, true);
                 }
             } else if ($payUp < time()) {
                 $fineAmount = self::countFine($membershipDuty->amount, TimeHandler::checkDayDifference($payUp));
                 // пересчитаю пени
-                self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fineAmount, $payUp);
+                self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fineAmount, $payUp, true);
             }
         }
     }
@@ -706,14 +709,14 @@ class FinesHandler extends Model
                     if ($payUp < time()) {
                         $fineAmount = self::countFine($leftToPay, TimeHandler::checkDayDifference($payUp));
                         // пересчитаю пени
-                        self::setTargetFineData($cottageInfo, $targetDuty->year, $fineAmount, $payUp);
+                        self::setTargetFineData($cottageInfo, $targetDuty->year, $fineAmount, $payUp, true);
                     }
                 } else {
                     $fullAmount = self::handlePeriodPayments($pays, $payUp, $targetDuty->amount);
                     // если начислено пени- сохраню его
                     if ($fullAmount > 0) {
                         // обновлю данные по пени
-                        self::setTargetFineData($cottageInfo, $targetDuty->year, $fullAmount, $payUp);
+                        self::setTargetFineData($cottageInfo, $targetDuty->year, $fullAmount, $payUp, true);
                     }
                 }
             } else {
