@@ -153,7 +153,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     }
                 }
                 if ($total > 0) {
-                    echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button></td></tr>";
+                    echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button> <button class='btn btn-default activator' data-action='/fines/recount/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-warning'>пересчитать</span></button></td></tr>";
                     $cottageInfo->totalDebt += $total;
                 }
             }

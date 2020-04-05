@@ -110,6 +110,7 @@ class ManagementController extends Controller
                 $form = new UpdateSite();
                 return $form->checkUpdate();
             } catch (Exception $e) {
+                echo $e->getMessage();
                 if ($e->getCode() === 8) {
                     return ['status' => 9, 'message' => 'Нужно авторизоваться в яндексе.'];
                 }

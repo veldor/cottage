@@ -4,6 +4,7 @@
 namespace app\controllers;
 
 
+use app\models\ExceptionWithStatus;
 use app\models\FinesHandler;
 use Yii;
 use yii\filters\AccessControl;
@@ -25,7 +26,7 @@ class FinesController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['change'],
+                        'actions' => ['change', 'recount-fines'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -49,5 +50,18 @@ class FinesController extends Controller
             return FinesHandler::enableFine($finesId);
         }
         throw new NotFoundHttpException();
+    }
+
+    /**
+     * @param $cottageNumber
+     * @return array
+     * @throws ExceptionWithStatus
+     */
+    public function actionRecountFines($cottageNumber): array
+    {
+        // пересчитаю пени по участку
+        FinesHandler::recalculateFines($cottageNumber);
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        return ['status' => 2];
     }
 }

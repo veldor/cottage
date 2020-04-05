@@ -16,7 +16,7 @@ class ComparisonHandler extends Model
     public const SCENARIO_MANUAL_COMPARISON = 'manual comparison';
     public string $billId;
     public int $transactionId;
-    public int $sendConfirmation = 0;
+    public bool $sendConfirmation = false;
 
     public const SCENARIO_COMPARISON = 'comparison';
 

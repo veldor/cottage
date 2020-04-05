@@ -896,6 +896,9 @@ function handleModalForm(data) {
             }
         });
     }
+    else if(data.status && data.status === 2){
+        location.reload();
+    }
 }
 
 // обработка активаторов AJAX-запросов =================================================================================

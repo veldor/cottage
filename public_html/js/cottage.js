@@ -1517,6 +1517,7 @@ function additionalFunctions() {
 }
 
 $(function () {
+    handleAjaxActivators();
     basementFunctional();
     additionalFunctions();
     individualTariff();

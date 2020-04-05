@@ -114,13 +114,19 @@ class FinesHandler extends Model
     }
 
     /**
-     * @throws Exception
+     * @param int|null $cottageNumber
+     * @throws ExceptionWithStatus
      */
-    public static function recalculateFines(): void
+    public static function recalculateFines($cottageNumber = null): void
     {
         $time = time();
         // получу список участков
-        $cottages = Cottage::getRegistred();
+        if($cottageNumber === null){
+            $cottages = Cottage::getRegistred();
+        }
+        else{
+            $cottages = Table_cottages::findAll(['cottageNumber' => $cottageNumber]);
+        }
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
                 // получу все данные по электроэнергии
