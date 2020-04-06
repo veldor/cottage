@@ -18,8 +18,8 @@ class Cottage extends Model
     public $globalInfo;
     public $filledPower;
     public $lastPowerFillDate;
-    public $powerDataCancellable = false;
-    public $powerDataAdditionalCancellable = false;
+    public bool $powerDataCancellable = false;
+    public bool $powerDataAdditionalCancellable = false;
     public $powerPayDifference = '';
     public $membershipDebts = 0;
     public $targetDebts = 0;
@@ -52,7 +52,7 @@ class Cottage extends Model
         $this->filledPower = $powerStatus['filledPower'];
         $this->lastPowerFillDate = $powerStatus['lastPowerFillDate'];
         $this->powerPayDifference = $powerStatus['powerPayDifference'];
-        if (!$this->counterChanged && !$this->unpayedBills && $powerStatus['powerPayed'] === 'no' && ($this->lastPowerFillDate === TimeHandler::getPreviousShortMonth() || $this->lastPowerFillDate === TimeHandler::getCurrentShortMonth())) {
+        if (!$this->counterChanged && $powerStatus['powerPayed'] === 'no' && ($this->lastPowerFillDate === TimeHandler::getPreviousShortMonth() || $this->lastPowerFillDate === TimeHandler::getCurrentShortMonth())) {
             $this->powerDataCancellable = true;
         }
         $this->powerDebts = $powerStatus['powerDebt'];

@@ -98,7 +98,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                                     foreach ($pays as $pay) {
                                         $payedAmount += CashHandler::toRubles($pay->summ);
                                     }
-                                    if (CashHandler::toRubles($payedAmount) != CashHandler::toRubles($month->totalPay)) {
+                                    if (CashHandler::toRubles($payedAmount) !== CashHandler::toRubles($month->totalPay)) {
                                         echo '<p><b class="text-info">' . TimeHandler::getFullFromShotMonth($month->month) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($payedAmount) . '</b> из ' . CashHandler::toRubles($month->totalPay) . '</p>';
                                     }
                                 }
@@ -114,7 +114,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     (<?= TimeHandler::getFullFromShotMonth($cottageInfo->lastPowerFillDate) ?>
                     )
                     <?= $cottageInfo->powerDataCancellable ? "<button id='cancelFillPower' class='btn btn-danger'>Удалить</button>" : '' ?>
-                    <?= !$cottageInfo->filledPower ? "<button id='fillPower' class='btn btn-info'>Заполнить " . TimeHandler::getFullFromShotMonth(TimeHandler::getPreviousShortMonth()) . "</button>" : '' ?>
+                    <?= !$cottageInfo->filledPower ? "<button id='fillPower' class='btn btn-info'>Заполнить " . TimeHandler::getFullFromShotMonth(TimeHandler::getPreviousShortMonth()) . '</button>' : '' ?>
                 </td>
             </tr>
             <tr>
