@@ -157,7 +157,7 @@ function handleMailing() {
     sendMailingActivator.on('click.send', function (e) {
         e.preventDefault();
         let mailData;
-        for(var i in CKEDITOR.instances){
+        for(let i in CKEDITOR.instances){
             if(CKEDITOR.instances.hasOwnProperty(i)){
                 mailData = CKEDITOR.instances[i].getData();
                 break;

@@ -139,11 +139,12 @@ if (!empty($tab)) {
                 </div>
             </div>
             <div class="col-sm-12 margened">
-                <label for="w1"></label><textarea title="mailing text" id="w1" name="w1"></textarea>
+                <label for="w1"></label><textarea title="mailing text" id="w1" name="mailingBody"></textarea>
                 <?php
                 try {
                     CKEditor::widget([
                         'name' => 'mailing',
+                        'options' => ['id' => 'mailingBody'],
                         'editorOptions' => [
                             'preset' => 'full', //разработанны стандартные настройки basic, standard, full данную возможность не обязательно использовать
                             'extraPlugins' => 'lexemes',
