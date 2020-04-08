@@ -38,7 +38,8 @@ class PrintController extends Controller
         ];
     }
 
-    public function actionCottageReport($start, $end, $cottageNumber){
+    public function actionCottageReport($start, $end, $cottageNumber): string
+    {
         $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
         $start /= 1000;
         $end /= 1000;

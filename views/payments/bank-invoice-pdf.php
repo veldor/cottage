@@ -84,7 +84,6 @@ if (!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'
         $newData = null;
         $difference = null;
         $usedPower = [];
-        $usedPower = [];
         $summ = $paymentContent['additionalPower']['summ'];
         foreach ($paymentContent['additionalPower']['values'] as $value) {
             $tempOldData = $value["old-data"];

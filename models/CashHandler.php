@@ -102,11 +102,14 @@ class CashHandler extends Model
         }
         return ['rubles' => $rubles, 'cents' => $cents];
     }
-    public static function toSmoothRubles($summ){
+    public static function toSmoothRubles($summ): string
+    {
         $divided = self::dividedSumm($summ);
-        return $divided['rubles'] . "&nbsp;руб.&nbsp;" . $divided['cents'] . "&nbsp;коп.";
+        return $divided['rubles'] . ' руб.' . $divided['cents'] . ' коп.';
     }
-    public static function toShortSmoothRubles($summ, $negative = false){
+
+    public static function toShortSmoothRubles($summ, $negative = false): string
+    {
         $divided = self::dividedSumm($summ, $negative);
         return $divided['rubles'] . ',' . $divided['cents'] . self::RUB;
     }

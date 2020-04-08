@@ -10,14 +10,18 @@ namespace app\models;
 
 
 use Dompdf\Dompdf;
-use Yii;
 
 class PDFHandler
 {
-    public static function renderPDF($text, $filename, $orientation)
+    /**
+     * @param $text
+     * @param $filename
+     * @param $orientation
+     */
+    public static function renderPDF($text, $filename, $orientation): void
     {
         $dompdf = new Dompdf([
-            'defaultFont' => "arial",//делаем наш шрифт шрифтом по умолчанию
+            'defaultFont' => 'times',//делаем наш шрифт шрифтом по умолчанию
         ]);
         $dompdf->loadHtml($text);
 // (Optional) Setup the paper size and orientation
