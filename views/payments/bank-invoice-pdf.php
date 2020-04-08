@@ -106,9 +106,9 @@ if (!empty($paymentContent['power']) || !empty($paymentContent['additionalPower'
         foreach ($usedPower as $item) {
             $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . " ";
         }
-        $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
+        $values .= 'На сумму: ' . CashHandler::toSmoothRubles($summ);
     }
-    $powerText = '<p>Электроэнергия: ' . $values . ' (срок оплаты: до ' . $dueDate . " года)</p>";
+    $powerText = '<p>Электроэнергия: ' . $values . ' (срок оплаты: до ' . $dueDate . ' года)</p>';
 }
 if (!empty($paymentContent['membership']) || !empty($paymentContent['additionalMembership'])) {
 

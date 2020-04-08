@@ -15,15 +15,16 @@ setlocale(LC_ALL, 'ru_RU.utf8');
 
 class CashHandler extends Model
 {
-	const RUB = '&nbsp;&#8381;';
-	const KW = '&nbsp;кВт.ч';
+	public const RUB = ' &#8381;';
+	public const KW = ' кВт.ч';
     /**
      * @param $summ
      * @param bool $isNegative
      * @throws InvalidArgumentException
      * @return float
      */
-    public static function toRubles($summ, $isNegative = false){
+    public static function toRubles($summ, $isNegative = false): float
+    {
         if($isNegative){
             $re = '/^\s*(-?\d+)[,.]?(\d*)?\s*$/';
         }
@@ -71,7 +72,7 @@ class CashHandler extends Model
     }
     public static function rublesMath($expression){
         $rounded = round($expression, 2);
-        if($rounded == -0){
+        if($rounded === -0){
             $rounded = 0;
         }
         return $rounded;
@@ -79,18 +80,19 @@ class CashHandler extends Model
     public static function rublesRound($value){
         return round($value, 2);
     }
-    public static function rublesMore($first, $second){
+    public static function rublesMore($first, $second): bool
+    {
         return (string)$first > (string)$second;
     }
 
-    public static function dividedSumm($summ, $negative = false)
+    public static function dividedSumm($summ, $negative = false): array
     {
         // приведу сумму к стандартному виду
-        $summ = CashHandler::toRubles($summ, $negative);
+        $summ = self::toRubles($summ, $negative);
         $divided = explode(',', $summ);
         $rubles = $divided[0];
         if(!empty($divided[1])){
-            if(strlen($divided[1]) == 1){
+            if(strlen($divided[1]) === 1){
                 $cents =$divided[1] . '0';
             }
             else{
@@ -123,14 +125,14 @@ class CashHandler extends Model
      * @param string $powerCost
      * @return int
      */
-    public static function toNewRubles(string $powerCost)
+    public static function toNewRubles(string $powerCost): int
     {
         $summ = self::dividedSumm($powerCost);
         return (int) ($summ['rubles'] . $summ ['cents']);
     }
 
     public static function toJsRubles($summ){
-        $summ = CashHandler::toRubles($summ);
+        $summ = self::toRubles($summ);
         return str_replace(',', '.', $summ);
     }
 
