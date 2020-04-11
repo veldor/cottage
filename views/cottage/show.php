@@ -113,7 +113,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <td><b class="text-info"><?= $cottageInfo->globalInfo->currentPowerData ?> кВт.ч</b>
                     (<?= TimeHandler::getFullFromShotMonth($cottageInfo->lastPowerFillDate) ?>
                     )
-                    <?= $cottageInfo->powerDataCancellable ? "<button id='cancelFillPower' class='btn btn-danger'>Удалить</button>" : '' ?>
+                    <?= $cottageInfo->powerDataCancellable !== null ? "<button class='btn btn-danger disabled tooltip-enabled' data-toggle='tooltip' data-placement='top' title='{$cottageInfo->powerDataCancellable}'>Удалить</button>" : "<button id='cancelFillPower' class='btn btn-danger'>Удалить</button>" ?>
                     <?= !$cottageInfo->filledPower ? "<button id='fillPower' class='btn btn-info'>Заполнить " . TimeHandler::getFullFromShotMonth(TimeHandler::getPreviousShortMonth()) . '</button>' : '' ?>
                 </td>
             </tr>

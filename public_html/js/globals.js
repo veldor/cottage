@@ -323,6 +323,9 @@ function makeInformerModal(header, text, acceptAction, declineAction) {
         modal.remove();
         $('div.wrap div.container, div.wrap nav').removeClass('blured');
     });
+    modal.on('shown.bs.modal', function () {
+        acceptButton.focus();
+    });
     $('div.wrap div.container, div.wrap nav').addClass('blured');
 
     acceptButton.on('click', function () {
@@ -880,3 +883,6 @@ function handleAjaxActivators() {
     });
 }
 
+function handleTooltipEnabled() {
+    $('.tooltip-enabled').tooltip();
+}

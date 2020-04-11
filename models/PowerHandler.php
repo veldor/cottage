@@ -9,12 +9,15 @@
 namespace app\models;
 
 
+use app\models\handlers\BillsHandler;
 use app\models\selections\PowerDebt;
+use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use app\validators\CheckCottageNoRegistred;
 use app\validators\CheckMonthValidator;
 use DOMElement;
 use Exception;
+use Throwable;
 use yii\base\ErrorException;
 use yii\base\InvalidArgumentException;
 use yii\base\InvalidValueException;
@@ -63,12 +66,76 @@ class PowerHandler extends Model
     {
         $amount = 0;
         $previous = Cottage::isMain($cottageInfo) ? Table_payed_power::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'month' => $powerMonth])->all() : Table_additional_payed_power::find()->where(['cottageId' => $cottageInfo->masterId, 'month' => $powerMonth])->all();
-        if(!empty($previous)){
+        if (!empty($previous)) {
             foreach ($previous as $item) {
                 $amount += $item->summ;
             }
         }
         return $amount;
+    }
+
+
+    /**
+     * Проверю, можно ли отменить последние показания по электроэнергии
+     * @param Table_cottages $cottage <p>Экземляр участка</p>
+     * @return string|null <p>Верну статус ошибки в случае невозможности отмены или null, если можно отменить платёж</p>
+     */
+    public static function isDataCancellable(Table_cottages $cottage): ?string
+    {
+        // для начала, получу данные о последнем заполненном месяце
+        $lastData = Table_power_months::getLastFilled($cottage);
+        // если поступали оплаты по данному счёту- верну ошибку
+        if ($lastData !== null) {
+            if (Table_payed_power::isPayed($lastData) > 0) {
+                return 'Невозможно отменить показания: по ним уже получена оплата';
+            }
+            // получу счета в которых участвует данный период. Если какой-то из них частично или полностью оплачен- операция недоступна
+            $bills = BillsHandler::getMonthContains($cottage, $lastData);
+            if(!empty($bills)){
+                foreach ($bills as $bill) {
+                    if($bill->payedSumm > 0){
+                        return "Невозможно отменить показания: счёт № {$bill->id}, в котором присутствует данный период, частично или полностью оплачен!";
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param $cottage Table_cottages|Table_additional_cottages
+     * @return array
+     */
+    public static function checkLastFilledDelete($cottage): array
+    {
+        $isMain = Cottage::isMain($cottage);
+        // получу последний заполненный месяц
+        $lastFilled = self::getLastFilled($cottage);
+        if ($isMain) {
+            // проверю, не выставлены ли счета по данному периоду. Если выставлены- предупрежу, что они будут удалены
+            $billsWithPeriod = BillsHandler::getMonthContains($cottage, $lastFilled);
+        }
+        if (!empty($billsWithPeriod)) {
+            $answer = "Вместе с заполненными данными будут удалены данные счета:\n";
+            foreach ($billsWithPeriod as $item) {
+                $answer .= $item->id . "\n";
+            }
+        } else {
+            $answer = 'Точно удаляем данные?';
+        }
+        return ['answer' => $answer, 'main' => $isMain];
+    }
+
+    /**
+     * @param $data Table_power_months|Table_additional_power_months
+     * @return int
+     */
+    private static function isPayed($data): int
+    {
+        if ($data instanceof Table_power_months) {
+            return Table_payed_power::isPayed($data);
+        }
+        return Table_additional_payed_power::isPayed($data);
     }
 
     public function scenarios(): array
@@ -490,7 +557,7 @@ class PowerHandler extends Model
                     $partialPayed = 0;
                 }
                 // если оплачено меньше суммы долга
-                if(CashHandler::toRubles($partialPayed) != $rate->totalPay){
+                if (CashHandler::toRubles($partialPayed) != $rate->totalPay) {
                     $answerItem = new PowerDebt();
                     $answerItem->powerData = $rate;
                     $answerItem->tariff = Table_tariffs_power::findOne(['targetMonth' => $rate->month]);
@@ -521,10 +588,9 @@ class PowerHandler extends Model
             $toPay = CashHandler::toRubles($value['value']);
             // найду тариф
             $tariff = Table_tariffs_power::findOne(['targetMonth' => $key]);
-            if($additional){
+            if ($additional) {
                 $data = Table_additional_power_months::findOne(['cottageNumber' => $cottage->masterId, 'month' => $key]);
-            }
-            else{
+            } else {
                 $data = Table_power_months::findOne(['cottageNumber' => $cottage->cottageNumber, 'month' => $key]);
             }
 
@@ -533,7 +599,7 @@ class PowerHandler extends Model
                 $maxAmount = $data->difference * $tariff->powerOvercost;
                 $cottage->powerDebt += $maxAmount - $data->totalPay;
                 $cottage->save();
-                    // изменю информацию в базе
+                // изменю информацию в базе
                 $data->totalPay = $maxAmount;
                 $data->inLimitSumm = 0;
                 $data->inLimitPay = 0;
@@ -828,17 +894,16 @@ class PowerHandler extends Model
                 $summ = $payedMonth['summ'];
 
                 $payed = self::getPreviousPayed($cottageInfo, $date);
-                $data = $main ? Table_power_months::findOne(['cottageNumber' => $cottageInfo->cottageNumber, 'month' =>  $date]) : Table_additional_power_months::findOne(['cottageNumber' => $cottageInfo->masterId, 'month' =>  $date]);
+                $data = $main ? Table_power_months::findOne(['cottageNumber' => $cottageInfo->cottageNumber, 'month' => $date]) : Table_additional_power_months::findOne(['cottageNumber' => $cottageInfo->masterId, 'month' => $date]);
                 // проверю, не игнорируется ли лимит
-                if($payedMonth['is_limit_ignored'] == 1){
+                if ($payedMonth['is_limit_ignored'] == 1) {
                     $requiredAmount = $data->difference * Table_tariffs_power::findOne(['targetMonth' => $powerMonth])->powerOvercost;
-                }
-                else{
+                } else {
                     $requiredAmount = $data->totalPay;
                 }
                 self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
                 $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
-                if($requiredAmount - $payed - $summ == 0){
+                if ($requiredAmount - $payed - $summ == 0) {
                     // отмечу месяц последним оплаченным для участка
                     $cottageInfo->powerPayFor = $date;
                     $cottageInfo->partialPayedPower = null;
@@ -920,25 +985,38 @@ class PowerHandler extends Model
      * @param $cottageNumber
      * @param $additional
      * @return array|bool
-     * @throws \Throwable
-     * @throws \yii\db\StaleObjectException
+     * @throws Throwable
      */
     public static function cancelPowerFill($cottageNumber, $additional)
     {
+        $transaction = new DbTransaction();
         if ($additional) {
             $cottage = AdditionalCottage::getCottage($cottageNumber);
         } else {
             $cottage = Cottage::getCottageInfo($cottageNumber);
         }
         $data = self::getMonthInfo($cottage);
-        if (($data->month === TimeHandler::getCurrentShortMonth() || $data->month === TimeHandler::getPreviousShortMonth()) && $data->payed === 'no') {
-            $cottage->powerDebt = CashHandler::rublesMath($cottage->powerDebt - $data->totalPay);
-            $cottage->currentPowerData = $data->oldPowerData;
-            $cottage->save();
-            $data->delete();
-            return ['status' => 1];
+        // проверю, что счёт не оплачивался, если оплачивался- верну предупреждение об этом
+        if (self::isPayed($data)) {
+            return ['status' => 2, 'message' => 'Невозможно удалить период, так как он уже частично или полностью оплачен'];
         }
-        return false;
+        // получу счета, в которых присутствует данный месяц
+        $billsForDelete = BillsHandler::getMonthContains($cottage, $data);
+        if (!empty($billsForDelete)) {
+            foreach ($billsForDelete as $item) {
+                // если счёт уже частично оплачен- верну ошибку удаления
+                if ($item->payedSumm > 0) {
+                    return ['status' => 2, 'message' => "Удаление периода невозможно, счёт № {$item->id}, в котором содержится данный период, уже частично или полностью оплачен. Удаление периода привело бы к непредвиденным сложностям."];
+                }
+                $item->delete();
+            }
+        }
+        $cottage->powerDebt = CashHandler::rublesMath($cottage->powerDebt - $data->totalPay);
+        $data->delete();
+        $cottage->currentPowerData = self::getLastFilled($cottage)->newPowerData;
+        $cottage->save();
+        $transaction->commitTransaction();
+        return ['status' => 1];
     }
 
     /**

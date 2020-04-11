@@ -556,7 +556,7 @@ function basementFunctional() {
     // отменю внесённые показания по электричеству
     let cBtn = $('button#cancelFillPower');
     cBtn.on('click.cancel', function () {
-        sendAjax('post', '/power/cancel-previous/' + cottageNumber, pCallback);
+        sendAjax('get', '/power/cancel-previous/' + cottageNumber, pCallback);
     });
     // отменю внесённые показания по электричеству
     let caBtn = $('button#cancelFillAdditionalPower');
@@ -565,10 +565,21 @@ function basementFunctional() {
     });
 
     function pCallback(data) {
-        if (data.status === 1) {
-            makeInformerModal('Успешно', 'Сведения о потреблённой электроэнергии успешно удалены');
-        } else
-            makeInformer('warning', 'Неудачно', 'Операция не удалась. Возможно, не заполнены покаания за месяц или месяц уже оплачен или есть неоплаченные счета по этому участку.')
+        if (data.hasOwnProperty('answer') && data.hasOwnProperty('main')) {
+            // ответ на запрос формы удаления последних данных о потреблённой электроэнергии
+            makeInformerModal(
+                "Удаление данных о потреблённой электроэнергии",
+                data.answer,
+                function () {
+                    if (data.main) {
+                        sendAjax('post', '/power/cancel-previous/' + cottageNumber, simpleAnswerHandler);
+                    } else {
+                        sendAjax('post', '/power/cancel-previous/additional/' + cottageNumber, simpleAnswerHandler);
+                    }
+                },
+                function () {}
+                );
+        }
     }
 
     // обработаю неоплаченный платёж при его наличии
@@ -706,23 +717,20 @@ function basementFunctional() {
                     let text = '<tr class="hoverable" data-payment-id="' + simple['id'] + '"><td >№ <b class="text-info">' + simple['id'] + '</b></td>';
                     text += '<td><b class="text-success">' + simple['summ'] + ' &#8381;</b></td>';
                     text += simple['isPayed'] ? '<td><button class="btn btn-default"><span class="glyphicon glyphicon-lock text-danger"></span></button></td>' : '<td></td>';
-                    if(simple['payed-summ'] > 0){
-                        if(simple['payed-summ'] < simple['summ']){
+                    if (simple['payed-summ'] > 0) {
+                        if (simple['payed-summ'] < simple['summ']) {
                             text += '<td><b class="text-info">Оплачено частично, ' + simple['payed-summ'] + ' &#8381;</b></td>';
-                        }
-                        else{
+                        } else {
                             text += '<td><b class="text-success">Оплачено полностью</b></td>';
                         }
-                    }
-                    else{
-                        if(!simple['isPayed']){
+                    } else {
+                        if (!simple['isPayed']) {
                             text += '<td><b class="text-warning">Ожидает оплаты</b></td>';
-                        }
-                        else{
+                        } else {
                             text += '<td><b class="text-danger">Не оплачено</b></td>';
                         }
                     }
-                    if(simple['paymentTime']){
+                    if (simple['paymentTime']) {
                         text += '<td><b class="text-info">Дата оплаты: ' + simple['paymentTime'] + '</b></td>';
                     }
                     text += '</tr>';
@@ -1516,7 +1524,32 @@ function additionalFunctions() {
     });
 }
 
+function addHotkeys() {
+    $('body').on('keypress', function (event) {
+        console.log(event);
+        // хоткей shift + n: переход к следующему участку
+        if((event.keyCode === 78 || event.keyCode === 1058) && event.shiftKey === true){
+            // перейду к следующему участку
+            location.assign('/cottage/next');
+        }
+        // хоткей shift + n: переход к предыдущему участку
+        else if((event.keyCode === 80 || event.keyCode === 1047) && event.shiftKey === true){
+            // перейду к предыдущему участку
+            location.assign('/cottage/previous');
+        }
+        // хоткей shift + n: переход к предыдущему участку
+        else if((event.keyCode === 66 || event.keyCode === 1048) && event.shiftKey === true){
+            // открою окно создания счёта
+            $('button#payForCottageButton').trigger('click');
+        }
+
+    });
+}
+
 $(function () {
+    // добавлю хоткеи
+    addHotkeys();
+    handleTooltipEnabled();
     handleAjaxActivators();
     basementFunctional();
     additionalFunctions();

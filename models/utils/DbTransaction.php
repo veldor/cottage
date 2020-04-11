@@ -25,7 +25,8 @@ class DbTransaction
     /**
      * @throws ExceptionWithStatus
      */
-    public function commitTransaction(){
+    public function commitTransaction(): void
+    {
         try {
             $this->transaction->commit();
         } catch (Exception $e) {

@@ -35,4 +35,13 @@ class Table_power_months extends ActiveRecord
     {
         return 'months_power';
     }
+
+    /**
+     * @param Table_cottages $cottage
+     * @return Table_power_months
+     */
+    public static function getLastFilled(Table_cottages $cottage): Table_power_months
+    {
+        return self::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('month DESC')->one();
+    }
 }

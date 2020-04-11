@@ -18,7 +18,7 @@ class Cottage extends Model
     public $globalInfo;
     public $filledPower;
     public $lastPowerFillDate;
-    public bool $powerDataCancellable = false;
+    public ?string $powerDataCancellable = null;
     public bool $powerDataAdditionalCancellable = false;
     public $powerPayDifference = '';
     public $membershipDebts = 0;
@@ -52,9 +52,8 @@ class Cottage extends Model
         $this->filledPower = $powerStatus['filledPower'];
         $this->lastPowerFillDate = $powerStatus['lastPowerFillDate'];
         $this->powerPayDifference = $powerStatus['powerPayDifference'];
-        if (!$this->counterChanged && $powerStatus['powerPayed'] === 'no' && ($this->lastPowerFillDate === TimeHandler::getPreviousShortMonth() || $this->lastPowerFillDate === TimeHandler::getCurrentShortMonth())) {
-            $this->powerDataCancellable = true;
-        }
+        // определю, можно ли удалить данные по потреблению электроэнергии. Можно, если ещё не поступала оплата
+        $this->powerDataCancellable = PowerHandler::isDataCancellable($this->globalInfo);
         $this->powerDebts = $powerStatus['powerDebt'];
         // Посчитаю задолженности
         if ($this->globalInfo->individualTariff) {
@@ -327,5 +326,19 @@ class Cottage extends Model
             }
         }
         return 'https://dev.com/show-cottage/1';
+    }
+
+    /**
+     * Верну участок
+     * @param $cottageNumber <p>Номер участка</p>
+     * @param bool $additional <p>Метка дополнительного участка</p>
+     * @return Table_additional_cottages|Table_cottages|null <p>Верну экземпляр участка</p>
+     */
+    public static function getCottage($cottageNumber, bool $additional)
+    {
+        if($additional){
+            return Table_additional_cottages::findOne(['masterId' => $cottageNumber]);
+        }
+        return Table_cottages::findOne(['cottageNumber' => $cottageNumber]);
     }
 }
