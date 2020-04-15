@@ -11,6 +11,7 @@ use app\assets\BankInvoiceAsset;
 use app\models\BankDetails;
 use app\models\CashHandler;
 use app\models\FinesHandler;
+use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
 use app\models\TargetHandler;
 use app\models\TimeHandler;
@@ -88,7 +89,6 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         $oldData = null;
         $newData = null;
         $difference = null;
-        $usedPower = [];
         $usedPower = [];
         $summ = $paymentContent['additionalPower']['summ'];
         foreach ($paymentContent['additionalPower']['values'] as $value) {
@@ -198,9 +198,10 @@ if(!empty($fines)){
         else{
             $fullPeriod = $fine->period;
         }
-        $finesText .= FinesHandler::$types[$fine->pay_type] . " за {$fullPeriod} просрочено на {$fine->start_days} дней на сумму " . CashHandler::toSmoothRubles($fine->start_summ) . ', ';
+        $finesText .= FinesHandler::$types[$fine->pay_type] . " за {$fullPeriod} просрочено на 
+         " . FinesHandler::getFineDaysLeft(Table_penalties::findOne($fine->fines_id)) . ' дней на сумму ' . CashHandler::toSmoothRubles($fine->start_summ) . ', ';
     }
-    $finesText = "Пени: всего " . CashHandler::toSmoothRubles($finesSumm) . ", в том числе " . substr($finesText, 0, strlen($finesText) - 2);
+    $finesText = "Пени: всего " . CashHandler::toSmoothRubles($finesSumm) . ', в том числе ' . substr($finesText, 0, -2);
 }
 
 $text = "

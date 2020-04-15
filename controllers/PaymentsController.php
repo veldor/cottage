@@ -143,11 +143,11 @@ class PaymentsController extends Controller
         return false;
     }
 
-    public function actionBillInfo($identificator, $double = false): array
+    public function actionBillInfo($id, $double = false): array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
-            $info = ComplexPayment::getBillInfo($identificator, $double);
+            $info = ComplexPayment::getBillInfo($id, $double);
             if ($info) {
                 $view = $this->renderAjax('billView', ['info' => $info]);
                 return ['status' => 1, 'view' => $view];

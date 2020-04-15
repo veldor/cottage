@@ -138,6 +138,49 @@ class PowerHandler extends Model
         return Table_additional_payed_power::isPayed($data);
     }
 
+    /**
+     * Получение платежей за данный период
+     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param string $period
+     * @return Table_additional_payed_power[]|Table_payed_power[]
+     */
+    public static function getPaysForPeriod($cottage, string $period): array
+    {
+        if(Cottage::isMain($cottage)){
+            return Table_payed_power::findAll(['cottageId' => $cottage->cottageNumber, 'month' => $period]);
+        }
+        return Table_additional_payed_power::findAll(['cottageId' => $cottage->masterId, 'month' => $period]);
+    }
+
+    /**
+     * Получу стоимость периода
+     * @param $cottage
+     * @param string $period
+     * @return float
+     */
+    public static function getAmount($cottage, string $period): float
+    {
+        $data = self::getPeriod($cottage, $period);
+        if($data !== null){
+            return $data->totalPay;
+        }
+        return 0;
+    }
+
+    /**
+     * Получу данные по периоду оплаты
+     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param string $period
+     * @return Table_additional_power_months|Table_power_months|null
+     */
+    public static function getPeriod($cottage, string $period)
+    {
+        if(Cottage::isMain($cottage)){
+            return Table_power_months::findOne(['cottageNumber' => $cottage->cottageNumber, 'month' => $period]);
+        }
+        return Table_additional_power_months::findOne(['cottageNumber' => $cottage->masterId, 'month' => $period]);
+    }
+
     public function scenarios(): array
     {
         return [
@@ -1011,6 +1054,8 @@ class PowerHandler extends Model
                 $item->delete();
             }
         }
+        // проверю наличие пени за данный период
+        // todo реализовать проверку пени
         $cottage->powerDebt = CashHandler::rublesMath($cottage->powerDebt - $data->totalPay);
         $data->delete();
         $cottage->currentPowerData = self::getLastFilled($cottage)->newPowerData;

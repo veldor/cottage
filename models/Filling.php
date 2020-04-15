@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
 use ErrorException;
 use yii\base\Model;
@@ -311,7 +312,7 @@ class Filling extends Model
                 }
                 $content .= self::getRow('Вид платежа', $type,Colors::COLOR_INFO);
                 $content .= self::getRow('Период платежа', $fullPeriod,Colors::COLOR_INFO);
-                $content .= self::getRow('Дней просрочено', $fine->start_days,Colors::COLOR_INFO);
+                $content .= self::getRow('Дней просрочено', FinesHandler::getFineDaysLeft(Table_penalties::findOne($fine->fines_id)),Colors::COLOR_INFO);
                 $content .= self::getRow('К оплате', CashHandler::toSmoothRubles($fine->start_summ));
                 $content .= self::getEmptyRow();
             }

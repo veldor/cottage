@@ -60,27 +60,60 @@ class MembershipHandler extends Model
     /**
      * Верну раскладку по тарифу
      * @param $cottage
-     * @param $key
+     * @param $quarter
      * @return FixedFloatTariff
      */
-    public static function getCottageTariff($cottage, $key): FixedFloatTariff
+    public static function getCottageTariff($cottage, $quarter): FixedFloatTariff
     {
         if ($cottage->individualTariff) {
-            $tariff = PersonalTariff::getMembershipRate($cottage, $key);
+            $tariff = PersonalTariff::getMembershipRate($cottage, $quarter);
             if (!empty($tariff)) {
                 $fixed = $tariff['fixed'];
                 $float = $tariff['float'];
             } else {
-                $tariff = Table_tariffs_membership::findOne(['quarter' => $key]);
+                $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
                 $fixed = $tariff->fixed_part;
                 $float = $tariff->changed_part;
             }
         } else {
-            $tariff = Table_tariffs_membership::findOne(['quarter' => $key]);
+            $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
             $fixed = $tariff->fixed_part;
             $float = $tariff->changed_part;
         }
         return new FixedFloatTariff(['fixed' => $fixed, 'float' => $float]);
+    }
+
+    /**
+     * Получение платежей за данный период
+     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param string $period
+     * @return Table_additional_payed_membership[]|Table_payed_membership[]
+     */
+    public static function getPaysForPeriod($cottage, string $period): array
+    {
+        if(Cottage::isMain($cottage)){
+            return Table_payed_membership::findAll(['cottageId' => $cottage->cottageNumber, 'quarter' => $period]);
+        }
+        return Table_additional_payed_membership::findAll(['cottageId' => $cottage->masterId, 'quarter' => $period]);
+    }
+
+    /**
+     * Получаю стоимость периода
+     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param string $quarter
+     * @return float
+     */
+    public static function getAmount($cottage, string $quarter): float
+    {
+        $data = self::getCottageTariff($cottage, $quarter);
+        if($data !== null){
+            return Calculator::countFixedFloat(
+                $data->fixed,
+                $data->float,
+                $cottage->cottageSquare
+            );
+        }
+        return 0;
     }
 
 

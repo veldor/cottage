@@ -80,6 +80,55 @@ class TargetHandler extends Model
         }
         return $result;
     }
+    /**
+     * Получение платежей за данный период
+     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param string $period
+     * @return Table_additional_payed_target[]|Table_payed_target[]
+     */
+    public static function getPaysForPeriod($cottage, string $period): array
+    {
+        if(Cottage::isMain($cottage)){
+            return Table_payed_target::findAll(['cottageId' => $cottage->cottageNumber, 'year' => $period]);
+        }
+        return Table_additional_payed_target::findAll(['cottageId' => $cottage->masterId, 'year' => $period]);
+    }
+
+    /**
+     * получу стоимость периода
+     * @param $cottage
+     * @param string $year
+     * @return float
+     */
+    public static function getAmount($cottage, string $year): float
+    {
+        // получу текущую задолженность по периоду
+        $data = self::getYearDuty($cottage, $year);
+        $pays = self::getPaysForPeriod($cottage, $year);
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                $data = CashHandler::toRubles(CashHandler::toRubles($data) + CashHandler::toRubles($pay->summ));
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Возвращает текущую задолженность за данный год
+     * @param $cottage
+     * @param string $year
+     * @return float|int
+     */
+    private static function getYearDuty($cottage, string $year)
+    {
+        $duties = self::getDebt($cottage);
+        foreach ($duties as $duty) {
+            if($duty->year === $year){
+                return CashHandler::toRubles(CashHandler::toRubles($duty->amount) - CashHandler::toRubles($duty->partialPayed));
+            }
+        }
+        return 0;
+    }
 
 
     public function scenarios(): array
@@ -281,7 +330,7 @@ class TargetHandler extends Model
      * @param $transaction Table_transactions
      * @param bool $additional
      */
-    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false)
+    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false): void
     {
         $dom = DOMHandler::getDom($cottageInfo->targetPaysDuty);
         $xpath = DOMHandler::getXpath($dom);

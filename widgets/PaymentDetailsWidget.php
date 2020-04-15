@@ -11,6 +11,7 @@ namespace app\widgets;
 
 use app\models\CashHandler;
 use app\models\FinesHandler;
+use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
 use app\models\TimeHandler;
 use yii\base\Widget;
@@ -779,7 +780,8 @@ class PaymentDetailsWidget extends Widget
                         /** @var Table_view_fines_info $item */
                         foreach ($this->info['fines'] as $item) {
                             $summ += $item->start_summ;
-                            $forDay = CashHandler::toSmoothRubles($item->start_summ / $item->start_days);
+                            $daysLeft = FinesHandler::getFineDaysLeft(Table_penalties::findOne($item->fines_id));
+                            $forDay = CashHandler::toSmoothRubles($item->start_summ / $daysLeft);
                             ?>
                             <tr>
                                 <td>
@@ -792,7 +794,7 @@ class PaymentDetailsWidget extends Widget
                                     <b class="text-success"><?= CashHandler::toSmoothRubles($item->start_summ) ?></b>
                                 </td>
                                 <td class="text-left">
-                                    <?= $item->start_days ?>
+                                    <?= $daysLeft ?>
                                 </td>
                                 <td class="text-left">
                                     <?= $forDay ?>

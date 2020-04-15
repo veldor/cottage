@@ -60,8 +60,8 @@ return [
 
 //    COMPLEX PAYMENT BLOCK
 	'create/payment/complex/<cottageNumber:[0-9]+>' => 'payments/create-complex',
-	'get-info/bill/<identificator:[0-9]+>' => 'payments/bill-info',
-	'get-info/bill/<double:double>/<identificator:[0-9]+>' => 'payments/bill-info',
+	'get-info/bill/<id:[0-9]+>' => 'payments/bill-info',
+	'get-info/bill/<double:double>/<id:[0-9]+>' => 'payments/bill-info',
 	'invoice/<identificator:[0-9]+>' => 'payments/print-invoice',
 	'bank-invoice/<identificator:[0-9]+>' => 'payments/print-bank-invoice',
 	'bank-invoice/<double:double>/<identificator:[0-9]+>' => 'payments/print-bank-invoice',

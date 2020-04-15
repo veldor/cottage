@@ -9,6 +9,7 @@
 use app\models\BankDetails;
 use app\models\CashHandler;
 use app\models\FinesHandler;
+use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
 use app\models\TargetHandler;
 use app\models\TimeHandler;
@@ -135,7 +136,7 @@ if (!empty($paymentContent['membership']) || !empty($paymentContent['additionalM
             }
         }
     }
-    $memText = '<p>Членские взносы: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p>';
+    $memText = '<p>Членские взносы: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, -2) . '</p>';
 }
 if (!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget'])) {
     $summ = 0;
@@ -163,7 +164,7 @@ if (!empty($paymentContent['target']) || !empty($paymentContent['additionalTarge
             }
         }
     }
-    $tarText = "<p>Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p><br/>';
+    $tarText = "<p>Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, -2) . '</p><br/>';
 }
 if (!empty($paymentContent['single'])) {
     $summ = 0;
@@ -172,7 +173,7 @@ if (!empty($paymentContent['single'])) {
     foreach ($paymentContent['single']['values'] as $value) {
         $values .= '<b>' . urldecode($value['description']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']) . ', ';
     }
-    $singleText = "<p>Дополнительно: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, strlen($values) - 2) . '</p>';
+    $singleText = "<p>Дополнительно: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, -2) . '</p>';
 }
 
 $fines = Table_view_fines_info::find()->where(['bill_id' => $payInfo->id])->all();
@@ -189,9 +190,10 @@ if(!empty($fines)){
         else{
             $fullPeriod = $fine->period;
         }
-        $finesText .= FinesHandler::$types[$fine->pay_type] . " за {$fullPeriod} просрочено на {$fine->start_days} дней на сумму " . CashHandler::toSmoothRubles($fine->start_summ) . ', ';
+        $finesText .= FinesHandler::$types[$fine->pay_type] . " за {$fullPeriod} просрочено на 
+         " .FinesHandler::getFineDaysLeft(Table_penalties::findOne($fine->fines_id)) . ' дней на сумму ' . CashHandler::toSmoothRubles($fine->start_summ) . ', ';
     }
-    $finesText = "<p>Пени: всего " . CashHandler::toSmoothRubles($finesSumm) . ", в том числе " . substr($finesText, 0, strlen($finesText) - 2) . '</p>';
+    $finesText = "<p>Пени: всего " . CashHandler::toSmoothRubles($finesSumm) . ", в том числе " . substr($finesText, 0, -2) . '</p>';
 }
 
 $text = "

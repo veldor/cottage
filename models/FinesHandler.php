@@ -4,6 +4,7 @@ namespace app\models;
 
 
 use app\models\selections\MembershipDebt;
+use app\models\selections\TargetInfo;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
@@ -18,7 +19,11 @@ class FinesHandler extends Model
     public const PERCENT = 0.5;
     public const START_POINT = 1561939201;
 
-    public static function getFines($cottageNumber)
+    /**
+     * @param $cottageNumber
+     * @return Table_penalties[]
+     */
+    public static function getFines($cottageNumber): array
     {
         return Table_penalties::find()->where(['cottage_number' => $cottageNumber])->orderBy(['pay_type' => SORT_ASC, 'period' => SORT_ASC,])->all();
     }
@@ -296,7 +301,7 @@ class FinesHandler extends Model
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "электричество {$cottage->cottageNumber} {$registeredPowerDatum->month} Пересчитано\n";
-        } elseif($createIfNotFound) {
+        } elseif ($createIfNotFound) {
             self::createFine(
                 $cottageNumber,
                 'power',
@@ -328,7 +333,7 @@ class FinesHandler extends Model
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "членские {$cottage->cottageNumber} {$quarter} Пересчитано\n";
-        } elseif($createIfNotFound) {
+        } elseif ($createIfNotFound) {
             self::createFine(
                 $cottageNumber,
                 'membership',
@@ -768,4 +773,43 @@ class FinesHandler extends Model
         }
         $fineInfo->save();
     }
+
+    /**
+     * @param Table_penalties $fine
+     * @return int
+     * @throws Exception
+     */
+    public static function getFineDaysLeft(Table_penalties $fine): int
+    {
+        $amount = 0;
+        $cottage = Cottage::getCottageByLiteral($fine->cottage_number);
+        switch ($fine->pay_type) {
+            case 'membership':
+                $pays = MembershipHandler::getPaysForPeriod($cottage, $fine->period);
+                $amount = MembershipHandler::getAmount($cottage, $fine->period);
+                break;
+            case 'power':
+                $pays = PowerHandler::getPaysForPeriod($cottage, $fine->period);
+                $amount = PowerHandler::getAmount($cottage, $fine->period);
+                break;
+            case 'target':
+                $pays = TargetHandler::getPaysForPeriod($cottage, $fine->period);
+                $amount = TargetHandler::getAmount($cottage, $fine->period);
+                break;
+        }
+        // теперь посчитаю просроченные дни
+        if (!empty($pays)) {
+            $payed = 0;
+            // получу полную стоимость периода
+            foreach ($pays as $pay) {
+                // если выплачена полная стоимость платежа- последним днём задержки считается день выплаты
+                $payed = CashHandler::toRubles($payed) + CashHandler::toRubles($pay->summ);
+                if (CashHandler::toRubles($amount) === CashHandler::toRubles($payed)) {
+                    return TimeHandler::checkDayDifference($fine->payUpLimit, $pay->paymentDate);
+                }
+            }
+        }
+        return TimeHandler::checkDayDifference($fine->payUpLimit);
+    }
+
 }

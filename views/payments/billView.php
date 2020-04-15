@@ -150,10 +150,6 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
 
     if ($info['billInfo']->isPayed === 0 && $info['billInfo']->isPartialPayed === 0 ) {
         ?>
-       <!-- <div class="col-lg-12 margened">
-            <button class="btn btn-info" id="printInvoice">Распечатать квитанцию</button>
-            <button class="btn btn-info" id="sendInvoice">Квитанцию на мыло</button>
-        </div>-->
         <div class="col-lg-12 margened btn-group">
             <button class="btn btn-success" id="payedActivator">Подтвердить оплату</button>
             <button class="btn btn-danger" id="deleteBill">Закрыть счёт</button>
