@@ -1329,7 +1329,7 @@ class PowerHandler extends Model
      */
     private static function count($data, $tariff, $cottageNumber)
     {
-        $powerLimit = $cottageNumber === '88' ? 100 : $tariff->powerLimit;
+        $powerLimit = $cottageNumber == '88' ? 100 : $tariff->powerLimit;
         if ($data->difference > $powerLimit) {
             $inLimitSumm = $powerLimit;
             $inLimitPay = CashHandler::rublesMath($inLimitSumm * $tariff->powerCost);
