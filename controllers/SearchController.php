@@ -9,9 +9,11 @@
 namespace app\controllers;
 
 
+use app\models\ExceptionWithStatus;
 use app\models\Search;
 use app\models\SearchCottages;
 use app\models\SearchTariffs;
+use Exception;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -20,7 +22,7 @@ use yii\widgets\ActiveForm;
 
 class SearchController extends Controller
 {
-    public function behaviors()
+    public function behaviors():array
     {
         return [
             'access' => [
@@ -41,6 +43,8 @@ class SearchController extends Controller
 
     /**
      * @return array|bool|string
+     * @throws ExceptionWithStatus
+     * @throws Exception
      */
     public function actionSearch(){
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
@@ -71,6 +75,9 @@ class SearchController extends Controller
 		        $activeSearch = $cottagesSearch;
 		        $activeSearchName = 'cottagesSearch';
 	        }
+        	else{
+                throw new ExceptionWithStatus('Неверный запрос поиска');
+            }
 	        $activeSearch->load(Yii::$app->request->post());
             if($activeSearch->validate()){
                 $result = $activeSearch->doSearch();

@@ -18,6 +18,7 @@ use app\validators\CheckMonthValidator;
 use DOMElement;
 use Exception;
 use Throwable;
+use Yii;
 use yii\base\ErrorException;
 use yii\base\InvalidArgumentException;
 use yii\base\InvalidValueException;
@@ -25,8 +26,8 @@ use yii\base\Model;
 
 class PowerHandler extends Model
 {
-    const SCENARIO_NEW_RECORD = 'new_record';
-    const SCENARIO_NEW_TARIFF = 'new_tariff';
+    public const SCENARIO_NEW_RECORD = 'new_record';
+    public const SCENARIO_NEW_TARIFF = 'new_tariff';
 
     public $cottageNumber;
     public $month;
@@ -91,9 +92,9 @@ class PowerHandler extends Model
             }
             // получу счета в которых участвует данный период. Если какой-то из них частично или полностью оплачен- операция недоступна
             $bills = BillsHandler::getMonthContains($cottage, $lastData);
-            if(!empty($bills)){
+            if (!empty($bills)) {
                 foreach ($bills as $bill) {
-                    if($bill->payedSumm > 0){
+                    if ($bill->payedSumm > 0) {
                         return "Невозможно отменить показания: счёт № {$bill->id}, в котором присутствует данный период, частично или полностью оплачен!";
                     }
                 }
@@ -146,7 +147,7 @@ class PowerHandler extends Model
      */
     public static function getPaysForPeriod($cottage, string $period): array
     {
-        if(Cottage::isMain($cottage)){
+        if (Cottage::isMain($cottage)) {
             return Table_payed_power::findAll(['cottageId' => $cottage->cottageNumber, 'month' => $period]);
         }
         return Table_additional_payed_power::findAll(['cottageId' => $cottage->masterId, 'month' => $period]);
@@ -161,7 +162,7 @@ class PowerHandler extends Model
     public static function getAmount($cottage, string $period): float
     {
         $data = self::getPeriod($cottage, $period);
-        if($data !== null){
+        if ($data !== null) {
             return $data->totalPay;
         }
         return 0;
@@ -175,10 +176,160 @@ class PowerHandler extends Model
      */
     public static function getPeriod($cottage, string $period)
     {
-        if(Cottage::isMain($cottage)){
+        if (Cottage::isMain($cottage)) {
             return Table_power_months::findOne(['cottageNumber' => $cottage->cottageNumber, 'month' => $period]);
         }
         return Table_additional_power_months::findOne(['cottageNumber' => $cottage->masterId, 'month' => $period]);
+    }
+
+    /**
+     * @param $period
+     * @return array
+     * @throws ExceptionWithStatus
+     */
+    public static function changeTariff($period): array
+    {
+        $transaction = new DbTransaction();
+        $message = '';
+        $tariff = Table_tariffs_power::findOne(['targetMonth' => $period]);
+        if ($tariff === null) {
+            throw new ExceptionWithStatus('Не удалось найти тариф для изменения: электроэнергия, ' . $period);
+        }
+        $tariff->load(Yii::$app->request->post());
+        if ($tariff->validate()) {
+            $tariff->save();
+        }
+        // теперь пересчитаю все данные по всем участкам, связанные с этим тарифом
+        $existentValues = Table_power_months::findAll(['month' => $tariff->targetMonth]);
+        if (!empty($existentValues)) {
+            foreach ($existentValues as $existentValue) {
+                // todo Нужно: найти участки, которые затрагивает данное изменение, найти все счета, в которых присутствует данное значение, изменить значение в счетах, общую сумму счёта, проверить все транзакции данных счетов, скорректировать их с учётом изменения суммы платежа, найти все оплаченные значения электроэнергии, скорректировать их сумму, зачислить излишне оплаченное на депозит, скорректировать собственно данные по электроэнергии, скорректировать задолженность участка
+                $cottageInfo = Cottage::getCottageByLiteral($existentValue->cottageNumber);
+                // проверю, была ли переплата или недоплата по тарифу
+                $realAmount = self::countCostDetails($existentValue, $tariff);
+                if ($realAmount['total'] !== $existentValue->totalPay) {
+                    $oldAmount = $existentValue->totalPay;
+                    $diff = $existentValue->totalPay - CashHandler::toRubles($realAmount['total'], true);
+                    //todo пока обрабатываю только действия с переплатой
+                    if ($diff < 0) {
+                        throw new ExceptionWithStatus('Пока обрабатываю только действия с переплатой!');
+                    }
+                    $message .= "{$existentValue->cottageNumber} : старая стоимость- {$existentValue->totalPay} новая стоимость - {$realAmount['total']}<br/>";
+                    $existentValue->totalPay = $realAmount['total'];
+                    $existentValue->inLimitPay = $realAmount['cost'];
+                    $existentValue->overLimitPay = $realAmount['over_cost'];
+                    $existentValue->save();
+
+                    $message .= "Разница составляет $diff<br/>";
+
+                    // найду счета, в которых участвует данный период
+                    $existentBills = BillsHandler::getMonthContains($cottageInfo, $existentValue);
+                    foreach ($existentBills as $existentBill) {
+                        $message .= "Выставлен счёт {$existentBill->id}<br/>";
+                        // изменю данные счёта. Так делать не надо, но придётся
+                        $billContent = new DOMHandler($existentBill->bill_content);
+                        /** @var DOMElement $monthValue */
+                        /** @var DOMElement $monthValue */
+                        $monthValue = $billContent->query('/payment/power/month[@date="' . $existentValue->month . '"]')->item(0);
+                        // изменю данные
+                        // информации о месяце
+                        $monthValue->setAttribute('summ', $realAmount['total']);
+                        $monthValue->setAttribute('powerCost', $tariff->powerCost);
+                        $monthValue->setAttribute('powerOvercost', $tariff->powerOvercost);
+                        $monthValue->setAttribute('in-limit-cost', $realAmount['cost']);
+                        $monthValue->setAttribute('over-limit-cost', $realAmount['over_cost']);
+                        // информации в целом об электроэнергии
+                        /** @var DOMElement $powerValue */
+                        $powerValue = $billContent->query('/payment/power')->item(0);
+                        $oldPowerValue = CashHandler::toRubles($powerValue->getAttribute('cost'));
+                        $powerValue->setAttribute('cost', CashHandler::toRubles($oldPowerValue - $diff));
+                        // общая стоимость
+                        $powerValue = $billContent->query('/payment')->item(0);
+                        $oldValue = CashHandler::toRubles($powerValue->getAttribute('summ'));
+                        $newValue = CashHandler::toRubles($oldValue - $diff);
+                        $powerValue->setAttribute('summ', $newValue);
+                        // сохраню изменённое значение
+                        $existentBill->bill_content = $billContent->save();
+                        $oldBillAmount = $existentBill->totalSumm;
+                        $existentBill->totalSumm = CashHandler::toRubles($existentBill->totalSumm - $diff);
+                        $message .= "Старая стоимость счёта: {$oldBillAmount} новая: {$existentBill->totalSumm }<br/>";
+                        $existentBill->save();
+
+                        // найду транзакции по данному счёту
+                        $transactions = Table_transactions::findAll(['billId' => $existentBill->id]);
+                        if (!empty($transactions)) {
+                            // todo пока обрабатываю одну транзакцию за платёж, если появятся счета, оплаченные в несколько раз- обработаю их
+                            if (count($transactions) > 1) {
+                                throw new ExceptionWithStatus('Найдено больше одной транзакции при изменении тарифа электроэнергии по счёту №' . $existentBill->id);
+                            }
+                            // получу сумму транзакции. Если она больше, чем новая стоимость платежа и по ней ещё не начислялись данные на депозит- начислю остаток на депозит
+                            $transactionItem = $transactions[0];
+                            if ($transactionItem->transactionSumm > $existentBill->totalSumm) {
+                                // если сумма оплаты меньше старой суммы счёта- значит, счёт оплачен не полностью, это скорректрирует сумму возмещения
+                                if ($transactionItem->transactionSumm < $oldBillAmount) {
+                                    $correction = $oldBillAmount - $transactionItem->transactionSumm;
+                                } else {
+                                    $correction = 0;
+                                }
+                                $correctedDepositGain = $diff - $correction;
+                                $message .= "Оплачено по счёту {$transactionItem->transactionSumm}<br/>";
+                                if (!empty($transactionItem->gainedDeposit)) {
+                                    $previousDeposit = $transactionItem->gainedDeposit;
+                                } else {
+                                    $previousDeposit = 0;
+                                }
+                                if ($correctedDepositGain > 0) {
+                                    // добавлю сумму начисление в данные участка
+                                    $oldDepositValue = $cottageInfo->deposit;
+                                    $cottageInfo->deposit = CashHandler::toRubles($cottageInfo->deposit + $correctedDepositGain);
+                                    // зачислю разницу на депозит
+                                    (new Table_deposit_io([
+                                        'cottageNumber' => $cottageInfo->cottageNumber,
+                                        'summ' => $diff,
+                                        'destination' => 'in',
+                                        'actionDate' => $transactionItem->payDate,
+                                        'billId' => $existentBill->id,
+                                        'transactionId' => $transactionItem->id,
+                                        'summBefore' => $oldDepositValue,
+                                        'summAfter' => $cottageInfo->deposit
+                                    ]))->save();
+                                    $message .= "На депозит участка начислено {$correctedDepositGain}<br/>";
+                                    // изменю данные о поступлении на депозит в счёте
+                                    $existentBill->toDeposit = $transactionItem->gainedDeposit = CashHandler::toRubles($correctedDepositGain + $previousDeposit);
+                                    // изменю данные об оплаченной электроэнергии
+                                    $payed = Table_payed_power::findOne(['cottageId' => $existentValue->cottageNumber, 'month' => $existentValue->month]);
+                                    if ($payed === null) {
+                                        throw new ExceptionWithStatus('Не найден факт оплаты электроэнергии при смене тарифа: ' . $existentValue->month);
+                                    }
+                                    // скорректрирую данные
+                                    // если старая сумма равна старому значению- счёт оплачен полностью, заменю значение
+                                    if($payed->summ === $oldAmount){
+                                        $payed->summ = $realAmount['total'];
+                                    }
+                                    else{
+                                        $payed->summ = CashHandler::toRubles($payed->summ - $diff);
+                                    }
+                                    $payed->save();
+                                }
+                                $existentBill->save();
+                                $transactionItem->save();
+                            }
+                        } else if ($cottageInfo->powerDebt > $diff) {
+                            $cottageInfo->powerDebt = CashHandler::toRubles($cottageInfo->powerDebt + $diff);
+                            $message .= "Скорректрированная задолженность участка: {$cottageInfo->powerDebt}<br/>";
+                        }
+                    }
+                    $message .= '<br/>';
+                }
+                $cottageInfo->save();
+            }
+        }
+
+        // пересчитаю разницу
+        self::recalculatePower($period);
+
+        $transaction->commitTransaction();
+        return ['status' => 1, 'message' => $message];
     }
 
     public function scenarios(): array
@@ -797,13 +948,17 @@ class PowerHandler extends Model
         throw new InvalidArgumentException("Данные по участку $cottageNumber за $period не заполнены!");
     }
 
-    public static function recalculatePower($period)
+    /**
+     * Пересчёт статистики использования электроэнергии за месяц
+     * @param $period
+     */
+    public static function recalculatePower($period): void
     {
         $month = TimeHandler::isMonth($period);
         $cottagesCount = Table_cottages::find()->count();
         $additionalCottagesCount = Table_additional_cottages::find()->count();
         $tariff = Table_tariffs_power::findOne(['targetMonth' => $month['full']]);
-        if (!empty($tariff)) {
+        if ($tariff !== null) {
             $payedNow = 0;
             $payedCounter = 0;
             $additionalPayedCounter = 0;
@@ -1103,9 +1258,9 @@ class PowerHandler extends Model
     {
         if (Cottage::isMain($cottageInfo)) {
             return Table_power_months::find()->where(['cottageNumber' => $cottageInfo->cottageNumber])->orderBy('searchTimestamp DESC')->one();
-        } else {
-            return Table_additional_power_months::find()->where(['cottageNumber' => $cottageInfo->masterId])->orderBy('searchTimestamp DESC')->one();
         }
+
+        return Table_additional_power_months::find()->where(['cottageNumber' => $cottageInfo->masterId])->orderBy('searchTimestamp DESC')->one();
 
     }
 
@@ -1118,7 +1273,7 @@ class PowerHandler extends Model
         }
         $cottageInfo = Cottage::getCottageInfo($cottageNumber);
         $lastFilled = self::getLastFilled($cottageInfo);
-        if (!empty($lastFilled)) {
+        if ($lastFilled !== null) {
             if ($lastFilled->month === TimeHandler::getCurrentShortMonth()) {
                 return ['status' => 2];
             } else {
@@ -1141,13 +1296,18 @@ class PowerHandler extends Model
         return false;
     }
 
+    /**
+     * @param int $difference
+     * @return false|float|int
+     * @throws ErrorException
+     */
     private function countCost(int $difference)
     {
         // расчитаю стоимость электроэнергии
         $tariff = self::getTariff($this->month);
         // для участка 88 добавлю лимит в 100 квтч
 
-        $powerLimit = $this->cottageNumber == "88" ? 100 : $tariff[$this->month]['powerLimit'];
+        $powerLimit = $this->cottageNumber === '88' ? 100 : $tariff[$this->month]['powerLimit'];
 
         if ($difference > $powerLimit) {
             $inLimitSumm = $powerLimit;
@@ -1166,12 +1326,12 @@ class PowerHandler extends Model
      * @param $data Table_power_months
      * @param $tariff Table_tariffs_power
      * @return float|int
-     * @throws ErrorException
      */
-    private static function count($data, $tariff)
+    private static function count($data, $tariff, $cottageNumber)
     {
-        if ($data->difference > $tariff->powerLimit) {
-            $inLimitSumm = $tariff->powerLimit;
+        $powerLimit = $cottageNumber === '88' ? 100 : $tariff->powerLimit;
+        if ($data->difference > $powerLimit) {
+            $inLimitSumm = $powerLimit;
             $inLimitPay = CashHandler::rublesMath($inLimitSumm * $tariff->powerCost);
             $overLimitSumm = $data->difference - $inLimitSumm;
             $overLimitPay = CashHandler::rublesMath($overLimitSumm * $tariff->powerOvercost);
@@ -1181,5 +1341,28 @@ class PowerHandler extends Model
             $totalPay = $inLimitPay;
         }
         return $totalPay;
+    }
+
+
+    /**
+     * @param Table_power_months $existentValue
+     * @param Table_tariffs_power $tariff
+     * @return array
+     */
+    private static function countCostDetails(Table_power_months $existentValue, Table_tariffs_power $tariff): array
+    {
+        $powerLimit = $existentValue->cottageNumber === '88' ? 100 : $tariff->powerLimit;
+        $cost = 0;
+        $over_cost = 0;
+        $total = 0;
+        if ($existentValue->difference > $powerLimit) {
+            $cost = CashHandler::rublesMath($powerLimit * $tariff->powerCost);
+            $over_cost = CashHandler::rublesMath(($existentValue->difference - $powerLimit) * $tariff->powerOvercost);
+            $total = CashHandler::rublesMath($cost + $over_cost);
+        } else {
+            $cost = CashHandler::rublesMath($existentValue->difference * $tariff->powerCost);
+            $total = $cost;
+        }
+        return ['cost' => $cost, 'over_cost' => $over_cost, 'total' => $total];
     }
 }

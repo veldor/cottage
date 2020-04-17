@@ -214,6 +214,9 @@ if ($matrix->double) {
         foreach ($fines as $fine) {
             if ($fine->is_enabled && !$fine->is_full_payed) {
                 $dayDifference = FinesHandler::getFineDaysLeft($fine);
+                if($dayDifference === 0){
+                    $dayDifference = 1;
+                }
                 $hasFine = true;
                 if($dayDifference > 0){
                     $daySumm = $fine->summ / $dayDifference;

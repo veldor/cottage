@@ -522,6 +522,9 @@ class FinesHandler extends Model
         if (empty($pays)) {
             // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
             $difference = TimeHandler::checkDayDifference($payUp);
+            if($difference === 0){
+                $difference = 1;
+            }
             $answer .= 'Просрочено дней: <b class="text-danger">' . $difference . '</b><br/>';
             $answer .= '<b class="text-danger">Платёж ещё не поступил</b><br/>';
             $perDay = CashHandler::countPercent($amount, self::PERCENT);
@@ -543,6 +546,9 @@ class FinesHandler extends Model
                         $lastPayDate = $payUp;
                     }
                     $difference = TimeHandler::checkDayDifference($lastPayDate, $pay->paymentDate);
+                    if($difference === 0){
+                        $difference = 1;
+                    }
                     $answer .= "Просрочено дней: <b class=\"text-danger\">$difference</b><br/>";
                     $nowAmount = CashHandler::toRubles($amount - $payed);
                     $perDay = CashHandler::countPercent($nowAmount, self::PERCENT);
@@ -561,6 +567,9 @@ class FinesHandler extends Model
             if ($payed < $amount) {
                 // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
                 $difference = TimeHandler::checkDayDifference($lastPayDate);
+                if($difference === 0){
+                    $difference = 1;
+                }
                 $nowAmount = CashHandler::toRubles($amount - $payed);
                 $answer .= '<b class="text-danger">Счёт оплачен не полностью!</b><br/>';
                 $answer .= 'Осталось заплатить: <b class="text-info">' . CashHandler::toSmoothRubles($nowAmount) . '</b><br/>';

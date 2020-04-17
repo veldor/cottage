@@ -153,20 +153,29 @@ if (!empty($activeSearch)) {
 					if (!empty($result['data']['membership'])) {
 						echo '<h2>Членские взносы</h2>';
 						foreach ($result['data']['membership'] as $item) {
-							echo MembershipStatisticWidget::widget(['quarterInfo' => $item]);
-						}
+                            try {
+                                echo MembershipStatisticWidget::widget(['quarterInfo' => $item]);
+                            } catch (Exception $e) {
+                            }
+                        }
 					}
 					if (!empty($result['data']['power'])) {
 						echo '<h2>Электроэнергия</h2>';
 						foreach ($result['data']['power'] as $item) {
-							echo PowerStatisticWidget::widget(['monthInfo' => $item]);
-						}
+                            try {
+                                echo PowerStatisticWidget::widget(['monthInfo' => $item]);
+                            } catch (Exception $e) {
+                            }
+                        }
 					}
 					if (!empty($result['data']['target'])) {
 						echo '<h2>Целевые взносы</h2>';
 						foreach ($result['data']['target'] as $item) {
-							echo TargetStatisticWidget::widget(['yearInfo' => $item]);
-						}
+                            try {
+                                echo TargetStatisticWidget::widget(['yearInfo' => $item]);
+                            } catch (Exception $e) {
+                            }
+                        }
 					}
 				}
 				?>

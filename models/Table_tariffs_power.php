@@ -26,8 +26,25 @@ use yii\db\ActiveRecord;
 
 class Table_tariffs_power extends ActiveRecord
 {
-    public static function tableName()
+
+    public static function tableName():string
     {
         return 'tariffs_power';
+    }
+
+    public function rules():array
+    {
+        return [
+            [['id', 'targetMonth', 'powerLimit', 'powerCost', 'powerOvercost'], 'safe'],
+        ];
+    }
+
+    public function attributeLabels():array
+    {
+        return [
+          'powerLimit' => 'Порог потребления электроэнергии',
+          'powerCost' => 'Льготная ставка',
+          'powerOvercost' => 'Обычная ставка',
+        ];
     }
 }

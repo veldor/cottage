@@ -38,6 +38,9 @@ if(!empty($info)){
         // расчитаю количество дней, за которые начисляются пени
         try {
             $dayDifference = TimeHandler::checkDayDifference($item->payUpLimit);
+            if($dayDifference === 0){
+                $dayDifference = 1;
+            }
         } catch (Exception $e) {
         }
         if($item->is_enabled){

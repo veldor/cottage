@@ -16,7 +16,7 @@ class PowerStatisticWidget extends Widget {
 		$values = DOMHandler::getXMLValues($this->monthInfo->paymentInfo);
 		?>
 		<div class="col-lg-6">
-			<h3><?=$month?></h3>
+			<h3><?=$month?> <button class="btn btn-default activator" data-action="/change-tariff/power/<?=$month?>"><span class="glyphicon-pencil text-info"></span></button></h3>
 			<table class="table table-condensed table-hover">
 				<tr>
 					<td>Льготный лимит</td>

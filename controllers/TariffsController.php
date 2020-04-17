@@ -8,9 +8,11 @@
 
 namespace app\controllers;
 
+use app\models\CashHandler;
 use app\models\MembershipHandler;
 use app\models\PersonalTariff;
 use app\models\PowerHandler;
+use app\models\Table_tariffs_power;
 use app\models\TargetHandler;
 use app\models\TariffsKeeper;
 use app\models\TimeHandler;
@@ -35,7 +37,22 @@ class TariffsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'fill', 'check', 'make-personal', 'make-additional-personal', 'show-personal', 'show-personal-additional', 'fill-personal', 'change-personal', 'change-personal-additional', 'disable-personal', 'disable-personal-additional', 'create-target'],
+                        'actions' => [
+                            'index',
+                            'fill',
+                            'check',
+                            'make-personal',
+                            'make-additional-personal',
+                            'show-personal',
+                            'show-personal-additional',
+                            'fill-personal',
+                            'change-personal',
+                            'change-personal-additional',
+                            'disable-personal',
+                            'disable-personal-additional',
+                            'create-target',
+                            'change'
+                        ],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -339,6 +356,10 @@ class TariffsController extends Controller
         return false;
     }
 
+    /**
+     * @return array|string|Response
+     * @throws NotFoundHttpException
+     */
     public function actionCreateTarget()
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
@@ -360,5 +381,38 @@ class TariffsController extends Controller
             }
         }
         throw new NotFoundHttpException('Страница не найдена');
+    }
+
+    /**
+     * Фотма изменения тарифа
+     * @param $type
+     * @param $period
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionChange($type, $period): array
+    {
+        if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            if($type === 'power'){
+                $tariff = Table_tariffs_power::findOne(['targetMonth' => $period]);
+                if($tariff !== null){
+                    // переведу float-значения в понятный для формы вид
+                    $tariff->powerCost = CashHandler::toJsRubles($tariff->powerCost);
+                    $tariff->powerOvercost = CashHandler::toJsRubles($tariff->powerOvercost);
+                    // верну форму изменения тарифа
+                    $view = $this->renderAjax('/form/change-power', ['matrix' => $tariff]);
+                    return ['status' => 1,
+                        'header' => 'Изменение данных тарифа электроэнергии на ' . $period,
+                        'data' => $view,
+                    ];
+                }
+            }
+        }
+        if(Yii::$app->request->isAjax && Yii::$app->request->isPost){
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            return PowerHandler::changeTariff($period);
+        }
+        throw new NotFoundHttpException();
     }
 }

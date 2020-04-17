@@ -858,6 +858,27 @@ function handleModalForm(data) {
         location.reload();
     }
 }
+// обработка формы, переданной через AJAX без валидации ===============================================================
+function handleModalFormNoValidate(data) {
+    "use strict";
+    if (data.status && data.status === 1) {
+        let modal = makeModal(data.header, data.data);
+        let form = modal.find('form');
+        // при подтверждении форму не отправляю, жду валидации
+        form.on('submit.sendByAjax', function (e) {
+            console.log('submit');
+            e.preventDefault();
+                sendAjax('post',
+                    form.attr('action'),
+                    simpleAnswerHandler,
+                    form,
+                    true);
+        });
+    }
+    else if(data.status && data.status === 2){
+        location.reload();
+    }
+}
 
 // обработка активаторов AJAX-запросов =================================================================================
 function handleAjaxActivators() {
@@ -871,7 +892,7 @@ function handleAjaxActivators() {
             sendAjax(
                 "get",
                 action,
-                handleModalForm
+                handleModalFormNoValidate
             )
         } else {
             makeInformer(

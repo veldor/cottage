@@ -9,11 +9,12 @@
 namespace app\models;
 
 
-use yii\base\Model;
+use DateTime;
+use Exception;
 
 class SearchTariffs extends Search
 {
-    const SCENARIO_TARIFFS_SEARCH = 'tariffs-search';
+    public const SCENARIO_TARIFFS_SEARCH = 'tariffs-search';
 
     public function scenarios():array
     {
@@ -31,10 +32,14 @@ class SearchTariffs extends Search
         ];
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function doSearch(): array
     {
-        $start = new \DateTime('0:0:00'. $this->startDate);
-        $finish = new \DateTime('23:59:50'. $this->finishDate);
+        $start = new DateTime('0:0:00'. $this->startDate);
+        $finish = new DateTime('23:59:50'. $this->finishDate);
         $interval = ['start' => $start->format('U'), 'finish' => $finish->format('U')];
         $yearInterval = ['start' => $start->format('Y'), 'finish' => $finish->format('Y')];
         $answer = [];

@@ -241,6 +241,10 @@ class Cottage extends Model
         return $cottage->masterId . "-a";
     }
 
+    /**
+     * @param $key
+     * @return Table_additional_cottages|Table_cottages
+     */
     public static function getCottageByLiteral($key)
     {
         $additional = false;

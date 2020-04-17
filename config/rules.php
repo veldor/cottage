@@ -151,4 +151,5 @@ return [
 
 // NEW FUNCTIONS
     'download/<file:.+>' => 'download/download',
+    'change-tariff/<type:power>/<period:[\d-]+>' => 'tariffs/change'
 ];
