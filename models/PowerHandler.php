@@ -212,7 +212,7 @@ class PowerHandler extends Model
                     $diff = $existentValue->totalPay - CashHandler::toRubles($realAmount['total'], true);
                     //todo пока обрабатываю только действия с переплатой
                     if ($diff < 0) {
-                        throw new ExceptionWithStatus('Пока обрабатываю только действия с переплатой!');
+                        throw new ExceptionWithStatus("Пока обрабатываю только действия с переплатой! {$cottageInfo->cottageNumber} {$diff}");
                     }
                     $message .= "{$existentValue->cottageNumber} : старая стоимость- {$existentValue->totalPay} новая стоимость - {$realAmount['total']}<br/>";
                     $existentValue->totalPay = $realAmount['total'];
@@ -1351,7 +1351,7 @@ class PowerHandler extends Model
      */
     private static function countCostDetails(Table_power_months $existentValue, Table_tariffs_power $tariff): array
     {
-        $powerLimit = $existentValue->cottageNumber === '88' ? 100 : $tariff->powerLimit;
+        $powerLimit = $existentValue->cottageNumber === 88 ? 100 : $tariff->powerLimit;
         $cost = 0;
         $over_cost = 0;
         $total = 0;
