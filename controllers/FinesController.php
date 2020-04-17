@@ -54,13 +54,14 @@ class FinesController extends Controller
 
     /**
      * @param $cottageNumber
+     * @param bool $total
      * @return array
      * @throws ExceptionWithStatus
      */
-    public function actionRecountFines($cottageNumber): array
+    public function actionRecountFines($cottageNumber, $total = false): array
     {
         // пересчитаю пени по участку
-        FinesHandler::recalculateFines($cottageNumber);
+        FinesHandler::recalculateFines($cottageNumber, (bool)$total);
         Yii::$app->response->format = Response::FORMAT_JSON;
         return ['status' => 2];
     }

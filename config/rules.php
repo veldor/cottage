@@ -132,6 +132,7 @@ return [
     'change/transaction-time' => 'payments/change-transaction-date',
     'fines/count/<cottageNumber:[0-9]+(-a)?>' => 'payments/count-fines',
     'fines/recount/<cottageNumber:\d+>' => 'fines/recount-fines',
+    'fines/recount-<total:total>/<cottageNumber:\d+>' => 'fines/recount-fines',
     'bill/reopen/<billId:[0-9]+>' => 'payments/bill-reopen',
     'bill/reopen/<double:double>/<billId:[0-9]+>' => 'payments/bill-reopen',
 //    FINES ==================================================================================

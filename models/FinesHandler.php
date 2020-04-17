@@ -4,7 +4,6 @@ namespace app\models;
 
 
 use app\models\selections\MembershipDebt;
-use app\models\selections\TargetInfo;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
@@ -120,10 +119,11 @@ class FinesHandler extends Model
 
     /**
      * @param int|null $cottageNumber
+     * @param $total
      * @throws ExceptionWithStatus
      * @throws Exception
      */
-    public static function recalculateFines($cottageNumber = null): void
+    public static function recalculateFines($cottageNumber, $total): void
     {
         $time = time();
         // получу список участков
@@ -147,7 +147,7 @@ class FinesHandler extends Model
                                 if ($payUp < $time) {
                                     $fineAmount = self::countFine($registeredPowerDatum->totalPay, TimeHandler::checkDayDifference($payUp));
                                     // пересчитаю пени
-                                    self::setPowerFineData($cottage, $registeredPowerDatum, $fineAmount, $payUp);
+                                    self::setPowerFineData($cottage, $registeredPowerDatum, $fineAmount, $payUp, $total);
                                 }
                             } else {
                                 // тут нужно проверить, были ли платежи проведены в отведённое время или просрочены
@@ -155,7 +155,7 @@ class FinesHandler extends Model
                                 // если начислено пени- сохраню его
                                 if ($fullAmount > 0) {
                                     // обновлю данные по пени
-                                    self::setPowerFineData($cottage, $registeredPowerDatum, $fullAmount, $payUp);
+                                    self::setPowerFineData($cottage, $registeredPowerDatum, $fullAmount, $payUp, $total);
                                 }
                             }
                         }
@@ -175,14 +175,14 @@ class FinesHandler extends Model
                             if ($payUp < $time) {
                                 $fineAmount = self::countFine($totalPay, TimeHandler::checkDayDifference($payUp));
                                 // пересчитаю пени
-                                self::setMembershipFineData($cottage, $key, $fineAmount, $payUp);
+                                self::setMembershipFineData($cottage, $key, $fineAmount, $payUp, $total);
                             }
                         } else {
                             $fullAmount = self::handlePeriodPayments($pays, $payUp, $totalPay);
                             // если начислено пени- сохраню его
                             if ($fullAmount > 0) {
                                 // обновлю данные по пени
-                                self::setMembershipFineData($cottage, $key, $fullAmount, $payUp);
+                                self::setMembershipFineData($cottage, $key, $fullAmount, $payUp, $total);
                             }
                         }
                     }
@@ -200,14 +200,14 @@ class FinesHandler extends Model
                                 if ($payUp < $time) {
                                     $fineAmount = self::countFine($item->amount, TimeHandler::checkDayDifference($payUp));
                                     // пересчитаю пени
-                                    self::setTargetFineData($cottage, $item->year, $fineAmount, $payUp);
+                                    self::setTargetFineData($cottage, $item->year, $fineAmount, $payUp, $total);
                                 }
                             } else {
                                 $fullAmount = self::handlePeriodPayments($pays, $payUp, $item->amount);
                                 // если начислено пени- сохраню его
                                 if ($fullAmount > 0) {
                                     // обновлю данные по пени
-                                    self::setTargetFineData($cottage, $item->year, $fullAmount, $payUp);
+                                    self::setTargetFineData($cottage, $item->year, $fullAmount, $payUp, $total);
                                 }
                             }
                         } else {

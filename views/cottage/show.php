@@ -144,19 +144,17 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <td><?= $hasSingleDebt ? "<a class='btn btn-default detail-debt' data-type='single' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->globalInfo->singleDebt) . "</b></a>" : "Задолженностей не найдено  " ?></td>
             </tr>
             <?php
+            $total = 0;
             // просмотрю пени
             if (!empty($cottageInfo->fines)) {
-                $total = 0;
                 foreach ($cottageInfo->fines as $fine) {
                     if ($fine->is_enabled) {
                         $total += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
                     }
                 }
-                if ($total > 0) {
-                    echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button> <button class='btn btn-default activator' data-action='/fines/recount/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-warning'>пересчитать</span></button></td></tr>";
-                    $cottageInfo->totalDebt += $total;
-                }
             }
+            echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button> <button class='btn btn-default activator' data-action='/fines/recount/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-warning'>пересчитать</span></button> <button class='btn btn-default activator' data-action='/fines/recount-total/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-danger'>пересчитать всё</span></button></td></tr>";
+            $cottageInfo->totalDebt += $total;
             ?>
             </tbody>
             <tr>
