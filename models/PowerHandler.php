@@ -332,6 +332,41 @@ class PowerHandler extends Model
         return ['status' => 1, 'message' => $message];
     }
 
+    /**
+     * Возвращает сумму долга по участку
+     * @param Table_cottages $globalInfo
+     * @return float
+     */
+    public static function getDebt(Table_cottages $globalInfo): float
+    {
+        // получу актуальную задолженность
+        $duties = Table_power_months::getAllData($globalInfo);
+        return self::countDuty($duties);
+    }
+
+    /**
+     * Считает задолженности по электроэнергии по переданному массиву (с учётом оплаты)
+     * @param Table_power_months[] $duties
+     * @return float
+     */
+    private static function countDuty(array $duties): float
+    {
+        $duty = 0;
+        if(!empty($duties)){
+            foreach ($duties as $dutyItem) {
+                $duty += $dutyItem->totalPay;
+                // поищу все оплаты по данному счёту и вычту их из суммы долга
+                $pays = Table_payed_power::getPayed($dutyItem);
+                if($pays !== null){
+                    foreach ($pays as $pay) {
+                        $duty -= $pay->summ;
+                    }
+                }
+            }
+        }
+        return CashHandler::toRubles($duty);
+    }
+
     public function scenarios(): array
     {
         return [
@@ -720,7 +755,7 @@ class PowerHandler extends Model
      * @param $cottage Table_cottages|Table_additional_cottages
      * @return PowerDebt[]
      */
-    public static function getDebtReport($cottage)
+    public static function getDebtReport($cottage): array
     {
         $answer = [];
         $isMain = Cottage::isMain($cottage);

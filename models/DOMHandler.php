@@ -127,9 +127,9 @@ class DOMHandler extends Model
 
     /**
      * @param $expr string
-     * @return DOMNodeList|false
+     * @return DOMNodeList
      */
-    public function query($expr)
+    public function query($expr): DOMNodeList
     {
         return $this->xpath->query($expr);
     }

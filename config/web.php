@@ -1,4 +1,13 @@
 <?php
+
+use yii\debug\Module;
+use yii\web\UrlNormalizer;
+use yii\log\DbTarget;
+use yii\swiftmailer\Mailer;
+use yii\rbac\DbManager;
+use app\models\User;
+use yii\caching\FileCache;
+
 require_once $_SERVER['DOCUMENT_ROOT'] . '/../priv/Info.php';
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
@@ -20,21 +29,21 @@ $config = [
             'cookieValidationKey' => \app\priv\Info::COOKIE_KEY,
         ],
         'cache' => [
-            'class' => 'yii\caching\FileCache',
+            'class' => FileCache::class,
         ],
         'user' => [
-            'identityClass' => 'app\models\User',
+            'identityClass' => User::class,
             'enableAutoLogin' => true,
 			'identityCookie' => ['name' => '_identity-template', 'httpOnly' => true],
         ],
 		'authManager' => [
-			'class' => 'yii\rbac\DbManager',
+			'class' => DbManager::class,
 		],
         'errorHandler' => [
             'errorAction' => 'site/error',
         ],
         'mailer' => [
-            'class' => 'yii\swiftmailer\Mailer',
+            'class' => Mailer::class,
             'useFileTransport' => false,
             'messageConfig' => [
                 'charset' => 'UTF-8',
@@ -62,7 +71,7 @@ $config = [
             'traceLevel' => YII_DEBUG ? 3 : 0,
             'targets' => [
                 [
-                    'class' => 'yii\log\DbTarget',
+                    'class' => DbTarget::class,
                     'levels' => ['error', 'warning'],
                     ]
             ],
@@ -72,7 +81,7 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
              'normalizer' => [
-                'class' => 'yii\web\UrlNormalizer',
+                'class' => UrlNormalizer::class,
                 'action' => yii\web\UrlNormalizer::ACTION_REDIRECT_TEMPORARY, // используем временный редирект вместо постоянного
             ],
             'rules' =>  $urlRules,
@@ -85,14 +94,14 @@ if (YII_ENV_DEV) {
     // configuration adjustments for 'dev' environment
     $config['bootstrap'][] = 'debug';
     $config['modules']['debug'] = [
-        'class' => 'yii\debug\Module',
+        'class' => Module::class,
         // uncomment the following to add your IP if you are not connecting from localhost.
         //'allowedIPs' => ['127.0.0.1', '::1'],
     ];
 
     $config['bootstrap'][] = 'gii';
     $config['modules']['gii'] = [
-        'class' => 'yii\gii\Module',
+        'class' => \yii\gii\Module::class,
         // uncomment the following to add your IP if you are not connecting from localhost.
         //'allowedIPs' => ['127.0.0.1', '::1'],
     ];

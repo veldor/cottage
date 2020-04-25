@@ -22,7 +22,7 @@ use yii\db\ActiveRecord;
  * @property int $searchTimestamp [int(20) unsigned]
  * @property string $payed [enum('yes', 'no')]
  * @property int $difference [int(10) unsigned]
- * @property string $totalPay [float unsigned]
+ * @property float $totalPay [float unsigned]
  * @property int $inLimitSumm [int(10) unsigned]
  * @property int $overLimitSumm [int(10) unsigned]
  * @property string $inLimitPay [float unsigned]
@@ -43,5 +43,14 @@ class Table_power_months extends ActiveRecord
     public static function getLastFilled(Table_cottages $cottage): Table_power_months
     {
         return self::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('month DESC')->one();
+    }
+
+    /**
+     * @param Table_cottages $cottageInfo
+     * @return Table_power_months[]
+     */
+    public static function getAllData(Table_cottages $cottageInfo): array
+    {
+        return self::findAll(['cottageNumber' => $cottageInfo->cottageNumber]);
     }
 }

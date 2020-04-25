@@ -27,7 +27,7 @@ class Cottage extends Model
     public $unpayedBills = 0;
     public $counterChanged = false;
     public $totalDebt = 0;
-    public $additionalCottageInfo;
+    public array $additionalCottageInfo;
     public $fines;
 
     /**
@@ -54,7 +54,11 @@ class Cottage extends Model
         $this->powerPayDifference = $powerStatus['powerPayDifference'];
         // определю, можно ли удалить данные по потреблению электроэнергии. Можно, если ещё не поступала оплата
         $this->powerDataCancellable = PowerHandler::isDataCancellable($this->globalInfo);
-        $this->powerDebts = $powerStatus['powerDebt'];
+        $this->powerDebts = PowerHandler::getDebt($this->globalInfo);
+        if($this->powerDebts !== $this->globalInfo->powerDebt){
+            $this->globalInfo->powerDebt = $this->powerDebts;
+            $this->globalInfo->save();
+        }
         // Посчитаю задолженности
         if ($this->globalInfo->individualTariff) {
             $this->membershipDebts = PersonalTariff::countMembershipDebt($this->globalInfo)['summ'];
@@ -62,7 +66,6 @@ class Cottage extends Model
             $this->membershipDebts = MembershipHandler::getCottageStatus($this->globalInfo);
         }
         $this->targetDebts = $this->globalInfo->targetDebt;
-        $this->powerDebts = $this->globalInfo->powerDebt;
         $this->totalDebt = CashHandler::toRubles($this->membershipDebts) + CashHandler::toRubles($this->targetDebts) + CashHandler::toRubles($this->powerDebts) + CashHandler::toRubles($this->globalInfo->singleDebt);
 
         // проверю, не привязан ли дополнительный участок

@@ -37,24 +37,13 @@ $secondName = $differentOwner ? 'Подучасток 2 ' : 'Дополните�
 $hasSingleDebt = $cottageInfo->globalInfo->singleDebt > 0;
 $hasDoubleSingleDebt = $haveAdditional && $cottageInfo->additionalCottageInfo['cottageInfo']->singleDebt > 0;
 
-$registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ? $cottageInfo->globalInfo->cottageRegistrationInformation : 'Не зарегистрирован';
+$registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?: 'Не зарегистрирован';
 
 ?>
 
 <div class="row">
     <div class="col-lg-12">
         <h1>Участок № <?= $cottageInfo->globalInfo->cottageNumber ?></h1>
-
-        <!--        <div class="input-group margened col-sm-2 col-lg-offset-5"><label for="goToCottageInput"></label><input-->
-        <!--                    type="text"-->
-        <!--                    id="goToCottageInput"-->
-        <!--                    class="form-control"-->
-        <!--                    ><span-->
-        <!--                    class="input-group-btn"><button class="btn btn-default" type="button"-->
-        <!--                                                    id="goToCottageActivator"><span-->
-        <!--                            class="glyphicon glyphicon-play"></span></button></span>-->
-        <!--        </div>-->
-
         <table class="table table-hover">
             <caption><?= $firstName ?></caption>
             <tbody>
@@ -78,7 +67,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             ?>
             <tr>
                 <td>Электроэнергия</td>
-                <td><?= $cottageInfo->powerDebts > 0 ? "<a class='btn btn-default detail-debt' data-type='power' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->powerDebts) . "</b></a>" : "<b class='text-success'>Оплачено</b>" ?></td>
+                <td><?= $cottageInfo->powerDebts > 0 ? "<a class='btn btn-default detail-debt' data-type='power' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->powerDebts) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
             </tr>
             <tr>
                 <td>Электроэнергия- последний оплаченный месяц</td>
@@ -119,7 +108,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             </tr>
             <tr>
                 <td>Членские взносы</td>
-                <td><?= $cottageInfo->membershipDebts > 0 ? "<a class='btn btn-default detail-debt' data-type='membership' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->membershipDebts) . "</b></a>" : "<b class='text-success'>Оплачено</b>" ?></td>
+                <td><?= $cottageInfo->membershipDebts > 0 ? "<a class='btn btn-default detail-debt' data-type='membership' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->membershipDebts) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
             </tr>
             <tr>
                 <td>Членские взносы- последний оплаченный квартал</td>
@@ -129,6 +118,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     if ($cottageInfo->globalInfo->partialPayedMembership) {
                         // получу данные о неполном платеже
                         $dom = new DOMHandler($cottageInfo->globalInfo->partialPayedMembership);
+                        /** @var DOMElement $info */
                         $info = $dom->query('/partial')->item(0);
                         echo '<p><b class="text-info">' . TimeHandler::getFullFromShortQuarter($info->getAttribute('date')) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($info->getAttribute('summ')) . '</b></p>';
                     }
@@ -137,11 +127,11 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             </tr>
             <tr>
                 <td>Целевые платежи</td>
-                <td><?= $cottageInfo->globalInfo->targetDebt > 0 ? "<a class='btn btn-default detail-debt' data-type='target' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->globalInfo->targetDebt) . "</b></a>" : "<b class='text-success'>Оплачено</b>" ?></td>
+                <td><?= $cottageInfo->globalInfo->targetDebt > 0 ? "<a class='btn btn-default detail-debt' data-type='target' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->globalInfo->targetDebt) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
             </tr>
             <tr>
                 <td>Разовые платежи</td>
-                <td><?= $hasSingleDebt ? "<a class='btn btn-default detail-debt' data-type='single' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->globalInfo->singleDebt) . "</b></a>" : "Задолженностей не найдено  " ?></td>
+                <td><?= $hasSingleDebt ? "<a class='btn btn-default detail-debt' data-type='single' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->globalInfo->singleDebt) . '</b></a>' : 'Задолженностей не найдено  ' ?></td>
             </tr>
             <?php
             $total = 0;
@@ -208,7 +198,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
 
                     <tr class="info">
                         <td>Электроэнергия</td>
-                        <td><?= $cottageInfo->additionalCottageInfo['cottageInfo']->powerDebt > 0 ? "<a class='btn btn-default detail-debt' data-type='power_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['cottageInfo']->powerDebt) . " </b></a>" : "<b class='text-success'>Оплачено</b>" ?></td>
+                        <td><?= $cottageInfo->additionalCottageInfo['cottageInfo']->powerDebt > 0 ? "<a class='btn btn-default detail-debt' data-type='power_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['cottageInfo']->powerDebt) . ' </b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
                     </tr>
                     <tr class="info">
                         <td>Электроэнергия- последний оплаченный месяц</td>
@@ -231,7 +221,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                             <b class="text-info"><?= $cottageInfo->additionalCottageInfo['cottageInfo']->currentPowerData ?>
                                 кВт.ч</b>
                             <?= $cottageInfo->powerDataAdditionalCancellable ? "<button id='cancelFillAdditionalPower' class='btn btn-danger'>Удалить</button>" : '' ?>
-                            <?= !$cottageInfo->additionalCottageInfo['powerStatus']['filledPower'] ? "<button id='fillAdditionalPower' class='btn btn-info'>Заполнить " . TimeHandler::getFullFromShotMonth(TimeHandler::getPreviousShortMonth()) . "</button>" : '' ?>
+                            <?= !$cottageInfo->additionalCottageInfo['powerStatus']['filledPower'] ? "<button id='fillAdditionalPower' class='btn btn-info'>Заполнить " . TimeHandler::getFullFromShotMonth(TimeHandler::getPreviousShortMonth()) . '</button>' : '' ?>
                         </td>
                     </tr>
 
@@ -249,7 +239,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     ?>
                     <tr class="info">
                         <td>Членские взносы</td>
-                        <td><?= $cottageInfo->additionalCottageInfo['membershipDebt'] > 0 ? "<a class='btn btn-default detail-debt' data-type='membership_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['membershipDebt']) . "</b></a>" : "<b class='text-success'>Оплачено</b>" ?></td>
+                        <td><?= $cottageInfo->additionalCottageInfo['membershipDebt'] > 0 ? "<a class='btn btn-default detail-debt' data-type='membership_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['membershipDebt']) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
                     </tr>
                     <tr class="info">
                         <td>Членские взносы- последний оплаченный квартал</td>
@@ -278,7 +268,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     ?>
                     <tr class="info">
                         <td>Целевые платежи</td>
-                        <td><?= $cottageInfo->additionalCottageInfo['targetDebt'] > 0 ? "<a class='btn btn-default detail-debt' data-type='target_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['targetDebt']) . "</b></a>" : "<b class='text-success'>Оплачено</b>" ?></td>
+                        <td><?= $cottageInfo->additionalCottageInfo['targetDebt'] > 0 ? "<a class='btn btn-default detail-debt' data-type='target_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['targetDebt']) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
                     </tr>
                     <?php
                 } else {
@@ -313,7 +303,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         <td><b class="text-info">' . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['cottageInfo']->deposit) . '</b></td>
                     </tr>
                     ';
-                    $registrationNumber = $cottageInfo->additionalCottageInfo['cottageInfo']->cottageRegistrationInformation ? $cottageInfo->additionalCottageInfo['cottageInfo']->cottageRegistrationInformation : 'Не зарегистрирован';
+                    $registrationNumber = $cottageInfo->additionalCottageInfo['cottageInfo']->cottageRegistrationInformation ?: 'Не зарегистрирован';
                     echo '
                      <tr class="info">
                         <td>Кадастровый номер</td>
@@ -330,7 +320,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         }
                     }
                     if ($total > 0) {
-                        echo "<tr class='info'><td>Пени</td><td><button id='finesSummDouble' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button></td></tr>";
+                        echo "<tr class='info'><td>Пени</td><td><button id='finesSummDouble' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . '</button></td></tr>';
                         $cottageInfo->totalDebt += $total;
                     }
                 }
@@ -339,11 +329,11 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 </tbody>
                 <tr class="info">
                     <td>Итоговая задолженность дополнительного участка</td>
-                    <td><?= $cottageInfo->additionalCottageInfo['totalDebt'] > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['totalDebt'] + $total) . "</b>" : "<b class='text-success'>Отсутствует</b>" ?></td>
+                    <td><?= $cottageInfo->additionalCottageInfo['totalDebt'] > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['totalDebt'] + $total) . '</b>' : "<b class='text-success'>Отсутствует</b>" ?></td>
                 </tr>
                 <tr class="info">
                     <td>Общая задолженность обоих участков</td>
-                    <td><?= $fullDuty > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($fullDuty) . "</b>" : "<b class='text-success'>Отсутствует</b>" ?></td>
+                    <td><?= $fullDuty > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($fullDuty) . '</b>' : "<b class='text-success'>Отсутствует</b>" ?></td>
                 </tr>
                 <tr class="info">
                     <td>Площадь дополнительного участка участка</td>

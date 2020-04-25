@@ -38,4 +38,17 @@ class Table_payed_power extends ActiveRecord
     {
         return self::find()->where(['cottageId' => $powerData->cottageNumber, 'month' => $powerData->month])->count();
     }
+
+    /**
+     * Получу все платежи по данному месяцу
+     * @param Table_power_months $dutyItem
+     * @return Table_payed_power[]|null
+     */
+    public static function getPayed(Table_power_months $dutyItem): ?array
+    {
+        if($dutyItem !== null){
+            return self::findAll(['month' => $dutyItem->month, 'cottageId' => $dutyItem->cottageNumber]);
+        }
+        return null;
+    }
 }
