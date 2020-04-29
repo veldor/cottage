@@ -282,6 +282,7 @@ class TargetHandler extends Model
              */
             foreach ($years as $year) {
                 $answerItem = new TargetDebt();
+                $answerItem->description = $year->getAttribute('description');
                 $answerItem->year = $year->getAttribute('year');
                 $answerItem->tariffFixed = CashHandler::toRubles($year->getAttribute('fixed'));
                 $answerItem->tariffFloat = CashHandler::toRubles($year->getAttribute('float'));

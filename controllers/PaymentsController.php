@@ -172,7 +172,7 @@ class PaymentsController extends Controller
         return $this->renderPartial('bank-invoice', ['info' => $info]);
     }
 
-    public function actionSendBankInvoice($identificator, $double = false)
+    public function actionSendBankInvoice($identificator, $double = false): array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
@@ -188,11 +188,6 @@ class PaymentsController extends Controller
             $billInfo->save();
             return['status' => 1, 'message' => $message];
         }
-            /*// получу данные о платеже
-            $info = ComplexPayment::getBankInvoice($identificator, $double);
-            $invoice =  $this->renderPartial('bank-invoice-pdf', ['info' => $info]);
-            PDFHandler::renderPDF($invoice, $info['billInfo']['billInfo']->id, $info['billInfo']['billInfo']->cottageNumber);
-            return $this->renderFile('invoice.pdf');*/
         throw new NotFoundHttpException('Страница не найдена');
     }
 

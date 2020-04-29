@@ -239,13 +239,32 @@ class Fix extends Model
         }
     }
 
-    public static function fix(){
-        // удалю из базы данных все пени, которые не выставлены в счета
-        $fines = Table_penalties::find()->all();
-        foreach ($fines as $fine) {
-            // проверю, не выставлено ли пени в счёт
-            if(!Table_bill_fines::find()->where(['fines_id' => $fine->id])->count()){
-                $fine->delete();
+    public static function fix()
+    {
+        // добавлю данные плательшиков во все счета, в которых их нет
+        $bills = Table_payment_bills::find()->all();
+        if (!empty($bills)) {
+            foreach ($bills as $bill) {
+                if (empty($bill->payer_personals)) {
+                    $cottage = Cottage::getCottageByLiteral($bill->cottageNumber);
+                    if (!empty($cottage->bill_payers)) {
+                        $bill->payer_personals = $cottage->bill_payers;
+                    } else {
+                        $bill->payer_personals = $cottage->cottageOwnerPersonals;
+                    }
+                    $bill->save();
+                }
+            }
+        }
+        // добавлю данные плательшиков во все счета, в которых их нет
+        $bills = Table_payment_bills_double::find()->all();
+        if (!empty($bills)) {
+            foreach ($bills as $bill) {
+                if (empty($bill->payer_personals)) {
+                    $cottage = Cottage::getCottageByLiteral($bill->cottageNumber . '-а');
+                    $bill->payer_personals = $cottage->cottageOwnerPersonals;
+                    $bill->save();
+                }
             }
         }
     }

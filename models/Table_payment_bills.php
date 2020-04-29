@@ -28,11 +28,12 @@ use yii\db\ActiveRecord;
  * @property bool $isPartialPayed [tinyint(4)]
  * @property bool $isMessageSend [tinyint(1)]  Уведомление отправлено
  * @property bool $isInvoicePrinted [tinyint(1)]  Квитанция распечатана
+ * @property string $payer_personals [varchar(255)]  Имя плательщика
  */
 
 class Table_payment_bills extends ActiveRecord
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'payment_bills';
     }

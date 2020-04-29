@@ -359,7 +359,7 @@ class PowerHandler extends Model
                 $pays = Table_payed_power::getPayed($dutyItem);
                 if($pays !== null){
                     foreach ($pays as $pay) {
-                        $duty -= $pay->summ;
+                        $duty = CashHandler::rublesMath($duty - $pay->summ);
                     }
                 }
             }

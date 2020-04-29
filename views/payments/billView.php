@@ -11,6 +11,7 @@ use app\models\Table_payment_bills;
 use app\models\TimeHandler;
 use app\models\CashHandler;
 use app\widgets\PaymentDetailsWidget;
+
 /* @var $this yii\web\View */
 /* @var $info */
 /* @var $power DOMElement */
@@ -21,46 +22,44 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
 
 ?>
 <div class="row">
-    <div class="col-lg-12 text-center"><h1>Информация о счёте №<?= $double ? $info['billInfo']->id . '-a' : $info['billInfo']->id ?></h1>
-        <h2>От <?=TimeHandler::getDatetimeFromTimestamp($info['billInfo']->creationTime)?></h2>
+    <div class="col-lg-12 text-center"><h1>Информация о счёте
+            №<?= $double ? $info['billInfo']->id . '-a' : $info['billInfo']->id ?></h1>
+        <h2>От <?= TimeHandler::getDatetimeFromTimestamp($info['billInfo']->creationTime) ?></h2>
         <h3>Информация о плательщике</h3>
-        <p>Номер дачного участка: <b class="text-success"><?= $double ? $info['cottageInfo']->masterId . '-a' :$info['cottageInfo']->cottageNumber ?></b></p>
-        <p>Ф.И.О. владельца дачи: <b class="text-success"><?= $info['cottageInfo']->cottageOwnerPersonals ?></b></p>
+        <p>Номер дачного участка: <b
+                    class="text-success"><?= $double ? $info['cottageInfo']->masterId . '-a' : $info['cottageInfo']->cottageNumber ?></b>
+        </p>
+        <p>Плательщик: <b class="text-success"><?= $info['billInfo']->payer_personals ?></b></p>
     </div>
 
     <div class='col-lg-12'>
         <?php
-        /** @var Table_payment_bills $info['billInfo'] */
+        /** @var Table_payment_bills $info ['billInfo'] */
         if ($info['billInfo']->isPayed === 1) {
             // если платёж закрыт- посчитаю, оплачен ли он, если оплачен- то частично или полностью
-            if(!empty($info['billInfo']->payedSumm)){
+            if (!empty($info['billInfo']->payedSumm)) {
                 $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->payedSumm) + CashHandler::toRubles($info['billInfo']->depositUsed) + CashHandler::toRubles($info['billInfo']->discount));
-            }
-            else{
+            } else {
                 $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->depositUsed) + CashHandler::toRubles($info['billInfo']->discount));
 
             }
-            if($payedSumm === 0 || ($payedSumm < CashHandler::toRubles($info['billInfo']->totalSumm) && !$info['billInfo']->isPartialPayed)){
+            if ($payedSumm === 0 || ($payedSumm < CashHandler::toRubles($info['billInfo']->totalSumm) && !$info['billInfo']->isPartialPayed)) {
                 echo "<h3>Статус: <b class='text-warning'>Закрыт. Не оплачен.</b></h3>";
-            }
-            elseif($payedSumm >= CashHandler::toRubles($info['billInfo']->totalSumm)){
+            } elseif ($payedSumm >= CashHandler::toRubles($info['billInfo']->totalSumm)) {
                 $payDate = TimeHandler::getDatetimeFromTimestamp($info['billInfo']->paymentTime);
                 echo "<h3>Статус: <b class='text-success'>Закрыт. Оплачен полностью.</b></h3>";
                 echo " <p>Дата оплаты: <b class='text-success'>$payDate</b><br/>";
-            }
-            else{
+            } else {
                 echo "<h3>Статус: <b class='text-info'>Закрыт. Оплачен частично.</b></h3>";
             }
             ?>
 
             <?php
-        }
-        elseif($info['billInfo']->isPartialPayed === 1){
+        } elseif ($info['billInfo']->isPartialPayed === 1) {
             ?>
             <h3>Статус: <b class='text-info'>Оплачен частично</b></h3>
             <?php
-        }
-        else {
+        } else {
             ?>
             <h3>Статус: <b class='text-danger'>Не оплачен</b></h3>
             <?php
@@ -70,65 +69,68 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
             <tbody>
             <tr>
                 <td>К оплате по счёту:</td>
-                <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->totalSumm)?></b></td>
+                <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->totalSumm) ?></b></td>
             </tr>
             <tr>
                 <td>Оплата с депозита:</td>
-                <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->depositUsed)?></b></td>
+                <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->depositUsed) ?></b></td>
             </tr>
             <tr>
                 <td>Скидка:</td>
-                <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->discount)?></b></td>
+                <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->discount) ?></b></td>
             </tr>
             <?php
-            if ($info['billInfo']->isPartialPayed === 1 ) {
+            if ($info['billInfo']->isPartialPayed === 1) {
                 ?>
                 <tr>
                     <td>Сумма частичной оплаты:</td>
-                    <td><b class='text-info'><?= CashHandler::toSmoothRubles($info['billInfo']->payedSumm)?></b></td>
+                    <td><b class='text-info'><?= CashHandler::toSmoothRubles($info['billInfo']->payedSumm) ?></b></td>
                 </tr>
                 <?php
             }
-            if ($info['billInfo']->isPayed === 1 ) {
-                if($info['billInfo']->toDeposit !== null){
-            ?>
+            if ($info['billInfo']->isPayed === 1) {
+                if ($info['billInfo']->toDeposit !== null) {
+                    ?>
 
-                <tr>
-                    <td>Зачислено на депозит:</td>
-                    <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->toDeposit)?></b></td>
-                </tr>
-            <?php
+                    <tr>
+                        <td>Зачислено на депозит:</td>
+                        <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['billInfo']->toDeposit) ?></b>
+                        </td>
+                    </tr>
+                    <?php
                 }
-                if(!empty($info['payedSumm'])){
+                if (!empty($info['payedSumm'])) {
                     ?>
                     <tr>
                         <td>Итого оплачено:</td>
-                        <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['payedSumm'])?></b></td>
+                        <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['payedSumm']) ?></b></td>
                     </tr>
                     <?php
                 }
                 ?>
                 <?php
-    }
-            else{
-            ?>
-            <tr>
-                <td>Итого к оплате:</td>
-                <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['summToPay'])?></b></td>
-            </tr>
-            <?php
+            } else {
+                ?>
+                <tr>
+                    <td>Итого к оплате:</td>
+                    <td><b class='text-success'><?= CashHandler::toSmoothRubles($info['summToPay']) ?></b></td>
+                </tr>
+                <?php
             }
-    ?>
+            ?>
             </tbody>
         </table>
         <h3>Подробная информация:</h3>
 
-        <?=PaymentDetailsWidget::widget(['info' => $info['paymentContent']]);?>
+        <?php try {
+            echo PaymentDetailsWidget::widget(['info' => $info['paymentContent']]);
+        } catch (Exception $e) {
+        } ?>
 
     </div>
     <?php
 
-    if($info['billInfo']->isPartialPayed){
+    if ($info['billInfo']->isPartialPayed) {
         // продолжаю оплату
         echo '
         <div class="col-lg-12 margened btn-group">
@@ -139,7 +141,7 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
         ';
     }
 
-    if($info['billInfo']->isPayed === 1){
+    if ($info['billInfo']->isPayed === 1) {
         // заново открою счёт
         echo '
         <div class="col-lg-12 margened btn-group">
@@ -148,7 +150,7 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
         ';
     }
 
-    if ($info['billInfo']->isPayed === 0 && $info['billInfo']->isPartialPayed === 0 ) {
+    if ($info['billInfo']->isPayed === 0 && $info['billInfo']->isPartialPayed === 0) {
         ?>
         <div class="col-lg-12 margened btn-group">
             <button class="btn btn-success" id="payedActivator">Подтвердить оплату</button>

@@ -10,7 +10,7 @@ use yii\db\ActiveRecord;
 use yii\web\NotFoundHttpException;
 
 /**
- * Class Table_bank_invoices
+ * Class Mail
  * @package app\models
  *
  * @property int $id [int(10) unsigned]

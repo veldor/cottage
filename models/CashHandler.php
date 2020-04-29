@@ -77,7 +77,13 @@ class CashHandler extends Model
         }
         return $rounded;
     }
-    public static function rublesRound($value){
+
+    /**
+     * @param $value
+     * @return float
+     */
+    public static function rublesRound($value): float
+    {
         return round($value, 2);
     }
     public static function rublesMore($first, $second): bool

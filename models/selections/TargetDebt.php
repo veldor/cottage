@@ -34,4 +34,8 @@ class TargetDebt
      * @var string
      */
     public $partialPayed;
+    /**
+     * @var string
+     */
+    public $description;
 }

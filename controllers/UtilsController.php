@@ -41,7 +41,8 @@ class UtilsController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
         return PenaltiesHandler::countPenalties();
     }
-    public function actionFix(){
+    public function actionFix(): array
+    {
         // пофиксирую, если есть что
         Yii::$app->response->format = Response::FORMAT_JSON;
         Fix::fix();

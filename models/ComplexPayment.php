@@ -71,7 +71,7 @@ class ComplexPayment extends Model
             $bankDetails->lastName = $info['cottageInfo']->bill_payers;
         }
         else{
-            $bankDetails->lastName = GrammarHandler::getPersonInitials($info['cottageInfo']->cottageOwnerPersonals);
+            $bankDetails->lastName = GrammarHandler::getPersonInitials($info['billInfo']->payer_personals);
         }
 
         $bankDetails->purpose = $purposeText;
@@ -274,6 +274,12 @@ class ComplexPayment extends Model
             $bill->totalSumm = $totalCost;
             $bill->depositUsed = $this->fromDeposit;
             $bill->discount = $this->discount;
+            if(!empty($this->cottageInfo->bill_payers)){
+                $bill->payer_personals = $this->cottageInfo->bill_payers;
+            }
+            else{
+                $bill->payer_personals = $this->cottageInfo->cottageOwnerPersonals;
+            }
             $bill->discountReason = urlencode($this->discountReason);
             $bill->save();
             if(!empty($this->innerFines)){
