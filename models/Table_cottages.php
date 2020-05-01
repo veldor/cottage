@@ -44,6 +44,7 @@ use yii\db\ActiveRecord;
  * @property string $partialPayedMembership Частично оплаченный членский взнос
  * @property bool $cottageRegisterData [tinyint(1)]  Данные для реестра
  * @property string $bill_payers Имена плательщиков
+ * @property bool $is_mail [tinyint(1)]  Наличие электронной почты
  */
 
 class Table_cottages extends ActiveRecord

@@ -43,7 +43,12 @@ class ComplexPayment extends Model
 
     private $innerFines;
 
-    public static function getBankInvoice($identificator, $double = false)
+    /**
+     * @param $identificator
+     * @param bool $double
+     * @return array
+     */
+    public static function getBankInvoice($identificator, $double = false): array
     {
         $info = self::getBillInfo($identificator, $double);
 
@@ -314,7 +319,7 @@ class ComplexPayment extends Model
     public static function getBillInfo($bill, $double = false): array
     {
         // погнали, получу сведения о платеже
-        if (is_string($bill)) {
+        if (is_string($bill) || is_int($bill)) {
             $bill = self::getBill($bill, $double);
         }
         $cottageInfo = Cottage::getCottageInfo($bill->cottageNumber, $double);

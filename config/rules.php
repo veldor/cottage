@@ -151,5 +151,19 @@ return [
 
 // NEW FUNCTIONS
     'download/<file:.+>' => 'download/download',
-    'change-tariff/<type:power>/<period:[\d-]+>' => 'tariffs/change'
+    'change-tariff/<type:power>/<period:[\d-]+>' => 'tariffs/change',
+
+// FORM
+    'form/mail-add/<cottageNumber:[0-9\w-]+>' => 'form/mail-add',
+    'mail-delete' => 'utils/mail-delete',
+    'form/mail-change/<id:[0-9\w-]+>' => 'form/mail-change',
+
+// MAILING
+    'mailing-create' => 'mail/mailing-create',
+    'mailing-schedule' => 'site/mailing-schedule',
+    'clear-mailing-schedule' => 'mail/clear-mailing-schedule',
+    'cancel-mailing' => 'mail/cancel-mailing',
+    'send-message' => 'mail/send-message',
+    'mail-settings-edit' => 'mail/edit-mail-settings',
+    'get-unsended-messages-count' => 'mail/get-unsended-messages-count',
 ];

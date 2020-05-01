@@ -4,6 +4,7 @@
 namespace app\controllers;
 
 
+use app\models\database\Mail;
 use app\models\Fix;
 use app\models\PenaltiesHandler;
 use app\models\Utils;
@@ -25,7 +26,12 @@ class UtilsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['addresses', 'count-penalties', 'fix'],
+                        'actions' => [
+                            'addresses',
+                            'count-penalties',
+                            'fix',
+                            'mail-delete'
+                        ],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -33,7 +39,8 @@ class UtilsController extends Controller
         ];
     }
 
-    public function actionAddresses(){
+    public function actionAddresses(): void
+    {
         Utils::makeAddressesList();
         Yii::$app->response->xSendFile('post_addresses.xml');
     }
@@ -47,5 +54,14 @@ class UtilsController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
         Fix::fix();
         return ['status' => 1];
+    }
+
+    /**
+     * @return array
+     */
+    public function actionMailDelete(): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        return Mail::deleteMail();
     }
 }

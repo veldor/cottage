@@ -12,11 +12,13 @@ namespace app\controllers;
 use app\models\Cloud;
 use app\models\ComparisonHandler;
 use app\models\ComplexPayment;
+use app\models\database\MailingSchedule;
 use app\models\DepositHandler;
 use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\FinesHandler;
 use app\models\GlobalActions;
+use app\models\Mailing;
 use app\models\Pay;
 use app\models\Payments;
 use app\models\PDFHandler;
@@ -174,7 +176,10 @@ class PaymentsController extends Controller
 
     public function actionSendBankInvoice($identificator, $double = false): array
     {
-        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
+        // поставлю в очередь отправки
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        return MailingSchedule::addBankInvoiceSending($identificator);
+       /* if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             // генерирую PDF
             $info = ComplexPayment::getBankInvoice($identificator, $double);
@@ -188,7 +193,7 @@ class PaymentsController extends Controller
             $billInfo->save();
             return['status' => 1, 'message' => $message];
         }
-        throw new NotFoundHttpException('Страница не найдена');
+        throw new NotFoundHttpException('Страница не найдена');*/
     }
 
     public function actionSendInvoice($identificator)

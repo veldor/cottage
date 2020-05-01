@@ -5,6 +5,7 @@ namespace app\controllers;
 use app\models\AddCottage;
 use app\models\AdditionalCottage;
 use app\models\Cottage;
+use app\models\database\Mail;
 use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\FinesHandler;
@@ -67,6 +68,7 @@ class CottageController extends Controller {
 
     /**
      * @param string $cottageNumber
+     * @param bool $add
      * @return array
      * @throws NotFoundHttpException
      */
@@ -74,7 +76,7 @@ class CottageController extends Controller {
 	{
 		if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
 			Yii::$app->response->format = Response::FORMAT_JSON;
-			$cottageNumber = $cottageNumber . ($add ? "-a" : '');
+			$cottageNumber .= ($add ? '-a' : '');
 			$cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
 			if (AddCottage::checkFullChangable($cottageInfo)) {
 				$form = new AddCottage(['scenario' => AddCottage::SCENARIO_FULL_CHANGE]);
@@ -160,6 +162,7 @@ class CottageController extends Controller {
 		if (Filling::checkTariffsFilling()) {
             FinesHandler::check($cottageNumber);
 			$info = new Cottage($cottageNumber);
+			$mails = Mail::findAll(['cottage' => $cottageNumber]);
 			// посчитаю пени
 			if (PersonalTariff::checkTariffsFilling($info['globalInfo'])) {
 				$unfliiedInfo = PersonalTariff::getUnfilledInfo($info['globalInfo']);
@@ -171,7 +174,7 @@ class CottageController extends Controller {
 					return $this->render('fill-individual-additional-tariff', ['info' => $unfliiedInfo]);
 				}
 			}
-			return $this->render('show', ['cottageInfo' => $info]);
+			return $this->render('show', ['cottageInfo' => $info, 'mails' => $mails]);
 		}
 		return $this->render('fill-tariff');
 	}

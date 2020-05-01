@@ -50,15 +50,15 @@ class AddCottage extends Model
     public $cottageRightsData;
 
     public $existentTargets;
-    public $fullChangable = false;
+    public bool $fullChangeable = false;
 
     /**
      * @var Table_cottages|Table_additional_cottages
      */
     public $currentCondition; // сохранённая копия данных об участке
-    private static $changedAttributes = ['cottageNumber', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'cottageOwnerDescription', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'];
+    private static $changedAttributes = ['cottageNumber','cottageSquare', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'cottageOwnerDescription', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'];
     private static $changedFullAttributes = ['cottageNumber', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposit', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetPaysDuty'];
-    private static $addChangedAttributes = ['masterId', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'cottageOwnerDescription', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'];
+    private static $addChangedAttributes = ['masterId', 'cottageSquare', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'cottageOwnerDescription', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation'];
     private static $addChangedFullAttributes = ['masterId', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposit', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetPaysDuty'];
 
     /**
@@ -93,23 +93,23 @@ class AddCottage extends Model
         ];
     }
 
-    const SCENARIO_ADD = 'add';
-    const SCENARIO_CHANGE = 'change';
-    const SCENARIO_FULL_CHANGE = 'full-change';
+    public const SCENARIO_ADD = 'add';
+    public const SCENARIO_CHANGE = 'change';
+    public const SCENARIO_FULL_CHANGE = 'full-change';
 
     public function scenarios(): array
     {
         return [
             self::SCENARIO_ADD => ['cottageNumber', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled'],
-            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'masterId', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled', 'cottageRegisterData', 'payerInfo'],
-            self::SCENARIO_CHANGE => ['cottageNumber', 'masterId', 'fullChangable', 'haveRights', 'cottageOwnerPersonals', 'cottageRegisterData', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation', 'payerInfo'],
+            self::SCENARIO_FULL_CHANGE => ['cottageNumber', 'masterId', 'fullChangeable', 'haveRights', 'cottageOwnerPersonals', 'cottageOwnerDescription', 'cottageOwnerPhone', 'cottageOwnerEmail', 'cottageSquare', 'currentPowerData', 'lastPayedMonth', 'membershipPayFor', 'target', 'deposit', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'targetFilled', 'cottageRegisterData', 'payerInfo'],
+            self::SCENARIO_CHANGE => ['cottageNumber', 'cottageSquare', 'masterId', 'fullChangeable', 'haveRights', 'cottageOwnerPersonals', 'cottageRegisterData', 'cottageOwnerPhone', 'cottageOwnerDescription', 'cottageOwnerEmail', 'hasContacter', 'cottageContacterPersonals', 'cottageContacterPhone', 'cottageContacterEmail', 'ownerAddressIndex', 'ownerAddressTown', 'ownerAddressStreet', 'ownerAddressBuild', 'ownerAddressFlat', 'passportData', 'cottageRightsData', 'cottageRegistrationInformation', 'payerInfo'],
         ];
     }
 
     public function rules(): array
     {
         return [
-            [['cottageNumber', 'cottageOwnerPersonals', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposite', 'targetFilled'], 'required', 'on' => self::SCENARIO_ADD],
+            [['cottageNumber', 'cottageOwnerPersonals', 'cottageSquare', 'currentPowerData', 'membershipPayFor', 'deposit', 'targetFilled'], 'required', 'on' => self::SCENARIO_ADD],
             [['cottageNumber', 'cottageOwnerPersonals'], 'required', 'on' => self::SCENARIO_CHANGE],
             ['cottageNumber', CheckCottageNoRegistred::class, 'on' => [self::SCENARIO_CHANGE, self::SCENARIO_FULL_CHANGE]],
             ['masterId', CheckCottageNoRegistred::class, 'on' => [self::SCENARIO_CHANGE, self::SCENARIO_FULL_CHANGE]],
@@ -206,6 +206,7 @@ class AddCottage extends Model
             if ($this->scenario === 'change' || $this->scenario === 'change-add' || $this->scenario === self::SCENARIO_FULL_CHANGE) {
                 // заполню форму безопасными данными
                 $this->currentCondition->cottageOwnerPersonals = $this->cottageOwnerPersonals;
+                $this->currentCondition->cottageSquare = $this->cottageSquare;
                 $this->currentCondition->cottageRegistrationInformation = $this->cottageRegistrationInformation;
 
                 $this->currentCondition->passportData = $this->passportData;
@@ -376,9 +377,9 @@ class AddCottage extends Model
 
         // проверю возможность изменения данных, связанных с платежами
         if(Cottage::isMain($cottageInfo)){
-            $this->fullChangable = !Table_payment_bills::find()->where(['cottageNumber' => $cottageInfo->cottageNumber])->count();
+            $this->fullChangeable = !Table_payment_bills::find()->where(['cottageNumber' => $cottageInfo->cottageNumber])->count();
 
-            if ($this->fullChangable) {
+            if ($this->fullChangeable) {
                 foreach (self::$changedFullAttributes as $attribute) {
                     $this->$attribute = $cottageInfo->$attribute;
                     $this->lastPayedMonth = $cottageInfo->powerPayFor;
@@ -391,9 +392,9 @@ class AddCottage extends Model
         }
 
         else{
-            $this->fullChangable = !Table_payment_bills_double::find()->where(['cottageNumber' => $cottageInfo->masterId])->count();
+            $this->fullChangeable = !Table_payment_bills_double::find()->where(['cottageNumber' => $cottageInfo->masterId])->count();
 
-            if ($this->fullChangable) {
+            if ($this->fullChangeable) {
                 foreach (self::$addChangedFullAttributes as $attribute) {
                     $this->$attribute = $cottageInfo->$attribute;
                     $this->lastPayedMonth = $cottageInfo->powerPayFor;

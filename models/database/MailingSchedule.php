@@ -4,12 +4,10 @@
 namespace app\models\database;
 
 
-use app\models\selections\CottageMail;
+use app\models\handlers\BillsHandler;
 use Throwable;
-use Yii;
 use yii\db\ActiveRecord;
 use yii\db\StaleObjectException;
-use yii\web\NotFoundHttpException;
 
 /**
  * Class Mailing
@@ -24,7 +22,7 @@ use yii\web\NotFoundHttpException;
 class MailingSchedule extends ActiveRecord
 {
 
-    public static function tableName()
+    public static function tableName():string
     {
         return 'mailing_schedule';
     }
@@ -32,7 +30,7 @@ class MailingSchedule extends ActiveRecord
     /**
      * @return MailingSchedule[]
      */
-    public static function getWaiting()
+    public static function getWaiting(): array
     {
         return self::find()->orderBy('cast(mailingId as unsigned) asc')->all();
     }
@@ -40,5 +38,40 @@ class MailingSchedule extends ActiveRecord
     public static function countWaiting()
     {
         return self::find()->count();
+    }
+
+    /**
+     * @return array
+     * @throws StaleObjectException
+     * @throws Throwable
+     */
+    public static function clearSchedule(): array
+    {
+        $allMessages = self::find()->all();
+        if(!empty($allMessages)){
+            foreach ($allMessages as $message) {
+                $message->delete();
+            }
+        }
+        return ['status' => 1];
+    }
+
+    /**
+     * @param $identificator
+     * @return array
+     */
+    public static function addBankInvoiceSending($identificator): array
+    {
+        // получу информацию о счёте
+        $billInfo = BillsHandler::getBill($identificator);
+        // получу почтовые ящики для данного участка
+        $mails = Mail::getCottageMails($billInfo->cottageNumber);
+        if(!empty($mails)){
+            foreach ($mails as $mail) {
+                (new self(['mailId' => $mail->id, 'billId' => $identificator]))->save();
+            }
+            return ['status' => 1, 'message' => 'Сообщения добавлены в очередь отправки'];
+        }
+        return ['status' => 2, 'message' => 'Не найдено адресов электронной почты'];
     }
 }

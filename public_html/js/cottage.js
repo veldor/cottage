@@ -1051,6 +1051,33 @@ function basementFunctional() {
             sendAjax('get', url, handleSingles);
         }
     }
+
+    let addMailBtn = $('button#addMailBtn');
+    addMailBtn.on('click.addMail', function () {
+        sendAjax('get', '/form/mail-add/' + cottageNumber, handleModalForm);
+    });
+
+    let changeMailBtn = $('button.mail-change');
+    changeMailBtn.on('click.changeMail', function () {
+        sendAjax('get', '/form/mail-change/' + $(this).attr('data-id'), handleModalForm);
+    });
+
+    let mailDelete = $('.mail-delete');
+    mailDelete.on('click.delete', function () {
+        let anchor = $(this);
+        makeInformerModal('Удаление электронной почты',
+            "Удалить адрес электронной почты?",
+            function () {
+                let id = anchor.attr('data-id');
+                sendAjax('post',
+                    '/mail-delete',
+                    ajaxFormAnswerHandler,
+                    {'id': id}
+                );
+            },
+            function () {
+            });
+    });
 }
 
 

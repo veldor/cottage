@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\database\Mail;
 use app\models\tables\Table_bill_fines;
 use app\models\tables\Table_penalties;
 use yii\base\Model;
@@ -241,29 +242,34 @@ class Fix extends Model
 
     public static function fix()
     {
-        // добавлю данные плательшиков во все счета, в которых их нет
-        $bills = Table_payment_bills::find()->all();
-        if (!empty($bills)) {
-            foreach ($bills as $bill) {
-                if (empty($bill->payer_personals)) {
-                    $cottage = Cottage::getCottageByLiteral($bill->cottageNumber);
-                    if (!empty($cottage->bill_payers)) {
-                        $bill->payer_personals = $cottage->bill_payers;
-                    } else {
-                        $bill->payer_personals = $cottage->cottageOwnerPersonals;
-                    }
-                    $bill->save();
+        // зарегистрирую все почтовые ящики
+        $cottages = Cottage::getRegistred();
+        if (!empty($cottages)) {
+            foreach ($cottages as $cottage) {
+                if (!empty($cottage->cottageOwnerEmail) && Mail::findOne(['cottage' => $cottage->cottageNumber, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => false]) === null) {
+                    (new Mail(['cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageOwnerPersonals, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => false]))->save();
+                    $cottage->is_mail = true;
+                    $cottage->save();
+                }
+                if (!empty($cottage->cottageContacterEmail) && Mail::findOne(['cottage' => $cottage->cottageNumber, 'email' => $cottage->cottageContacterEmail, 'cottage_is_double' => false]) === null) {
+                    (new Mail(['cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageContacterPersonals, 'email' => $cottage->cottageContacterEmail, 'cottage_is_double' => false]))->save();
+                    $cottage->is_mail = true;
+                    $cottage->save();
                 }
             }
         }
-        // добавлю данные плательшиков во все счета, в которых их нет
-        $bills = Table_payment_bills_double::find()->all();
-        if (!empty($bills)) {
-            foreach ($bills as $bill) {
-                if (empty($bill->payer_personals)) {
-                    $cottage = Cottage::getCottageByLiteral($bill->cottageNumber . '-а');
-                    $bill->payer_personals = $cottage->cottageOwnerPersonals;
-                    $bill->save();
+        $cottages = AdditionalCottage::getRegistred();
+        if (!empty($cottages)) {
+            foreach ($cottages as $cottage) {
+                if (!empty($cottage->cottageOwnerEmail) && Mail::findOne(['cottage' => $cottage->cottageNumber, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => true]) === null) {
+                    (new Mail(['cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageOwnerPersonals, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => true]))->save();
+                    $cottage->is_mail = true;
+                    $cottage->save();
+                }
+                if (!empty($cottage->cottageContacterEmail) && Mail::findOne(['cottage' => $cottage->cottageNumber, 'email' => $cottage->cottageContacterEmail, 'cottage_is_double' => true]) === null) {
+                    (new Mail(['cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageContacterPersonals, 'email' => $cottage->cottageContacterEmail, 'cottage_is_double' => true]))->save();
+                    $cottage->is_mail = true;
+                    $cottage->save();
                 }
             }
         }

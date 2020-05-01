@@ -303,10 +303,9 @@ class PowerHandler extends Model
                                     }
                                     // скорректрирую данные
                                     // если старая сумма равна старому значению- счёт оплачен полностью, заменю значение
-                                    if($payed->summ === $oldAmount){
+                                    if ($payed->summ === $oldAmount) {
                                         $payed->summ = $realAmount['total'];
-                                    }
-                                    else{
+                                    } else {
                                         $payed->summ = CashHandler::toRubles($payed->summ - $diff);
                                     }
                                     $payed->save();
@@ -352,12 +351,12 @@ class PowerHandler extends Model
     private static function countDuty(array $duties): float
     {
         $duty = 0;
-        if(!empty($duties)){
+        if (!empty($duties)) {
             foreach ($duties as $dutyItem) {
                 $duty += $dutyItem->totalPay;
                 // поищу все оплаты по данному счёту и вычту их из суммы долга
                 $pays = Table_payed_power::getPayed($dutyItem);
-                if($pays !== null){
+                if ($pays !== null) {
                     foreach ($pays as $pay) {
                         $duty = CashHandler::rublesMath($duty - $pay->summ);
                     }
@@ -823,20 +822,22 @@ class PowerHandler extends Model
                 $data = Table_power_months::findOne(['cottageNumber' => $cottage->cottageNumber, 'month' => $key]);
             }
 
-            // посчитаю максимальную сумму
-            if (!empty($value['no_limit'])) {
-                $maxAmount = $data->difference * $tariff->powerOvercost;
-                $cottage->powerDebt += $maxAmount - $data->totalPay;
-                $cottage->save();
-                // изменю информацию в базе
-                $data->totalPay = $maxAmount;
-                $data->inLimitSumm = 0;
-                $data->inLimitPay = 0;
-                $data->overLimitSumm = $data->difference;
-                $data->overLimitPay = $data->totalPay;
-                $data->save();
-            } else {
-                $maxAmount = self::count($data, $tariff);
+            if ($data !== null && $tariff !== null) {
+                // посчитаю максимальную сумму
+                if (!empty($value['no_limit'])) {
+                    $maxAmount = $data->difference * $tariff->powerOvercost;
+                    $cottage->powerDebt += $maxAmount - $data->totalPay;
+                    $cottage->save();
+                    // изменю информацию в базе
+                    $data->totalPay = $maxAmount;
+                    $data->inLimitSumm = 0;
+                    $data->inLimitPay = 0;
+                    $data->overLimitSumm = $data->difference;
+                    $data->overLimitPay = $data->totalPay;
+                    $data->save();
+                } else {
+                    $maxAmount = self::count($data, $tariff, $cottage->cottageNumber);
+                }
             }
 
             if ($additional) {
@@ -854,7 +855,7 @@ class PowerHandler extends Model
             /*if (CashHandler::toRubles($toPay) > CashHandler::toRubles($maxAmount - $payedSumm)) {
                 throw new ExceptionWithStatus('Сумма оплаты ' . CashHandler::toRubles($toPay) . ' за электроэнергию за ' . $key . ' больше максимальной- ' . CashHandler::toRubles($maxAmount - $payedSumm));
             }*/
-            $realPowerLimit = $cottage->cottageNumber == "88" ? 100 : $tariff->powerLimit;
+            $realPowerLimit = $cottage->cottageNumber === 88 ? 100 : $tariff->powerLimit;
             $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
             $summ += $toPay;
         }
@@ -1053,7 +1054,7 @@ class PowerHandler extends Model
         if (!empty($period)) {
             $month = TimeHandler::isMonth($period);
             $data = Table_tariffs_power::findOne(['targetMonth' => $month['full']]);
-            if (!empty($data)) {
+            if ($data !== null) {
                 return $data;
             }
             throw new InvalidArgumentException('Тарифа на данный месяц не существует!');
@@ -1128,20 +1129,22 @@ class PowerHandler extends Model
 
                 $payed = self::getPreviousPayed($cottageInfo, $date);
                 $data = $main ? Table_power_months::findOne(['cottageNumber' => $cottageInfo->cottageNumber, 'month' => $date]) : Table_additional_power_months::findOne(['cottageNumber' => $cottageInfo->masterId, 'month' => $date]);
-                // проверю, не игнорируется ли лимит
-                if ($payedMonth['is_limit_ignored'] == 1) {
-                    $requiredAmount = $data->difference * Table_tariffs_power::findOne(['targetMonth' => $powerMonth])->powerOvercost;
-                } else {
-                    $requiredAmount = $data->totalPay;
+                if ($data !== null) {
+                    // проверю, не игнорируется ли лимит
+                    if ($payedMonth['is_limit_ignored'] === 1) {
+                        $requiredAmount = $data->difference * Table_tariffs_power::findOne(['targetMonth' => $powerMonth])->powerOvercost;
+                    } else {
+                        $requiredAmount = $data->totalPay;
+                    }
+                    self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
+                    $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
+                    if ($requiredAmount - $payed - $summ == 0) {
+                        // отмечу месяц последним оплаченным для участка
+                        $cottageInfo->powerPayFor = $date;
+                        $cottageInfo->partialPayedPower = null;
+                    }
+                    $cottageInfo->save();
                 }
-                self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
-                $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
-                if ($requiredAmount - $payed - $summ == 0) {
-                    // отмечу месяц последним оплаченным для участка
-                    $cottageInfo->powerPayFor = $date;
-                    $cottageInfo->partialPayedPower = null;
-                }
-                $cottageInfo->save();
             }
         }
         if (!empty($partialPayedMonth)) {
@@ -1160,15 +1163,16 @@ class PowerHandler extends Model
                 } else {
                     $monthInfo = $dom->query('//additional_power/month[@date="' . $date . '"]')->item(0);
                 }
-                $fullPaySumm = CashHandler::toRubles($monthInfo->getAttribute('summ'));
-                if ($prevPayment + $summ === $fullPaySumm) {
-                    self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ - $prevPayment);
-                    $cottageInfo->powerPayFor = $date;
-                    $cottageInfo->partialPayedPower = null;
-                    return;
-                } else {
-                    $summForSave += $prevPayment;
+                if($monthInfo !== null){
+                    $fullPaySumm = CashHandler::toRubles($monthInfo->getAttribute('summ'));
+                    if ($prevPayment + $summ === $fullPaySumm) {
+                        self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ - $prevPayment);
+                        $cottageInfo->powerPayFor = $date;
+                        $cottageInfo->partialPayedPower = null;
+                        return;
+                    }
                 }
+                $summForSave += $prevPayment;
             }
             $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
             // зарегистрирую платёж в таблице оплаты электроэнергии
@@ -1260,10 +1264,9 @@ class PowerHandler extends Model
      * @return Table_additional_power_months|Table_power_months
      */
     private static function getMonthInfo($cottage, $period = null)
-    {
-        if (empty($period)) {
-            $main = Cottage::isMain($cottage);
-
+    {{
+        $main = Cottage::isMain($cottage);
+        if (empty($period))
             if ($main) {
                 $data = Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('searchTimestamp DESC')->one();
             } else {
@@ -1278,7 +1281,7 @@ class PowerHandler extends Model
         } else {
             $data = Table_additional_power_months::findOne(['cottageNumber' => $cottage->masterId, 'month' => $period]);
         }
-        if (!empty($data)) {
+        if ($data !== null) {
             return $data;
         }
         throw new InvalidArgumentException('Данные за месяц не заполнены');
@@ -1299,7 +1302,11 @@ class PowerHandler extends Model
 
     }
 
-    public static function checkCurrent($cottageNumber)
+    /**
+     * @param $cottageNumber
+     * @return array
+     */
+    public static function checkCurrent($cottageNumber): array
     {
         try {
             self::getTariff(TimeHandler::getCurrentShortMonth());
@@ -1311,9 +1318,8 @@ class PowerHandler extends Model
         if ($lastFilled !== null) {
             if ($lastFilled->month === TimeHandler::getCurrentShortMonth()) {
                 return ['status' => 2];
-            } else {
-                return ['status' => 1, 'lastData' => $lastFilled->newPowerData];
             }
+            return ['status' => 1, 'lastData' => $lastFilled->newPowerData];
         }
         return ['status' => 1];
     }
@@ -1325,8 +1331,7 @@ class PowerHandler extends Model
             self::getTariff($period);
         } catch (ErrorException $e) {
             // если тариф не заполнен- верну данные последнего заполненного тарифа
-            $data = Table_tariffs_power::find()->orderBy('searchTimestamp DESC')->one();
-            return $data;
+            return Table_tariffs_power::find()->orderBy('searchTimestamp DESC')->one();
         }
         return false;
     }
@@ -1360,11 +1365,12 @@ class PowerHandler extends Model
     /**
      * @param $data Table_power_months
      * @param $tariff Table_tariffs_power
-     * @return float|int
+     * @param $cottageNumber
+     * @return float
      */
-    private static function count($data, $tariff, $cottageNumber)
+    private static function count($data, $tariff, $cottageNumber): float
     {
-        $powerLimit = $cottageNumber == '88' ? 100 : $tariff->powerLimit;
+        $powerLimit = $cottageNumber === 88 ? 100 : $tariff->powerLimit;
         if ($data->difference > $powerLimit) {
             $inLimitSumm = $powerLimit;
             $inLimitPay = CashHandler::rublesMath($inLimitSumm * $tariff->powerCost);
@@ -1387,9 +1393,7 @@ class PowerHandler extends Model
     private static function countCostDetails(Table_power_months $existentValue, Table_tariffs_power $tariff): array
     {
         $powerLimit = $existentValue->cottageNumber === 88 ? 100 : $tariff->powerLimit;
-        $cost = 0;
         $over_cost = 0;
-        $total = 0;
         if ($existentValue->difference > $powerLimit) {
             $cost = CashHandler::rublesMath($powerLimit * $tariff->powerCost);
             $over_cost = CashHandler::rublesMath(($existentValue->difference - $powerLimit) * $tariff->powerOvercost);

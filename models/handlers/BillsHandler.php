@@ -74,4 +74,13 @@ class BillsHandler extends Model
         }
         return false;
     }
+
+    /**
+     * @param $identificator
+     * @return Table_payment_bills
+     */
+    public static function getBill($identificator): Table_payment_bills
+    {
+        return Table_payment_bills::findOne($identificator);
+    }
 }

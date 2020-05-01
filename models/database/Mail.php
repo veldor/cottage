@@ -4,45 +4,55 @@
 namespace app\models\database;
 
 
-use app\models\selections\CottageMail;
+use Throwable;
 use Yii;
 use yii\db\ActiveRecord;
-use yii\web\NotFoundHttpException;
 
 /**
  * Class Mail
+ *
  * @package app\models
  *
  * @property int $id [int(10) unsigned]
- * @property int $cottage_num [int(10) unsigned]
+ * @property int $cottage [int(10)]
  * @property string $email [varchar(255)]
  * @property string $fio [varchar(255)]
+ * @property bool $cottage_is_double [tinyint(1)]
+ * @property string $comment
  */
-
 class Mail extends ActiveRecord
 {
-
-    const SCENARIO_CREATE = 'create';
-    const SCENARIO_EDIT = 'edit';
-
-    public static function tableName()
+    public static function tableName(): string
     {
         return 'mails';
     }
 
-    public function scenarios()
+    public const SCENARIO_CREATE = 'create';
+    public const SCENARIO_EDIT = 'edit';
+
+    /**
+     * Верну все адреса почты
+     * @return Mail[]
+     */
+    public static function getAllRegistered(): array
     {
-        return [
-            self::SCENARIO_CREATE => ['fio', 'email', 'cottage_num'],
-            self::SCENARIO_EDIT => ['fio', 'email'],
-        ];
+        return self::find()->orderBy('cottage')->all();
     }
 
-    public function attributeLabels():array
+    /**
+     * @param $mail
+     * @return Mail
+     */
+    public static function getMailById($mail): Mail
+    {
+        return self::findOne($mail);
+    }
+
+    public function scenarios(): array
     {
         return [
-            'fio' => 'ФИО',
-            'email' => 'Адрес электронной почты',
+            self::SCENARIO_CREATE => ['fio', 'email', 'cottage', 'cottage_is_double', 'comment'],
+            self::SCENARIO_EDIT => ['fio', 'email', 'cottage', 'cottage_is_double', 'comment'],
         ];
     }
 
@@ -50,86 +60,59 @@ class Mail extends ActiveRecord
     /**
      * @return array
      */
-    public function rules():array
+    public function rules(): array
     {
         return [
             [['fio', 'email'], 'required'],
             ['email', 'email'],
+            ['cottage_is_double', 'validateDoubleCottageMail'],
         ];
     }
 
-    public static function deletePayer()
+    public function validateDoubleCottageMail($attribute): void
     {
-        $payerId = trim(Yii::$app->request->post('id'));
-        if(!empty($payerId)){
-            $payer = self::findOne(['id' => $payerId]);
-            if(!empty($payer)){
-                $payer->delete();
-                Yii::$app->session->addFlash('success', "Плательщик удалён.");
-                return ['status' => 1];
-
-            }
-            return ['message' => 'Не найден плательщик'];
+        if ($this->$attribute && (!\app\models\Cottage::getCottageByLiteral($this->cottage))->haveAdditional) {
+            $this->addError($attribute, 'У участка нет дополнительного.');
         }
-        return ['message' => 'Не найден идентификатор плательщика'];
     }
 
-    public static function getCottageMails(Cottage $cottage)
+    public function attributeLabels(): array
     {
-        return self::findAll(['cottage_num' => $cottage->id]);
+        return [
+            'fio' => 'ФИО',
+            'email' => 'Адрес электронной почты',
+            'cottage_is_double' => 'Почта второго участка',
+            'comment' => 'Комментарий',
+        ];
     }
 
-    public static function deleteMail()
+    /**
+     * @param int $cottageNumber
+     * @return Mail[]
+     */
+    public static function getCottageMails(int $cottageNumber): array
+    {
+        return self::findAll(['cottage' => $cottageNumber]);
+    }
+
+
+    public static function deleteMail(): array
     {
         $mailId = trim(Yii::$app->request->post('id'));
-        if(!empty($mailId)){
+        if (!empty($mailId)) {
             $mail = self::findOne(['id' => $mailId]);
-            if(!empty($mail)){
-                $mail->delete();
-                Yii::$app->session->addFlash('success', "Почта удалёна.");
+            if ($mail !== null) {
+                try {
+                    $mail->delete();
+                } catch (Throwable $e) {
+                }
+                Yii::$app->session->addFlash('success', 'Почта удалёна.');
                 return ['status' => 1];
 
             }
             return ['message' => 'Не найдена почта'];
         }
         return ['message' => 'Не найден идентификатор почты'];
-    }
-
-    /**
-     * @return CottageMail[]
-     */
-    public static function getAllMailsByCottages()
-    {
-        $cottages = Cottage::getCottages();
-        $result = [];
-        foreach ($cottages as $cottage) {
-            $mails = self::getCottageMails($cottage);
-            if(!empty($mails)){
-                foreach ($mails as $mail) {
-                    $newMail = new CottageMail();
-                    $newMail->cottageNumber = $cottage->num;
-                    $newMail->mail = $mail->email;
-                    $newMail->mailId = $mail->id;
-                    $newMail->name = $mail->fio;
-                    $result[] = $newMail;
-                }
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * @param $mail
-     * @return Mail|null
-     * @throws NotFoundHttpException
-     */
-    public static function getMailById($mail)
-    {
-        $existentMail = self::findOne($mail);
-        if(empty($existentMail)){
-            throw new NotFoundHttpException();
-        }
-        return $existentMail;
     }
 
 }

@@ -3,17 +3,18 @@
 namespace app\controllers;
 
 use app\models\Cottage;
+use app\models\database\Mail;
 use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\MembershipHandler;
 use app\models\PersonalTariffFilling;
-use app\models\PowerCounter;
 use app\models\PowerCounters;
 use app\models\PowerHandler;
 use app\models\Registry;
 use app\models\SerialInvoices;
 use app\models\TimeHandler;
 use Yii;
+use yii\base\ErrorException;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
@@ -30,7 +31,7 @@ class FillingController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'denyCallback' => function ($rule, $action) {
+                'denyCallback' => static function ($rule, $action) {
                     //return $this->redirect('/login', 301);
                 },
                 'rules' => [
@@ -44,30 +45,29 @@ class FillingController extends Controller
         ];
     }
 
+    /**
+     * @return string|Response
+     * @throws ErrorException
+     */
     public function actionView()
     {
-        if (!$model = Filling::getFillingInfo())
+        if (!$model = Filling::getFillingInfo()) {
             return $this->redirect('/tariffs/index', 301);
+        }
 
         if (Yii::$app->request->isPost) {
             $errorMessage = null;
             $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
             $registryModel->file = UploadedFile::getInstances($registryModel, 'file');
-            $details = null;
-            try {
-                $details = $registryModel->handleRegistry();
-            } catch (ExceptionWithStatus $e) {
-                $errorMessage = $e->getMessage();
-            }
             $registryModel->getUnhandled();
             $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
-            return $this->render('filling', ['info' => $model, 'countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'registry', 'errorMessage' => $errorMessage, 'billDetails' => $details]);
-        } else {
-            $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
-            $registryModel->getUnhandled();
-            $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
-            return $this->render('filling', ['info' => $model, 'countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'power', 'errorMessage' => null, 'billDetails' => null]);
+            return $this->render('filling', ['countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'registry', 'errorMessage' => $errorMessage, 'countersData' => null, 'emails' => $emails]);
         }
+        $emails = Mail::getAllRegistered();
+        $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
+        $registryModel->getUnhandled();
+        $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
+        return $this->render('filling', ['countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'power', 'errorMessage' => null, 'countersData' => null, 'emails' => $emails]);
     }
 
     /**
@@ -76,7 +76,6 @@ class FillingController extends Controller
      * @return array|bool
      * @throws NotFoundHttpException
      * @throws \Throwable
-     * @throws \yii\db\StaleObjectException
      */
     public function actionCancelPower($cottageNumber, $additional = false)
     {
@@ -110,14 +109,16 @@ class FillingController extends Controller
             return ['status' => 0,
                 'errors' => $model->errors,
             ];
-        } elseif (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
+        }
+
+        if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             // верну форму для заполнения данных
             $model = new PowerHandler(['scenario' => PowerHandler::SCENARIO_NEW_RECORD]);
             $model->prepare($cottageNumber);
             return ['data' => $this->renderAjax('fillPowerForm', ['model' => $model])];
         }
-        throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
 
     public function actionFillCurrent($cottageNumber)
@@ -132,10 +133,13 @@ class FillingController extends Controller
                 return ['status' => 1,
                     'data' => $view,
                 ];
-            } elseif ($status['status'] === 3) {
+            }
+
+            if ($status['status'] === 3) {
                 // не заполнен тариф на данный месяц
                 return ['status' => 3, 'month' => TimeHandler::getCurrentShortMonth()];
-            } else return ['status' => 2];
+            }
+            return ['status' => 2];
         }
         return false;
     }
@@ -147,39 +151,48 @@ class FillingController extends Controller
      * @return array
      * @throws NotFoundHttpException
      */
-    public function actionFutureQuarters($quartersNumber, $cottageNumber, $additional = false)
+    public function actionFutureQuarters($quartersNumber, $cottageNumber, $additional = false): array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             return MembershipHandler::getFutureQuarters($quartersNumber, $cottageNumber, $additional);
         }
-        throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionGetSerialCottages()
+    /**
+     * @return string
+     * @throws NotFoundHttpException
+     */
+    public function actionGetSerialCottages(): string
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
-            // получу список всех участков с подробностями
-            $model = new SerialInvoices(['scenario' => SerialInvoices::SCENARIO_FILL]);
             return $this->renderPartial('cottages-list', ['cottages' => SerialInvoices::getCottagesInfo()]);
 
         }
-        throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionConfirmSerialPayments()
+    /**
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionConfirmSerialPayments(): array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $model = new SerialInvoices(['scenario' => SerialInvoices::SCENARIO_FILL]);
             $model->load(Yii::$app->request->post());
             $bills = $model->makeInvoices();
-            return ['status' => 1, 'message' => "Счета сформированы", 'bills' => $bills];
+            return ['status' => 1, 'message' => 'Счета сформированы', 'bills' => $bills];
         }
-        throw new NotFoundHttpException("Страница не найдена");
+        throw new NotFoundHttpException('Страница не найдена');
     }
 
+    /**
+     * @return string|Response
+     */
     public function actionFillMissingIndividuals()
     {
         $hasError = false;
@@ -193,17 +206,20 @@ class FillingController extends Controller
         }
         // получу сведения о незаполненных тарифах
         $cottagesWithMissing = PersonalTariffFilling::getCottagesWithMissing();
-        return $this->render("fill-missed-individuals", ['items' => $cottagesWithMissing, 'error' => $hasError]);
+        return $this->render('fill-missed-individuals', ['items' => $cottagesWithMissing, 'error' => $hasError]);
     }
 
-    public function actionFillCounters()
+    /**
+     * @return string
+     * @throws ExceptionWithStatus
+     */
+    public function actionFillCounters(): string
     {
-        $model = Filling::getFillingInfo();
         $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
         $registryModel->getUnhandled();
         $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
         $countersModel->file = UploadedFile::getInstance($countersModel, 'file');
         $countersData = $countersModel->parseIndications();
-        return $this->render('filling', ['info' => $model, 'countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'counters', 'errorMessage' => '', 'billDetails' => '', 'countersData' => $countersData]);
+        return $this->render('filling', ['countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'counters', 'errorMessage' => '', 'countersData' => $countersData]);
     }
 }

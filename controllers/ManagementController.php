@@ -9,6 +9,8 @@
 namespace app\controllers;
 
 use app\models\Cloud;
+use app\models\Mailing;
+use app\models\MailSettings;
 use app\models\UpdateSite;
 use ErrorException;
 use Exception;
@@ -43,12 +45,14 @@ class ManagementController extends Controller
         ];
     }
 
-    public function actionIndex()
+    /**
+     * @return string
+     */
+    public function actionIndex(): string
     {
-        if (empty($_SESSION['ya_auth'])) {
-            return $this->redirect('/site/auth', 301);
-        }
-        return $this->render('index');
+        $mailSettings = new MailSettings();
+        $mailTemplate = Mailing::getMailingTemplate();
+        return $this->render('index', ['mailSettings' => $mailSettings, 'mailTemplate' => $mailTemplate]);
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace app\controllers;
 
 use app\models\Cottage;
+use app\models\database\MailingSchedule;
+use app\models\MailSettings;
 use app\models\migration\Migration;
 use app\models\Reminder;
 use app\models\TariffsKeeper;
@@ -27,7 +29,12 @@ class SiteController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'error', 'auth'],
+                        'actions' => [
+                            'index',
+                            'error',
+                            'auth',
+                            'mailing-schedule'
+                        ],
                         'roles' => ['@'],
 
                     ],
@@ -53,7 +60,7 @@ class SiteController extends Controller
      *
      * @return string
      */
-    public function actionIndex()
+    public function actionIndex(): ?string
     {
         // Получу информацию о зарегистрированных участках
         $existedCottages = Cottage::getRegistred();
@@ -83,8 +90,14 @@ class SiteController extends Controller
         }
         return false;
     }
-    public function actionTest(){
-        return $this->renderPartial('test');
+
+    /**
+     *
+     */
+    public function actionTest(): void
+    {
+        MailSettings::getInstance();
+        //return $this->renderPartial('test');
         //Migration::migrateCottages();
         //return $this->render('test');
         //Fix::test();
@@ -94,5 +107,14 @@ class SiteController extends Controller
         Migration::migrateBillsData();
         Migration::migratePayments();
         return 'done';*/
+    }
+
+    /**
+     * @return string
+     */
+    public function actionMailingSchedule(): string
+    {
+        $waitingMessages = MailingSchedule::getWaiting();
+        return $this->render('mailing-schedule', ['waiting' => $waitingMessages]);
     }
 }

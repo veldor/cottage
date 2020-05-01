@@ -50,8 +50,7 @@ function handlePartialPayments() {
                     }
                 });
 
-            }
-            else {
+            } else {
                 tr.append('<span><b class="text-info">Отправка уведомления не требуется</b></span>');
                 ++counter;
                 if (checkboxes.eq(counter).length > 0) {
@@ -107,7 +106,7 @@ function confirmManualChain(billId, bankTransactionId) {
     let url = "/chain/confirm-manual";
     let attributes = {
         'ComparisonHandler[billId]': billId,
-        'ComparisonHandler[transactionId]':bankTransactionId,
+        'ComparisonHandler[transactionId]': bankTransactionId,
     };
     sendAjax('post', url, simpleAnswerHandler, attributes);
 }
@@ -118,12 +117,11 @@ function selectBillId(bankTransactionId, manualChain) {
     let acceptButton = modal.find('button#acceptBill');
     let billIdInput = modal.find('input#billId');
     acceptButton.on('click.accept', function () {
-        if(billIdInput.val()){
+        if (billIdInput.val()) {
             modal.modal('hide');
-            if(manualChain){
-                confirmManualChain(billIdInput.val(),bankTransactionId);
-            }
-            else{
+            if (manualChain) {
+                confirmManualChain(billIdInput.val(), bankTransactionId);
+            } else {
                 confirmChainedBillId(billIdInput.val(), bankTransactionId);
             }
 
@@ -143,168 +141,123 @@ function handleMailing() {
     // обработаю связку платежа
     const chainActivators = $('button.chain_bill');
     chainActivators.on('click.chain', function () {
-       let supposedBillId = $(this).attr('data-bill-id');
-       let bankTransactionId = $(this).attr('data-bank-operation');
-       if(supposedBillId){
-           confirmChainedBillId(supposedBillId, bankTransactionId);
-       }
-       else{
-           selectBillId(bankTransactionId);
-       }
+        let supposedBillId = $(this).attr('data-bill-id');
+        let bankTransactionId = $(this).attr('data-bank-operation');
+        if (supposedBillId) {
+            confirmChainedBillId(supposedBillId, bankTransactionId);
+        } else {
+            selectBillId(bankTransactionId);
+        }
     });
-    // определю кнопку-активатор
-    let sendMailingActivator = $('#createMailingActivator');
-    sendMailingActivator.on('click.send', function (e) {
+
+    // активирую подсказки
+    handleTooltipEnabled();
+
+    // назначу действия кнопкам управления адресами
+    let selectAllActivator = $('#selectAllActivator');
+    let selectNoneActivator = $('#selectNoneActivator');
+    let selectInvertActivator = $('#selectInvertActivator');
+    let destination = $('input.mail-target[type="checkbox"]');
+    console.log(destination);
+
+    selectAllActivator.on('click.change', function (e) {
         e.preventDefault();
+        destination.prop('checked', true);
+    });
+    selectNoneActivator.on('click.change', function (e) {
+        e.preventDefault();
+        destination.prop('checked', false);
+    });
+    selectInvertActivator.on('click.change', function (e) {
+        e.preventDefault();
+        destination.each(function () {
+            $(this).prop('checked', !$(this).prop('checked'));
+        });
+    });
+
+    let createMailingActivatorBtn = $('button#createMailingActivator');
+    let titleInput = $('input#mailingSubject');
+
+    createMailingActivatorBtn.on('click.createMailing', function () {
         let mailData;
-        for(let i in CKEDITOR.instances){
-            if(CKEDITOR.instances.hasOwnProperty(i)){
+        for (let i in CKEDITOR.instances) {
+            if (CKEDITOR.instances.hasOwnProperty(i)) {
                 mailData = CKEDITOR.instances[i].getData();
                 break;
             }
         }
-        let subjectData = $('#mailingSubject').val();
         if (!mailData) {
-            makeInformer('warning', 'Ошибка', 'Не стоит отправлять пустое письмо');
+            makeInformer("danger",
+                'Ошибка!',
+                "Необходимо заполнить текст рассылки");
+            return;
         }
-        else {
-            // получу список адресов для рассылки
-            sendAjax('get', '/mailing/get-list', sendMail);
+        if (!titleInput.val()) {
+            makeInformer("danger",
+                'Ошибка!',
+                "Необходимо заполнить тему рассылки");
+            titleInput.focus();
+            return;
+        }
+        // найду адреса почты, отмеченные для рассылки
+        // если они не найдены- укажу, что они должны быть указаны
+        let active = destination.filter(':checked');
+        if (active.length === 0) {
+            makeInformer("danger",
+                'Ошибка!',
+                "Выберите хотя бы один адрес для рассылки");
+            return;
         }
 
-        function sendMail(data) {
-            let modal = makeModal("Подтверждение рассылки", data);
+        let addressesList = [];
+        active.each(function () {
+            addressesList.push($(this).attr('data-mail-id'));
+        });
 
-            // назначу кнопки
-            let sendActivator = modal.find('#startMailingActivator');
-            let selectAllActivator = modal.find('#selectAllActivator');
-            let selectNoneActivator = modal.find('#selectNoneActivator');
-            let selectInvertActivator = modal.find('#selectInvertActivator');
-            let selectOwnersActivator = modal.find('#selectOwnersActivator');
-            let selectContactersActivator = modal.find('#selectContactersActivator');
+        // отправлю запрос на создание рассылки
+        sendAjax('post',
+            '/mailing-create',
+            function (data) {
+                if (data) {
+                    if (data.status === 1) {
+                        // открою окно с очередью рассылки писем
+                        let win = window.open('/mailing-schedule', '_blank');
+                        win.focus();
+                    } else {
+                        if (data.message) {
+                            makeInformer('warning', 'Ошибка', data.message);
+                        }
+                    }
+                }
+            },
+            {
+                'title': encodeURIComponent(titleInput.val()),
+                'body': encodeURIComponent(mailData),
+                'addresses': addressesList
+            }
+        );
 
-            let destination = modal.find('input[type="checkbox"]');
-
-            selectAllActivator.on('click.change', function (e) {
-                e.preventDefault();
-                destination.prop('checked', true);
-            });
-            selectNoneActivator.on('click.change', function (e) {
-                e.preventDefault();
-                destination.prop('checked', false);
-            });
-            selectInvertActivator.on('click.change', function (e) {
-                e.preventDefault();
-                destination.each(function () {
-                    $(this).prop('checked', !$(this).prop('checked'));
-                });
-            });
-            selectOwnersActivator.on('click.change', function (e) {
-                e.preventDefault();
-                destination.filter('.owner-mail').prop('checked', true);
-            });
-            selectContactersActivator.on('click.change', function (e) {
-                e.preventDefault();
-                destination.filter('.contacter-mail').prop('checked', true);
-            });
-
-            sendActivator.on('click.send', function (e) {
-                e.preventDefault();
-                disableElement(sendActivator, "Отправляю почту");
-                destination.parent().hide();
-                let active = destination.filter(':checked');
-                let counter = 0;
-                active.parent().parent().append('<span class="wait-sending text-info"><img alt="loading" class="loading_img" src="/graphics/loading.gif" /> ожидание отправки</span>');
-                destination.not(':checked').parent().parent().append('<span class="not-send text-info">Сообщение не оправляется</span>');
-                console.log(mailData);
-                makeSending(active.eq(0), active, counter, subjectData, mailData);
-            });
-        }
     });
-
-    let sendErrors = 0;
-
-    function resendMessage(button, mailData, subject) {
-        let checkbox = button.parent().find('input[type="checkbox"]');
-        let cottageNumber = checkbox.attr('data-cottage-id');
-        let double = checkbox.attr('data-double') ? 'double' : 'main';
-        let type = checkbox.hasClass('owner-mail') ? 'owner' : 'contacter';
-        let url = '/mailing/' + double + '/' + type + '/' + cottageNumber;
-        let attributes = {'text' : mailData, 'subject' : subject};
-        sendAjax('post', url, function (answer) {
-            if(answer['status'] === 1){
-                --sendErrors;
-                if(sendErrors === 0){
-                    makeInformer('success', 'Отправка завершена', 'Похоже, все письма отправлены');
-                }
-                {
-                    makeInformer('info', 'Отправка завершена', 'Осталось отправить ещё ' + sendErrors + ' писем.');
-                }
-                button.remove();
-                checkbox.parent().parent().append('<a class="btn btn-success"><span class="text-success glyphicon glyphicon-ok"></span> Сообщение отправлено</a>');
-            }
-            else{
-                makeInformer('danger', 'Ошибка отправки', 'Не удалось отправить письмо на номер участка ' + cottageNumber);
-            }
-        }, attributes);
-    }
-
-    function makeSending(checkbox, checkboxes, counter, subject, mailData) {
-        let cottageNumber = checkbox.attr('data-cottage-id');
-        let double = checkbox.attr('data-double') ? 'double' : 'main';
-        let type = checkbox.hasClass('owner-mail') ? 'owner' : 'contacter';
-        let url = '/mailing/' + double + '/' + type + '/' + cottageNumber;
-        let attributes = {'text' : mailData, 'subject' : subject};
-        sendSilentAjax('post', url, function (answer) {
-            checkbox.parent().parent().find('span.wait-sending').remove();
-            if(answer['status'] === 1){
-                checkbox.parent().parent().append('<a class="btn btn-success"><span class="text-success glyphicon glyphicon-ok"></span> Сообщение отправлено</a>');
-            }
-            else{
-                let resendButton = $('<a class="btn btn-warning"><span class="text-danger glyphicon glyphicon-refresh"></span> Повторить отправку</a>');
-                resendButton.on('click.resend', function () {
-                   resendMessage($(this), mailData, subject);
-                });
-                checkbox.parent().parent().append(resendButton);
-                makeInformer('danger', 'Ошибка отправки', 'Не удалось отправить письмо на номер участка ' + cottageNumber);
-                sendErrors++;
-            }
-            ++counter;
-            if (checkboxes.eq(counter).length > 0) {
-                makeSending(checkboxes.eq(counter), checkboxes, counter, subject, mailData);
-            }
-            else{
-                console.log(sendErrors);
-                if(sendErrors === 0){
-                    makeInformer('success', 'Отправка завершена', 'Отправлено писем: ' + counter);
-                }
-                else{
-                    makeInformer('info', 'Отправка частично завершена', 'Отправлено ' + (counter - sendErrors) + ' писем. Повторить отправку можно нажав на значок рядом с номером участка.')
-                }
-
-            }
-        }, attributes);
-    }
 }
 
-    $(function () {
-        handle();
-        handlePartialPayments();
-        handleMailing();
-        enableTabNavigation();
+$(function () {
+    handle();
+    handlePartialPayments();
+    handleMailing();
+    enableTabNavigation();
 
-        $(window).on('beforeunload.closeChild', function () {
-            if (invoiceWindow) {
-                invoiceWindow.close();
-            }
-        });
+    $(window).on('beforeunload.closeChild', function () {
+        if (invoiceWindow) {
+            invoiceWindow.close();
+        }
     });
+});
 
 function handle() {
     // при выборе файла с данными счётчиков- отправлю форму
     let countersInput = $('#countersInput');
     countersInput.on('change.send', function () {
-        if($(this).val()){
+        if ($(this).val()) {
             $(this).parents('form').trigger('submit');
         }
     });
@@ -312,7 +265,7 @@ function handle() {
     // при выборе файлов регистра- отправлю форму
     let registryInput = $('#registryInput');
     registryInput.on('change.send', function () {
-        if($(this).val()){
+        if ($(this).val()) {
             $(this).parents('form').trigger('submit');
         }
     });
@@ -347,8 +300,7 @@ function handle() {
                 pointer.before('<p><b class="text-success">Заполнено</b></p>');
                 pointer.remove();
                 pointer.parent().find('input.compact').removeClass('compact');
-            }
-            else if (data['totalSumm'] > 0) {
+            } else if (data['totalSumm'] > 0) {
                 // Выведу сообщение с суммой оплаченного платежа.
                 makeInformer('success', "Заполнено", "Данные внесены. Сумма оплаты за месяц: " + data['totalSumm'] + " &#8381;");
                 pointer.before('<p><b class="text-success">Заполнено</b></p>');
@@ -361,8 +313,7 @@ function handle() {
             if (data['messageStatus']) {
                 if (data['messageStatus']['status'] === 2) {
                     makeInformer('danger', 'Неуспешно', 'Нет подключения к интернету. Сообщение сохранено, вы сможете отправить его, когда подключение появится!');
-                }
-                else if (data['messageStatus']['status'] === 1) {
+                } else if (data['messageStatus']['status'] === 1) {
                     if (data['messageStatus']['results']['to-owner']) {
                         if (data['messageStatus']['results']['to-owner'] === true)
                             makeInformer('success', 'Успешно', 'Письмо владельцу успешно отправлено!');
@@ -414,8 +365,7 @@ function handle() {
             sendAjax('post', url, function (data) {
                 if (data['status'] === 1) {
                     link.removeClass('glyphicon-envelope btn btn-info unsended').addClass(' glyphicon-ok text-success').attr('title', 'Уведомление отправлено').off('click');
-                }
-                else {
+                } else {
                     makeInformer('info', 'Не удалось', data['message']);
                 }
             });
@@ -776,8 +726,7 @@ function editBill(identificator, double) {
                 let url;
                 if (double) {
                     url = '/pay/close/double/' + identificator;
-                }
-                else {
+                } else {
                     url = '/pay/close/' + identificator;
                 }
                 // отправлю запрос на закрытие частично оплаченного счёта

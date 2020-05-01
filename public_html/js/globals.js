@@ -14,10 +14,41 @@ function integrityChecks() {
     sendSilentAjax('get', '/check/individual', individualIntegrityCheckResults);
 }
 
+function runObservers() {
+    let unsendedMessagesBadge = $('span#unsendedMessagesBadge');
+    let messagesScheduleMenuItem = $('span#messagesScheduleMenuItem');
+
+    function checkMessagesSchedule() {
+        sendSilentAjax('get',
+            '/get-unsended-messages-count',
+            function (data) {
+                if (data.status && data.status === 1) {
+                    unsendedMessagesBadge.text(data.count);
+                    if (data.count > 0) {
+                        messagesScheduleMenuItem.parent().parent().show();
+                        unsendedMessagesBadge.addClass('badge-danger');
+                    } else {
+                        unsendedMessagesBadge.removeClass('badge-danger');
+                        messagesScheduleMenuItem.parent().parent().hide();
+                    }
+                }
+            },
+            false,
+            false,
+            true);
+    }
+
+    checkMessagesSchedule();
+    setInterval(function () {
+        checkMessagesSchedule();
+    }, 1000);
+}
+
 $(function () {
     navbar = $('ul#w1');
     checkUnsendedMessages();
     integrityChecks();
+    runObservers();
 
     // активирую переход к участку по ссылке
     $('#goToCottageActivator').on('click.go', function () {
@@ -812,6 +843,9 @@ function ajaxFormAnswerHandler(data) {
             for(let i = 0; i < data.href.length; i++){
                 let newWindow = window.open(data.href[i]);
             }
+        }
+        else{
+            location.reload();
         }
     } else if (data.message) {
         makeInformer('danger', "Ошибка", data.message);

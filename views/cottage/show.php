@@ -3,6 +3,7 @@
 use app\assets\CottageAsset;
 use app\models\CashHandler;
 use app\models\Cottage;
+use app\models\database\Mail;
 use app\models\DOMHandler;
 use app\models\GrammarHandler;
 use app\models\Reminder;
@@ -10,6 +11,7 @@ use app\models\Table_payed_power;
 use app\models\Table_power_months;
 use app\models\TimeHandler;
 use nirvana\showloading\ShowLoadingAsset;
+use yii\helpers\Url;
 use yii\web\View;
 
 /* @var $this View */
@@ -18,8 +20,8 @@ use yii\web\View;
 ShowLoadingAsset::register($this);
 CottageAsset::register($this);
 
-if(Reminder::requreRemind()){
-    Yii::$app->session->addFlash('info', 'Пора напомнить о членских взносах! <a href="/membership/remind" target="_blank" class="btn btn-default"><span class="text-info">Напомнить</span></a>');
+if (Reminder::requreRemind()) {
+    Yii::$app->session->addFlash('info', 'Пора напомнить о членских взносах! <a href="' . Url::toRoute('report/remind-membership') . '" target="_blank" class="btn btn-default"><span class="text-info">Напомнить</span></a>');
 }
 
 /** @var Cottage $cottageInfo */
@@ -28,9 +30,24 @@ $this->title = 'Участок № ' . $cottageInfo->globalInfo->cottageNumber;
 $haveAdditional = $cottageInfo->globalInfo->haveAdditional;
 $differentOwner = $haveAdditional && $cottageInfo->additionalCottageInfo['cottageInfo']->hasDifferentOwner;
 
-$firstCottageName = $haveAdditional ? $differentOwner ? 'Подучасток 1 ' : 'Основной участок ' : 'Действия с участком ';
-
-$firstName = $haveAdditional ? $differentOwner ? 'Подучасток 1 ' : 'Основной участок ' : 'Информация о платежах ';
+if ($haveAdditional) {
+    if ($differentOwner) {
+        $firstCottageName = 'Подучасток 1 ';
+    } else {
+        $firstCottageName = 'Основной участок  ';
+    }
+} else {
+    $firstCottageName = 'Действия с участком ';
+}
+if ($haveAdditional) {
+    if ($differentOwner) {
+        $firstName = 'Подучасток 1 ';
+    } else {
+        $firstName = 'Основной участок  ';
+    }
+} else {
+    $firstName = 'Информация о платежах ';
+}
 
 $secondName = $differentOwner ? 'Подучасток 2 ' : 'Дополнительный участок';
 
@@ -459,8 +476,26 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 </div>
                 <?php
             }
-            ?>
 
+            if (!empty($mails)) {
+                echo "<div class='col-sm-12'><h2 class='text-center text-info'>Адреса электронной почты</h2></div>";
+                echo '<div class=\'col-sm-12\'><table class="table table-condensed table-striped"><thead><tr><th>ФИО</th><th>Адрес</th><th>Действия</th></tr></thead><tbody>';
+                /** @var Mail $mail */
+                foreach ($mails as $mail) {
+                    if(!empty($mail->comment)){
+                        $tooltip = "data-toggle=\"tooltip\" data-placement=\"top\" title=\"{$mail->comment}\"";
+                    }
+                    else{
+                        $tooltip = '';
+                    }
+                    echo "<tr class='tooltip-enabled' $tooltip><td>{$mail->fio}</td><td><a href='malito:{$mail->email}'>{$mail->email}</a></td><td><div class='btn-group'><button class='btn btn-default mail-delete' data-id='{$mail->id}'><span class='text-danger'>Удалить</span></button><button class='btn btn-default mail-change' data-id='{$mail->id}'><span class='text-info'>Изменить</span></button></div></td></tr>";
+                }
+                echo '</tbody></table></div>';
+            } else {
+                echo "<div class='col-sm-12'><h2 class='text-center'>Адреса электронной почты не зарегистрированы</h2></div>";
+            }
+            echo '<div class="col-sm-12 margened"><button class="btn btn-default" id="addMailBtn"><span class="text-success"><span class="glyphicon glyphicon-plus"></span> Добавить электронную почту</span></button></div>';
+            ?>
         </div>
 
         <div class="btn-group dropup">

@@ -4,28 +4,30 @@
 namespace app\models;
 
 
-use app\models\database\Bill;
-use app\models\database\Cottage;
 use app\models\database\Mail;
 use app\models\database\MailingSchedule;
+use app\models\handlers\BillsHandler;
+use app\models\utils\DbTransaction;
+use app\models\utils\Email;
 use Exception;
 use Throwable;
 use Yii;
 use yii\db\StaleObjectException;
-use yii\web\NotFoundHttpException;
 
 class Mailing
 {
 
     /**
      * @return array
-     * @throws NotFoundHttpException
+     * @throws ExceptionWithStatus
      */
-    public static function createMailing()
+    public static function createMailing(): array
     {
+        $transaction = new DbTransaction();
         $title = Yii::$app->request->post('title');
         $body = Yii::$app->request->post('body');
         $mails = Yii::$app->request->post('addresses');
+        $mailsList = '<mails>';
         if (empty($title)) {
             return ['message' => 'Не заполнен заголовок рассылки!'];
         }
@@ -39,44 +41,36 @@ class Mailing
         $mailing = new database\Mailing();
         $mailing->title = $title;
         $mailing->body = $body;
+        $mailing->mails_info = '1';
+        $mailing->mailing_time = time();
         $mailing->save();
-        foreach ($parsedMails as $mail) {
-            $existentMail = Mail::getMailById($mail);
-            $mailingSchedule = new MailingSchedule();
-            $mailingSchedule->mailId = $existentMail->id;
-            $mailingSchedule->mailingId = $mailing->id;
-            $mailingSchedule->save();
+        if (!empty($mailing->id)) {
+            foreach ($parsedMails as $mail) {
+                $existentMail = Mail::getMailById($mail);
+                if ($existentMail === null) {
+                    return ['message' => 'Не найден адрес почты, возможно, удалён!'];
+                }
+                $mailsList .= "<mail id='{$existentMail->id}'/>";
+                $mailingSchedule = new MailingSchedule();
+                $mailingSchedule->mailId = $existentMail->id;
+                $mailingSchedule->mailingId = $mailing->id;
+                $mailingSchedule->save();
+            }
+            $mailsList .= '</mails>';
+            $mailing->mails_info = $mailsList;
+            $mailing->save();
+            $transaction->commitTransaction();
+            return ['status' => 1];
         }
-        return ['status' => 1];
+        throw new ExceptionWithStatus('Почему-то не удалось создать рассылку');
     }
 
-    public static function sendBillNotifications()
-    {
-        $billId = trim(Yii::$app->request->post('billNumber'));
-        // найду информацию о платеже
-        $bill = Bill::findOne($billId);
-        if (empty($bill)) {
-            return ['message' => 'Счёт не найден'];
-        }
-        $cottage = Cottage::findOne($bill->cottage);
-
-        if (empty($cottage)) {
-            return ['message' => 'Участок не найден'];
-        }
-        $mails = Mail::getCottageMails($cottage);
-        if (empty($mails)) {
-            return ['message' => 'У данного участка отсутствуют зарегистрированные адреса электронной почты'];
-        }
-        foreach ($mails as $mail) {
-            $newMailSchedule = new MailingSchedule();
-            $newMailSchedule->mailId = $mail->id;
-            $newMailSchedule->billId = $bill->id;
-            $newMailSchedule->save();
-        }
-        return ['status' => 1];
-    }
-
-    public static function cancelMailing()
+    /**
+     * @return array
+     * @throws StaleObjectException
+     * @throws Throwable
+     */
+    public static function cancelMailing(): array
     {
         $id = trim(Yii::$app->request->post('id'));
         if (!empty($id)) {
@@ -86,124 +80,79 @@ class Mailing
             }
             $waitingMail->delete();
             return ['status' => 1];
-        } else {
-            return ['message' => 'Не найден идентификатор сообщения.'];
         }
+
+        return ['message' => 'Не найден идентификатор сообщения.'];
     }
 
     /**
      * @return array
-     * @throws NotFoundHttpException
      * @throws StaleObjectException
      * @throws Throwable
      */
-    public static function sendMessage()
+    public static function sendMessage(): array
     {
+        $sendingResult = null;
         $id = trim(Yii::$app->request->post('id'));
         if (!empty($id)) {
             $waitingMail = MailingSchedule::find()->where(['id' => $id])->one();
             if (empty($waitingMail)) {
                 return ['message' => 'Похоже, данное письмо уже удалено из очереди, попробуйте обновить данную страницу.'];
             }
+            // информация о письме
             $mailInfo = Mail::getMailById($waitingMail->mailId);
-            $mailSettings = new MailSettings();
-            $mailAddress = $mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email;
-            // создам тело и заголовок письма
-            $theme = '';
-            $body = '';
+            // информация об участке
+            $cottageInfo = Cottage::getCottageByLiteral($mailInfo->cottage);
+
+            $mailSettings = MailSettings::getInstance();
             if (!empty($waitingMail->billId)) {
-                $bill = Bill::findOne($waitingMail->billId);
-                if (empty($bill)) {
-                    return ['message' => 'Не найден счёт'];
+                $billInfo = BillsHandler::getBill($waitingMail->billId);
+                $payDetails = Filling::getPaymentDetails($billInfo);
+                $text = Yii::$app->controller->renderPartial('/site/mail', ['billInfo' => $payDetails]);
+                $text = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
+
+                $info = ComplexPayment::getBankInvoice($waitingMail->billId);
+                $invoice =  Yii::$app->controller->renderPartial('/payments/bank-invoice-pdf', ['info' => $info]);
+                PDFHandler::renderPDF($invoice, 'invoice.pdf', 'portrait');
+                // создам и отправлю новое письмо
+                $mail = new Email();
+                $mail->setFrom($mailSettings->address);
+                $mail->setAddress($mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email);
+                $mail->setSubject('Квитанция на оплату');
+                $mail->setBody($text);
+                $mail->setReceiverName($mailInfo->fio);
+                $pdfUrl = str_replace('\\', '/', Yii::getAlias('@app')) . '/public_html/invoice.pdf';
+                $mail->setAttachment(['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf']);
+                try {
+                    $mail->send();
+                } catch (Exception $e) {
+                    return ['message' => 'Отправка не удалась, текст ошибки- "' . $e->getMessage() . '"'];
                 }
-                $fileInfo = PDFHandler::saveBillPdf($bill->id);
-                $theme = 'Вам выставлен счёт за услуги СНТ';
-                $body = Yii::$app->controller->renderPartial('/mail/root-template', ['bill' => $bill, 'mail' => $mailInfo]);
-                $mailAddress = $mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email;
-                $sending = self::send($mailAddress,
-                    GrammarHandler::handlePersonals($mailInfo->fio),
-                    $theme,
-                    $body,
-                    $fileInfo);
             } else if (!empty($waitingMail->mailingId)) {
                 $mailing = database\Mailing::findOne($waitingMail->mailingId);
-                if (empty($mailing)) {
+                if ($mailing === null) {
                     return ['message' => 'Рассылка не найдена'];
                 }
-                $theme = urldecode($mailing->title);
-                $body = Yii::$app->controller->renderPartial('/mail/root-template', ['mailing' => $mailing, 'mail' => $mailInfo]);
-                $sending = self::send($mailAddress,
-                    GrammarHandler::handlePersonals($mailInfo->fio),
-                    $theme,
-                    $body);
+                $body = Yii::$app->controller->renderPartial('/mail/simple_template', ['text' => GrammarHandler::insertLexemes(urldecode($mailing->body), $mailInfo, $cottageInfo)]);
+
+                // создам и отправлю новое письмо
+                $mail = new Email();
+                $mail->setFrom($mailSettings->address);
+                $mail->setAddress($mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email);
+                $mail->setSubject(urldecode($mailing->title));
+                $mail->setBody($body);
+                $mail->setReceiverName($mailInfo->fio);
+                try {
+                    $mail->send();
+                } catch (Exception $e) {
+                    return ['message' => 'Отправка не удалась, текст ошибки- "' . $e->getMessage() . '"'];
+                }
             } else {
                 return ['message' => 'Не найден контент письма'];
             }
-
-            if ($sending['status'] === 'sended') {
-                //todo добавить шаблон отправки сообщений и реализовать реальную отправку
-                $waitingMail->delete();
-                return ['status' => 1];
-            } else {
-                return ['message' => 'Отправка не удалась, текст ошибки- "' . $sending['error'] . '"'];
-            }
-        } else {
-            return ['message' => 'Не найден идентификатор сообщения.'];
-        }
-    }
-
-
-    /**
-     * @param $address
-     * @param $receiverName
-     * @param $subject
-     * @param $body
-     * @param null $attachment
-     * @return array
-     */
-    public static function send($address, $receiverName, $subject, $body, $attachment = null): ?array
-    {
-        $form = new MailSettings();
-        $mail = Yii::$app->mailer->compose()
-            ->setFrom([$form->address => $form->snt_name])
-            ->setSubject($subject)
-            ->setHtmlBody($body)
-            ->setTo([$address => $receiverName]);
-
-        if (!empty($attachment)) {
-            $mail->attach($attachment['url'], ['fileName' => $attachment['name']]);
-        }
-        try {
-            $mail->send();
-            return ['status' => 'sended'];
-        } catch (Exception $e) {
-            // отправка не удалась
-            return ['status' => 'error', 'error' => $e->getMessage()];
-        }
-    }
-
-    public static function saveMailTemplate()
-    {
-        $text = Yii::$app->request->post('template');
-        if (!empty($text)) {
-            $encodedText = urldecode($text);
-            // сохраню шаблон в файл
-            $filename = dirname($_SERVER['DOCUMENT_ROOT'] . './/') . '/settings/mail_template';
-            file_put_contents($filename, $encodedText);
+            $waitingMail->delete();
             return ['status' => 1];
-        } else {
-            return ['message' => 'Шаблон пуст'];
         }
-    }
-
-    public static function getMailingTemplate()
-    {
-        $filename = dirname($_SERVER['DOCUMENT_ROOT'] . './/') . '/settings/mail_template';
-        if (is_file($filename))
-            $content = file_get_contents($filename);
-        if (empty($content)) {
-            return 'Заполните шаблон письма в разделе настроек';
-        }
-        return $content;
+        return ['message' => 'Не найден идентификатор сообщения.'];
     }
 }

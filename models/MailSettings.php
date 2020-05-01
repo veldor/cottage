@@ -8,6 +8,16 @@ use yii\base\Model;
 
 class MailSettings extends Model
 {
+    private static MailSettings $instance;
+
+    public static function getInstance():MailSettings
+    {
+        if(empty(self::$instance)){
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
     public $user_pass;
     public $user_name;
     public $address;
@@ -39,7 +49,7 @@ class MailSettings extends Model
         ];
     }
 
-    public function __construct()
+    private function __construct()
     {
         parent::__construct();
         // прочитаю настройки из файла
@@ -58,7 +68,11 @@ class MailSettings extends Model
         $this->test_mail = $settingsArray[5];
     }
 
-    public function saveSettings()
+    /**
+     * сохранение настроек
+     * @return array
+     */
+    public function saveSettings(): array
     {
         $file = dirname(Yii::getAlias('@webroot') . './/') . '/settings/mail_settings';
         file_put_contents($file, "{$this->address}\n{$this->user_name}\n{$this->user_pass}\n{$this->snt_name}\n{$this->is_test}\n{$this->test_mail}");

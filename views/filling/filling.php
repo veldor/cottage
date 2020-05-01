@@ -10,14 +10,16 @@
 /* @var $this View */
 
 /* @var $model Registry */
-/* @var $countersModel \app\controllers\PowerCounters */
+
+/* @var $countersModel PowerCounters */
+
+/* @var $emails Mail[] */
 
 use app\assets\FillingAsset;
-use app\models\CashHandler;
-use app\models\Filling;
+use app\models\database\Mail;
+use app\models\PowerCounters;
 use app\models\Registry;
 use app\models\small_classes\RegistryInfo;
-use app\widgets\AllCottagesWidget;
 use mihaildev\ckeditor\CKEditor;
 use nirvana\showloading\ShowLoadingAsset;
 use yii\web\View;
@@ -45,7 +47,6 @@ if (!empty($tab)) {
 
 <!-- Nav tabs -->
 <ul class="nav nav-tabs">
-<!--    <li class="--><?//= $tabs['power'] ?><!--"><a href="#power" data-toggle="tab">Электроэнергия</a></li>-->
     <li class="<?= $tabs['counters'] ?>"><a href="#counters" data-toggle="tab">Счётчики</a></li>
     <li class="<?= $tabs['bills'] ?>"><a href="#bills" data-toggle="tab">Счета</a></li>
     <li class="<?= $tabs['registry'] ?>"><a href="#registry" data-toggle="tab">Реестр</a></li>
@@ -54,15 +55,7 @@ if (!empty($tab)) {
 
 <!-- Tab panes -->
 <div class="tab-content">
-<!--    <div class="tab-pane --><?//= $tabs['power'] ?><!--" id="power">-->
-<!--        <div class="row show-grid small-text">-->
-<!--            --><?php //try {
-//                echo AllCottagesWidget::widget(['info' => $info]);
-//            } catch (Exception $e) {
-//            } ?>
-<!--        </div>-->
-<!--    </div>-->
-    <div class="tab-pane <?= $tabs['counters']?>" id="counters">
+    <div class="tab-pane <?= $tabs['counters'] ?>" id="counters">
         <div class="row margened">
             <?php $form = ActiveForm::begin(['options' => ['enctype' => 'multipart/form-data'], 'action' => ['/fill/counters']]);
             echo $form->field($countersModel, 'file', ['template' =>
@@ -97,7 +90,7 @@ if (!empty($tab)) {
                 ->fileInput(['class' => 'hidden', 'id' => 'registryInput', 'multiple' => true, 'accept' => 'text/plain'])
                 ->label('Выберите файл регистра.', ['class' => 'btn btn-info']);
             ActiveForm::end();
-            if (!empty($errorMessage)) {
+            if ($errorMessage !== null) {
                 echo "<div class='col-sm-12'><b>$errorMessage</b></div>";
             }
             /** @var RegistryInfo $billDetails */
@@ -126,7 +119,7 @@ if (!empty($tab)) {
                           </tr>
                            ";
                 }
-                echo "</table></div>";
+                echo '</table></div>';
             }
             ?>
         </div>
@@ -151,6 +144,32 @@ if (!empty($tab)) {
                         ]
                     ]);
                 } catch (Exception $e) {
+                }
+                ?>
+            </div>
+
+            <div class="col-sm-12 margin">
+                <div class='btn-group-vertical margened'>
+                    <button id='selectAllActivator' type='button' class='btn btn-info'>Отправить всем</button>
+                    <button id='selectNoneActivator' type='button' class='btn btn-info'>Сбросить выделение</button>
+                    <button id='selectInvertActivator' type='button' class='btn btn-info'>Инвертировать выделение
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-sm-12 margin">
+                <?php
+                if (!empty($emails)) {
+                    echo '<table class="table table-bordered table-striped table-condensed table-hover"><thead><tr><th>№ участка</th><th>Адрес почты</th><th>ФИО</th><th>Статус</th></thead><tbody>';
+                    foreach ($emails as $mail) {
+                        if (!empty($mail->comment)) {
+                            $tooltip = "data-toggle=\"tooltip\" data-placement=\"top\" title=\"{$mail->comment}\"";
+                        } else {
+                            $tooltip = '';
+                        }
+                        echo "<tr class='text-center tooltip-enabled' $tooltip><td>{$mail->cottage}</td><td>{$mail->email}</td><td>{$mail->fio}</td><td><label class='btn btn-success'><input type='checkbox' class='mail-target' data-mail-id='{$mail->id}'/>Отправить письмо</label></td></tr>";
+                    }
+                    echo '</tbody></table>';
                 }
                 ?>
             </div>

@@ -4,12 +4,7 @@
 namespace app\models\database;
 
 
-use app\models\selections\CottageMail;
-use Throwable;
-use Yii;
 use yii\db\ActiveRecord;
-use yii\db\StaleObjectException;
-use yii\web\NotFoundHttpException;
 
 /**
  * Class Mailing
@@ -18,12 +13,14 @@ use yii\web\NotFoundHttpException;
  * @property int $id [int(10) unsigned]
  * @property string $title
  * @property string $body
+ * @property int $mailing_time [bigint(20)]  Время рассылки
+ * @property string $mails_info
  */
 
 class Mailing extends ActiveRecord
 {
 
-    public static function tableName()
+    public static function tableName():string
     {
         return 'mailings';
     }

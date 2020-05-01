@@ -8,9 +8,9 @@ use yii\widgets\ActiveForm;
 $form = ActiveForm::begin(['id' => 'changeCottageForm', 'options' => ['class' => 'form-horizontal bg-default'], 'enableAjaxValidation' => true, 'validateOnSubmit' => false, 'action' => ['/change-cottage']]);
 /** @var AddCottage $matrix */
 echo "<fieldset class='color-salad'><legend>Сведения об участке</legend>";
-echo $form->field($matrix, 'cottageNumber', ['template' => "{input}"])->hiddenInput()->label(false);
-echo $form->field($matrix, 'masterId', ['template' => "{input}"])->hiddenInput()->label(false);
-echo $form->field($matrix, 'fullChangable', ['template' => "{input}"])->hiddenInput()->label(false);
+echo $form->field($matrix, 'cottageNumber', ['template' => '{input}'])->hiddenInput()->label(false);
+echo $form->field($matrix, 'masterId', ['template' => '{input}'])->hiddenInput()->label(false);
+echo $form->field($matrix, 'fullChangeable', ['template' => '{input}'])->hiddenInput()->label(false);
 echo $form->field($matrix, 'haveRights', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
 									{error}{hint}</div><div class="col-lg-1"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="Наличие справки о праве собственности на участок."></button></div>'])
@@ -29,7 +29,14 @@ echo $form->field($matrix, 'cottageRegistrationInformation', ['template' =>
     ->label('Данные кадастрового номера участка.')
     ->hint("<b class='text-info'>Необязательное поле.</b> Буквы, пробелы и тире.");
 
-echo "</fieldset>";
+echo $form->field($matrix, 'cottageSquare', ['template' =>
+    '<div class="col-lg-4">{label}</div><div class="col-lg-3"><div class="input-group">{input}<span class="input-group-addon">М<sup>2</sup></span></div> 
+									{error}{hint}</div><div class="col-lg-1 col-lg-offset-4"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="Для расчёта платежей. Обрати внимание, площадь не в сотках а в метрах."></button></div>'])
+    ->textInput(['placeholder' => 'Например, 5000'])
+    ->label('Площадь участка, в квадратных метрах.')
+    ->hint("<b class='text-success'>Обязательное поле.</b>Целое число, в метрах.");
+
+echo '</fieldset>';
 echo "<fieldset class='color-orange'><legend>Сведения о владельце</legend>";
 echo $form->field($matrix, 'cottageOwnerPersonals', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
@@ -63,7 +70,7 @@ echo $form->field($matrix, 'cottageOwnerPhone', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
 									{error}{hint}</div><div class="col-lg-1"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="В перспективе- для звонков владельцу."></button></div>'])
     ->textInput(['autocomplete' => 'off', 'placeholder' => 'Например, 9201234567'])
-    ->label(" Номер телефона владельца участка.")
+    ->label(' Номер телефона владельца участка.')
     ->hint("<b class='text-info'>Необязательное поле.</b> В свободной форме");
 echo $form->field($matrix, 'cottageOwnerEmail', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
@@ -77,7 +84,7 @@ echo $form->field($matrix, 'payerInfo', ['template' =>
     ->textInput(['autocomplete' => 'off', 'placeholder' => 'Например, Брильц И. И.'])
     ->label('Данные владельцев для квитанции.')
     ->hint("<b class='text-info'>Необязательное поле.</b>");
-echo "</fieldset>";
+echo '</fieldset>';
 echo "<fieldset class='color-pinky'><legend>Почтовый адрес владельца</legend>";
 echo $form->field($matrix, 'ownerAddressIndex', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
@@ -116,10 +123,12 @@ echo $form->field($matrix, 'hasContacter', ['template' =>
 									{error}{hint}</div>'])
     ->checkbox()
     ->label('Добавить контактное лицо.');
-if ($matrix->hasContacter == 1)
+if ($matrix->hasContacter === 1) {
     echo "<fieldset id='contacterInfo' class=''><legend>Сведения о контактном лице</legend>";
-else
+}
+else {
     echo "<fieldset id='contacterInfo' class='hidden'><legend>Сведения о контактном лице</legend>";
+}
 echo $form->field($matrix, 'cottageContacterPersonals', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
 									{error}{hint}</div>'])
@@ -130,7 +139,7 @@ echo $form->field($matrix, 'cottageContacterPhone', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
 									{error}{hint}</div><div class="col-lg-1"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="В перспективе- для звонков владельцу."></button></div>'])
     ->textInput(['autocomplete' => 'off', 'placeholder' => 'Например, 9201234567'])
-    ->label(" Номер телефона контактного лица.")
+    ->label(' Номер телефона контактного лица.')
     ->hint("<b class='text-info'>Необязательное поле.</b> В свободной форме.");
 echo $form->field($matrix, 'cottageContacterEmail', ['template' =>
     '<div class="col-lg-4">{label}</div><div class="col-lg-7">{input}
@@ -138,16 +147,9 @@ echo $form->field($matrix, 'cottageContacterEmail', ['template' =>
     ->textInput(['autocomplete' => 'off', 'placeholder' => 'Например, vasya@yandex.ru'])
     ->label('Адрес электронной почты контактного лица.')
     ->hint("<b class='text-info'>Необязательное поле.</b>");
-echo "</fieldset></div>";
-if ($matrix->fullChangable) {
+echo '</fieldset></div>';
+if ($matrix->fullChangeable) {
     echo "<fieldset class='color-yellow'><legend>Платёжные данные</legend>";
-
-    echo $form->field($matrix, 'cottageSquare', ['template' =>
-        '<div class="col-lg-4">{label}</div><div class="col-lg-3"><div class="input-group">{input}<span class="input-group-addon">М<sup>2</sup></span></div> 
-									{error}{hint}</div><div class="col-lg-1 col-lg-offset-4"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="Для расчёта платежей. Обрати внимание, площадь не в сотках а в метрах."></button></div>'])
-        ->textInput(['placeholder' => 'Например, 5000'])
-        ->label('Площадь участка, в квадратных метрах.')
-        ->hint("<b class='text-success'>Обязательное поле.</b>Целое число, в метрах.");
     echo $form->field($matrix, 'currentPowerData', ['template' =>
         '<div class="col-lg-4">{label}</div><div class="col-lg-4"><div class="input-group">{input}<span class="input-group-addon">кВт.ч</span></div>
 									{error}{hint}</div><div class="col-lg-1 col-lg-offset-3"><button type="button" tabindex="-1" class="btn btn-default glyphicon glyphicon-question-sign popover-btn"  data-container="body" data-toggle="popover" data-placement="top" data-content="Отсчёт пользования электроэнергии будет вестись начиная с данной цифры. Всё, что было до- считается оплаченным. Если есть долг по электичеству- проведи его разовым платежом"></button></div>'])
@@ -177,7 +179,7 @@ if ($matrix->fullChangable) {
         echo "<div class='col-lg-12 text-center'><h2>Заполнение целевых взносов</h2></div>";
         $counter = 0;
         // для каждого из периодов проверю заполненность предыдущими данными
-        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->loadXML($matrix->targetPaysDuty);
         $xpath = new DOMXPath($dom);
         foreach ($matrix->existentTargets as $key => $value) {
@@ -188,7 +190,7 @@ if ($matrix->fullChangable) {
             if($info->length > 0){
                 $payed = CashHandler::toRubles($info->item(0)->getAttribute('payed'));
                 // если год в списке- по нему имеется задолженность.
-                if($payed == 0){
+                if($payed === 0){
                     // месяц полностью не оплачен
                     echo "<div class='form-group has-success'>
 <div class='col-lg-4'><label class='control-label'>" . $key . " год: Долг <b class='text-danger summ' data-fixed='{$value['fixed']}' data-float='{$value['float']}'>" . $max . "</b>  &#8381;</label></div>
@@ -255,9 +257,9 @@ if ($matrix->fullChangable) {
             $counter++;
         }
     }
-    echo $form->field($matrix, 'targetFilled', ['template' => "{input}"])->hiddenInput()->label(false);
+    echo $form->field($matrix, 'targetFilled', ['template' => '{input}'])->hiddenInput()->label(false);
 
-    echo "</fieldset>";
+    echo '</fieldset>';
 }
 echo Html::submitButton('Сохранить', ['class' => 'btn btn-success', 'id' => 'addSubmit', 'data-toggle' => 'tooltip', 'data-placement' => 'top', 'data-html' => 'true',]);
 ActiveForm::end();
