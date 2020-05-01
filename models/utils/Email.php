@@ -16,6 +16,7 @@ class Email extends Model
     private string $subject;
     private string $body;
     private array $attachment;
+    private const RESERVE_MAIL_ADDRESS = 'oblepiha.reports@gmail.com';
 
     /**
      * @var string
@@ -85,6 +86,27 @@ class Email extends Model
         }
         // попробую отправить письмо, в случае ошибки- вызову исключение
         $mail->send();
+    }
+
+    /**
+     * отправка почты на резервный адрес
+     *
+     */
+    public function sendToReserve(): void
+    {
+        // если это админская учётка- действие не выполняется
+        if(!Yii::$app->user->can('manage')){
+            $mail = Yii::$app->mailer->compose()
+                ->setFrom([$this->from => MailSettings::getInstance()->snt_name])
+                ->setSubject($this->subject)
+                ->setHtmlBody($this->body)
+                ->setTo([self::RESERVE_MAIL_ADDRESS => $this->receiverName]);
+            if (!empty($this->attachment)) {
+                $mail->attach($this->attachment['url'], ['fileName' => $this->attachment['name']]);
+            }
+            // попробую отправить письмо, в случае ошибки- вызову исключение
+            $mail->send();
+        }
     }
 
 

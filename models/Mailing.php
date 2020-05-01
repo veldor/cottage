@@ -106,27 +106,12 @@ class Mailing
 
             $mailSettings = MailSettings::getInstance();
             if (!empty($waitingMail->billId)) {
-                $billInfo = BillsHandler::getBill($waitingMail->billId);
-                $payDetails = Filling::getPaymentDetails($billInfo);
-                $text = Yii::$app->controller->renderPartial('/site/mail', ['billInfo' => $payDetails]);
-                $text = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
-
-                $info = ComplexPayment::getBankInvoice($waitingMail->billId);
-                $invoice =  Yii::$app->controller->renderPartial('/payments/bank-invoice-pdf', ['info' => $info]);
-                PDFHandler::renderPDF($invoice, 'invoice.pdf', 'portrait');
-                // создам и отправлю новое письмо
-                $mail = new Email();
-                $mail->setFrom($mailSettings->address);
-                $mail->setAddress($mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email);
-                $mail->setSubject('Квитанция на оплату');
-                $mail->setBody($text);
-                $mail->setReceiverName($mailInfo->fio);
-                $pdfUrl = str_replace('\\', '/', Yii::getAlias('@app')) . '/public_html/invoice.pdf';
-                $mail->setAttachment(['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf']);
+                $mail = self::compileBillMail($waitingMail, $cottageInfo, $mailSettings, $mailInfo);
                 try {
                     $mail->send();
+                    $mail->sendToReserve();
                 } catch (Exception $e) {
-                    return ['message' => 'Отправка не удалась, текст ошибки- "' . $e->getMessage() . '"'];
+                    return ['message' => 'Отправка не удалась, текст ошибки- "' . GrammarHandler::convert_from_latin1_to_utf8_recursively($e->getMessage()) . '"'];
                 }
             } else if (!empty($waitingMail->mailingId)) {
                 $mailing = database\Mailing::findOne($waitingMail->mailingId);
@@ -154,5 +139,35 @@ class Mailing
             return ['status' => 1];
         }
         return ['message' => 'Не найден идентификатор сообщения.'];
+    }
+
+    /**
+     * @param $waitingMail
+     * @param $cottageInfo
+     * @param MailSettings $mailSettings
+     * @param Mail $mailInfo
+     * @return Email
+     * @throws ExceptionWithStatus
+     */
+    public static function compileBillMail($waitingMail, $cottageInfo, MailSettings $mailSettings, Mail $mailInfo): Email
+    {
+        $billInfo = BillsHandler::getBill($waitingMail->billId);
+        $payDetails = Filling::getPaymentDetails($billInfo);
+        $text = Yii::$app->controller->renderPartial('/site/mail', ['billInfo' => $payDetails]);
+        $text = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
+
+        $info = ComplexPayment::getBankInvoice($waitingMail->billId);
+        $invoice = Yii::$app->controller->renderPartial('/payments/bank-invoice-pdf', ['info' => $info]);
+        PDFHandler::renderPDF($invoice, 'invoice.pdf', 'portrait');
+        // создам и отправлю новое письмо
+        $mail = new Email();
+        $mail->setFrom($mailSettings->address);
+        $mail->setAddress($mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email);
+        $mail->setSubject('Квитанция на оплату');
+        $mail->setBody($text);
+        $mail->setReceiverName($mailInfo->fio);
+        $pdfUrl = str_replace('\\', '/', Yii::getAlias('@app')) . '/public_html/invoice.pdf';
+        $mail->setAttachment(['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf']);
+        return $mail;
     }
 }

@@ -66,7 +66,7 @@ use yii\widgets\Breadcrumbs;
                 ['label' => 'Выборки', 'url' => ['/search/search'], 'options' => ['class' => 'visible-xs']],
                 ['label' => 'Заполнение', 'url' => ['/filling/power'], 'options' => ['class' => 'visible-xs']],
                 ['label' => 'Тарифы', 'url' => ['/tariffs/index'], 'options' => ['class' => 'visible-xs']],
-                ['label' =>  '<span id="messagesScheduleMenuItem"><span class="glyphicon glyphicon-envelope"></span> ' . "<span id='unsendedMessagesBadge' class='badge'> " . MailingSchedule::countWaiting() . '</span></span>', 'url' => ['/site/mailing-schedule'], 'encode' => false],
+                ['label' =>  '<span id="messagesScheduleMenuItem"><span class="glyphicon glyphicon-envelope"></span> ' . "<span id='unsendedMessagesBadge' class='badge'> " . MailingSchedule::countWaiting() . '</span></span>', 'url' => ['/site/mailing-schedule'], 'encode' => false, 'target' => '_blank'],
                 ['label' => 'Управление', 'url' => ['/management/index'], 'options' => ['class' => 'visible-xs']],
                 //            ['label' => 'Шаблоны', 'url' => ['/template/show']],
                 //            ['label' => 'Панель управления', 'url' => ['/person/management'], 'visible' =>\Yii::$app->user->can('manage')],

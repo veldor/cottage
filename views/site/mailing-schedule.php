@@ -7,7 +7,7 @@ use app\models\database\Mailing;
 use app\models\database\MailingSchedule;
 use app\models\handlers\BillsHandler;
 use nirvana\showloading\ShowLoadingAsset;
-use yii\web\NotFoundHttpException;
+use yii\helpers\Url;
 use yii\web\View;
 
 
@@ -35,7 +35,7 @@ if (!empty($waiting)) {
         }
         else if(!empty($item->billId)){
             $billInfo = BillsHandler::getBill($item->billId);
-            echo "<tr class='text-center'><td><b class='text-success'>Счёт</b></td><td>{$cottage->cottageNumber}</td><td>{$billInfo->id} </td><td>{$mailInfo->email}</td><td>{$mailInfo->fio}</td><td><b class='text-info mailing-status' data-schedule-id='{$item->id}'>Ожидает отправки</b></td><td><button class='mailing-cancel btn btn-default' data-schedule-id='{$item->id}'><span class='text-danger'>Отменить отправку</span></button></td></tr>";
+            echo "<tr class='text-center'><td><b class='text-success'>Счёт</b></td><td><a href='" . Url::toRoute(['cottage/show', 'cottageNumber' => $cottage->cottageNumber]) . "' target='_blank'>{$cottage->cottageNumber}</a></td><td>{$billInfo->id} </td><td>{$mailInfo->email}</td><td>{$mailInfo->fio}</td><td><b class='text-info mailing-status' data-schedule-id='{$item->id}'>Ожидает отправки</b></td><td><button class='mailing-cancel btn btn-default' data-schedule-id='{$item->id}'><span class='text-danger'>Отменить отправку</span></button></td></tr>";
         }
     }
     echo '</tbody></table>';

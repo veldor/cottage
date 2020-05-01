@@ -4,7 +4,10 @@
 namespace app\models\database;
 
 
+use app\models\ExceptionWithStatus;
 use app\models\handlers\BillsHandler;
+use app\models\MailSettings;
+use Dompdf\Exception;
 use Throwable;
 use yii\db\ActiveRecord;
 use yii\db\StaleObjectException;
@@ -64,13 +67,37 @@ class MailingSchedule extends ActiveRecord
     {
         // получу информацию о счёте
         $billInfo = BillsHandler::getBill($identificator);
+        $cottageInfo = \app\models\Cottage::getCottageByLiteral($billInfo->cottageNumber);
         // получу почтовые ящики для данного участка
         $mails = Mail::getCottageMails($billInfo->cottageNumber);
         if(!empty($mails)){
+            $inQueue = [];
             foreach ($mails as $mail) {
-                (new self(['mailId' => $mail->id, 'billId' => $identificator]))->save();
+                $schedule = new self(['mailId' => $mail->id, 'billId' => $identificator]);
+                $schedule->save();
+                $result = ['schedule' => $schedule, 'mail' => $mail];
+                $inQueue[] = $result;
             }
-            return ['status' => 1, 'message' => 'Сообщения добавлены в очередь отправки'];
+            if(!empty($inQueue)){
+                /** @var MailingSchedule $item */
+                foreach ($inQueue as $item) {
+                    // попытаюсь отправить все сообщения
+                    try {
+                        $mail = \app\models\Mailing::compileBillMail(
+                            $item['schedule'],
+                            $cottageInfo,
+                            MailSettings::getInstance(),
+                            $item['mail']
+                        );
+                        $mail->send();
+                        $mail->sendToReserve();
+                        $item['schedule']->delete();
+                    } catch (\Exception $e) {
+                        return ['status' => 1, 'message' => 'Отправка не удалась, сообщения добавлены в очередь отправки. Отправьте их вручную.'];
+                    }
+                }
+            }
+            return ['status' => 1, 'message' => 'Сообщения отправлены'];
         }
         return ['status' => 2, 'message' => 'Не найдено адресов электронной почты'];
     }
