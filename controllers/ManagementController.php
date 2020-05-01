@@ -50,9 +50,8 @@ class ManagementController extends Controller
      */
     public function actionIndex(): string
     {
-        $mailSettings = new MailSettings();
-        $mailTemplate = Mailing::getMailingTemplate();
-        return $this->render('index', ['mailSettings' => $mailSettings, 'mailTemplate' => $mailTemplate]);
+        $mailSettings = MailSettings::getInstance();
+        return $this->render('index', ['mailSettings' => $mailSettings]);
     }
 
     /**
