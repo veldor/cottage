@@ -247,12 +247,12 @@ class Fix extends Model
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
                 if (!empty($cottage->cottageOwnerEmail) && Mail::findOne(['cottage' => $cottage->cottageNumber, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => false]) === null) {
-                    (new Mail(['cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageOwnerPersonals, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => false]))->save();
+                    (new Mail(['scenario' => Mail::SCENARIO_CREATE, 'cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageOwnerPersonals, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => false]))->save();
                     $cottage->is_mail = true;
                     $cottage->save();
                 }
                 if (!empty($cottage->cottageContacterEmail) && Mail::findOne(['cottage' => $cottage->cottageNumber, 'email' => $cottage->cottageContacterEmail, 'cottage_is_double' => false]) === null) {
-                    (new Mail(['cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageContacterPersonals, 'email' => $cottage->cottageContacterEmail, 'cottage_is_double' => false]))->save();
+                    (new Mail(['scenario' => Mail::SCENARIO_CREATE,'cottage' => $cottage->cottageNumber, 'fio' => $cottage->cottageContacterPersonals, 'email' => $cottage->cottageContacterEmail, 'cottage_is_double' => false]))->save();
                     $cottage->is_mail = true;
                     $cottage->save();
                 }
