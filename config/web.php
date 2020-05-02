@@ -16,6 +16,7 @@ $urlRules = require __DIR__ . '/rules.php';
 $config = [
     'id' => 'cottage',
     'basePath' => dirname(__DIR__),
+    'layout' => 'main',
 	'language' => 'ru-RU',
 	'sourceLanguage' => 'ru-RU',
     'bootstrap' => ['log'],

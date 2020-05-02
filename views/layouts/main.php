@@ -70,7 +70,7 @@ use yii\widgets\Breadcrumbs;
                 ['label' => 'Управление', 'url' => ['/management/index'], 'options' => ['class' => 'visible-xs']],
                 //            ['label' => 'Шаблоны', 'url' => ['/template/show']],
                 //            ['label' => 'Панель управления', 'url' => ['/person/management'], 'visible' =>\Yii::$app->user->can('manage')],
-                '<li class="hidden-sm">' . Html::beginForm(['/logout'], 'post') . Html::submitButton('Выйти: (' . Yii::$app->user->identity->username . ')', ['class' => 'btn btn-link logout']) . Html::endForm() . '</li>',
+                /*'<li class="hidden-sm">' . Html::beginForm(['/logout'], 'post') . Html::submitButton('Выйти: (' . Yii::$app->user->identity->username . ')', ['class' => 'btn btn-link logout']) . Html::endForm() . '</li>',*/
             ],
         ]);
     } catch (Exception $e) {

@@ -26,7 +26,6 @@ use yii\widgets\ActiveForm;
 
 class TariffsController extends Controller
 {
-    public string $layout = 'main';
 
     public function behaviors(): array
     {

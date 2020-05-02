@@ -23,8 +23,6 @@ use yii\widgets\ActiveForm;
 
 class ManagementController extends Controller
 {
-
-    public string $layout = 'main';
     /**
      * @return array
      */

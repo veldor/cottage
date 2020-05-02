@@ -18,7 +18,6 @@ use yii\filters\AccessControl;
 
 class PrintController extends Controller
 {
-    public string $layout = 'print';
     public function behaviors():array
     {
         return [

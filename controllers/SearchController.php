@@ -22,7 +22,6 @@ use yii\widgets\ActiveForm;
 
 class SearchController extends Controller
 {
-    public string $layout = 'main';
 
     public function behaviors(): array
     {
