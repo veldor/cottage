@@ -19,6 +19,9 @@ use yii\web\Response;
 use yii\widgets\ActiveForm;
 
 class CottageController extends Controller {
+
+    public string $layout = 'main';
+
 	public function behaviors(): array
 	{
 		return [

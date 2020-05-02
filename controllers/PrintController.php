@@ -18,8 +18,8 @@ use yii\filters\AccessControl;
 
 class PrintController extends Controller
 {
-    public $layout = 'print';
-    public function behaviors()
+    public string $layout = 'print';
+    public function behaviors():array
     {
         return [
             'access' => [
@@ -48,7 +48,6 @@ class PrintController extends Controller
         // получу информацию по всем транзакциям участка
         $info = Report::cottageReport($start, $end, $cottageNumber);
         // получу информацию о задолженностях участка
-        
         // сохраню PDF
         $reportPdf =  $this->renderPartial('cottage-report-pdf', ['transactionsInfo' => $info,'start' => $start,'end' => $end, 'cottageInfo' => $cottageInfo]);
         PDFHandler::renderPDF($reportPdf, 'report.pdf', 'landscape');

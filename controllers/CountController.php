@@ -17,7 +17,9 @@ use yii\web\Response;
 
 class CountController extends Controller
 {
-    public function behaviors()
+    public string $layout = 'main';
+
+    public function behaviors():array
     {
         return [
             'access' => [

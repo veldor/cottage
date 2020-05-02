@@ -94,6 +94,7 @@ class FinesHandler extends Model
     {
         // найду пени
         $fines = Table_view_fines_info::find()->where(['bill_id' => $bill->id])->all();
+        /** @var Table_penalties $fine */
         foreach ($fines as $fine) {
             // определю, какая сумма нужна для погашения платежа
             $summToPay = CashHandler::toRubles(CashHandler::toRubles($fine->start_summ) - $fine->payed_summ);
@@ -224,7 +225,7 @@ class FinesHandler extends Model
      * @param $daysLeft
      * @return float|int
      */
-    private static function countFine(string $totalPay, $daysLeft)
+    public static function countFine(string $totalPay, $daysLeft)
     {
         $perDay = CashHandler::countPercent($totalPay, self::PERCENT);
         return $perDay * $daysLeft;

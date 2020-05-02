@@ -16,7 +16,7 @@ use yii\web\View;
 
 printAsset::register($this);
 
-$this->title = "Отчёт по платежам";
+$this->title = 'Отчёт по платежам';
 
 /* @var $this View */
 /* @var $cottageInfo Table_cottages */
@@ -140,11 +140,11 @@ $duty = new CottageDutyReport($cottageInfo, $end);
         <td><?= $duty->powerDetails ?></td>
         <td></td>
         <td><?= $duty->powerAmount ?></td>
-        <td class="text-center vertical-top"><?= substr($duty->targetDetails, 0, strlen($duty->targetDetails) - 6) ?></td>
+        <td class="text-center vertical-top"><?= substr($duty->targetDetails, 0, -6) ?></td>
         <td><?= $duty->targetAmount ?></td>
-        <td><?= $duty->signleDetails ?></td>
+        <td><?= $duty->singleDetails ?></td>
         <td><?= $duty->singleAmount ?></td>
-        <td><?= substr($duty->fineDetails, 0, strlen($duty->fineDetails) - 6) ?></td>
+        <td><?= substr($duty->fineDetails, 0, -6) ?></td>
         <td><?= $duty->fineAmount ?></td>
         <td></td>
         <td><?= CashHandler::toRubles($duty->membershipAmount + $duty->powerAmount + $duty->targetAmount + $duty->singleAmount + $duty->fineAmount) ?></td>

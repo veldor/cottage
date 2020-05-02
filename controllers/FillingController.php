@@ -23,6 +23,9 @@ use yii\web\UploadedFile;
 
 class FillingController extends Controller
 {
+
+    public string $layout = 'main';
+
     /**
      * {@inheritdoc}
      */

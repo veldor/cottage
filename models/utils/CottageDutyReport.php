@@ -16,26 +16,26 @@ use app\models\Table_payed_target;
 use app\models\Table_power_months;
 use app\models\Table_tariffs_membership;
 use app\models\Table_tariffs_target;
-use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
 use app\models\TargetHandler;
 use app\models\TimeHandler;
+use Exception;
 
 class CottageDutyReport
 {
-    private $cottage;
-    private $periodEnd;
+    private Table_cottages $cottage;
+    private int $periodEnd;
 
-    public $fineDetails = '';
-    public $powerDetails = '';
-    public $membershipDetails = '';
-    public $targetDetails = '';
-    public $signleDetails = '';
-    public $fineAmount = 0;
-    public $powerAmount = 0;
-    public $membershipAmount = 0;
-    public $targetAmount = 0;
-    public $singleAmount = 0;
+    public string $fineDetails = '';
+    public string $powerDetails = '';
+    public string $membershipDetails = '';
+    public string $targetDetails = '';
+    public string $singleDetails = '';
+    public float $fineAmount = 0;
+    public float $powerAmount = 0;
+    public float $membershipAmount = 0;
+    public float $targetAmount = 0;
+    public float $singleAmount = 0;
 
     /**
      * CottageDutyReport constructor.
@@ -49,17 +49,17 @@ class CottageDutyReport
         $this->calculate();
     }
 
-    private function calculate()
+    private function calculate(): void
     {
-        // определю конец периода
+        // последний месяц, за который считаются долги
         $lastMonth = TimeHandler::getShortMonthFromTimestamp($this->periodEnd);
         $accrued = 0;
 // получу все месяцы оплаты до текущего
         $months = Table_power_months::find()->where(['<=', 'month', $lastMonth])->andWhere(['cottageNumber' => $this->cottage->cottageNumber])->all();
-
 // если есть неоплаченные месяцы- для каждого из них предоставлю детализацию
         if (!empty($months)) {
             foreach ($months as $month) {
+                // получу начисленную сумму
                 $total = CashHandler::toRubles($month->totalPay);
                 if ($total > 0) {
                     // поищу оплаты по этому месяцу. Если их нет- заношу месяц в долги
@@ -68,33 +68,6 @@ class CottageDutyReport
                         $this->powerDetails .= $month->month . ' : ' . $total . "<br/>\n";
                         $accrued += $total;
                         // обработка пени
-                        $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'power', 'period' => $month->month]);
-                        if (!empty($savedFine) && $savedFine->is_enabled) {
-                            // определю срок оплаты
-                            $payUp = TimeHandler::getPayUpMonth($month->month);
-                            if ($payUp < FinesHandler::START_POINT) {
-                                $payUp = FinesHandler::START_POINT;
-                            }
-                            // если месяц не оплачен и прошел срок выплат- считаю пени
-                            if ($payUp < $this->periodEnd) {
-                                // посчитаю сумму пени
-                                // посчитаю количество дней задолженности
-                                $dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                                if ($dayDifference > 0) {
-                                    $finesPerDay = CashHandler::countPercent($total, FinesHandler::PERCENT);
-                                    $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                    // теперь попробую найти оплату по данному пени
-                                    if ($savedFine->is_enabled) {
-                                        $payedFineAmount = $this->getPayedAmount($savedFine->id);
-                                        $fineDuty = CashHandler::toRubles($totalFines - $payedFineAmount);
-                                        if ($fineDuty > 0) {
-                                            $this->fineDetails .= "Э* " . $month->month . ' : ' . $fineDuty . "<br/>\n";
-                                            $this->fineAmount += $fineDuty;
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     } else {
                         $payedAmount = 0;
                         // если сумма оплаченного меньше суммы начисленного - добавляю месяц в детализацию
@@ -107,71 +80,36 @@ class CottageDutyReport
                             $this->powerDetails .= $month->month . ' : ' . $difference . "<br/>\n";
                             $accrued += $difference;
                         }
-
-                        $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'power', 'period' => $month->month]);
-                        if (!empty($savedFine) && $savedFine->is_enabled) {
-                            $totalFines = 0;
-                            // найду факты оплаты счёта
-                            $payUp = TimeHandler::getPayUpMonth($month->month);
-                            if ($payUp < FinesHandler::START_POINT) {
-                                $payUp = FinesHandler::START_POINT;
-                            }
-                            // если месяц не оплачен и прошел срок выплат- считаю пени
-                            if ($payUp < $this->periodEnd) {
-                                $pays = Table_payed_power::find()->where(['month' => $month->month, 'cottageId' => $this->cottage->cottageNumber])->all();$totalPayed = 0;
-                                foreach ($pays as $pay) {
-                                    $totalPayed += $pay->summ;
+                    }
+                    // проверю, не начислялись ли пени
+                    $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'power', 'period' => $month->month]);
+                    // ага, платёж просрочен. подсчитаю количество дней просрочки на момент конца периода
+                    // определю срок оплаты
+                    // если месяц не оплачен и прошел срок выплат- считаю пени
+                    if(($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
+                        // посчитаю сумму пени
+                        // посчитаю количество дней задолженности
+                        try {
+                            $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
+                            if($dayDifference > 0){
+                                // тут посчитаю общую сумму задолженности.
+                                //Если платежей по счёту не было- это просто 5% в день
+                                if(empty($payed)){
+                                    $finesPerDay = CashHandler::countPercent($total, FinesHandler::PERCENT);
+                                    $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
+                                    $this->fineDetails .= 'Э* ' . $month->month . ' : ' . $totalFines . "<br/>\n";
+                                    $this->fineAmount += $totalFines;
                                 }
-                                $dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                                if($dayDifference > 0){
-                                    $finesPerDay = CashHandler::countPercent($accrued - $totalPayed, FinesHandler::PERCENT);
-                                    $countedFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                    $this->fineDetails .= "Ч* " . $month->month . ' : ' . $countedFines . "<br/>\n";
-                                    $this->fineAmount += $countedFines;
-                                }
-                                /*$dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                                if ($dayDifference > 0) {
-                                    // получу дату первого платежа
-                                    if (!empty($pays)) {
-                                        $previousDate = $payUp;
-                                        $payDate = null;
-                                        $spendDuty = $accrued;
-                                        foreach ($pays as $pay) {
-                                            // получу дату платежа
-                                            $payDate = $pay->paymentDate;
-                                            // если дата меньше, чем дата конца периода- она будет использована в расчёте пени
-                                            $dayDiff = TimeHandler::checkDayDifference($previousDate, $payDate);
-                                            if ($dayDiff < $this->periodEnd) {
-                                                // посчитаю стоимость периода
-                                                $finesPerDay = CashHandler::countPercent($spendDuty, FinesHandler::PERCENT);
-                                                $countedFines = CashHandler::toRubles($finesPerDay * $dayDiff);
-                                                $spendDuty -= $pay->summ;
-                                                $totalFines += $countedFines;
-                                            } else {
-                                                // обычный расчёт стоимости
-                                                $finesPerDay = CashHandler::countPercent($accrued, FinesHandler::PERCENT);
-                                                $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                                break;
-                                            }
-                                            //
-                                        }
-                                        // проверю дату поледнего платежа- если она за пределами периода- ничего не делаю, если в пределах- расчитаю сумму, которую нужно заплатить
-                                        if ($payDate < $this->periodEnd) {
-                                            $dayDiff = TimeHandler::checkDayDifference($payDate, $this->periodEnd);
-                                            $finesPerDay = CashHandler::countPercent($spendDuty, FinesHandler::PERCENT);
-                                            $countedFines = CashHandler::toRubles($finesPerDay * $dayDiff);
-                                            $totalFines += $countedFines;
-                                        }
-                                        // посчитаю уже оплаченное
-                                        $payed = $this->getPayedAmount($savedFine->id);
-                                        $totalFines = CashHandler::toRubles($totalFines - $payed);
-                                        if ($totalFines > 0) {
-                                            $this->fineDetails .= "Э* " . $month->month . ' : ' . $totalFines . "<br/>\n";
-                                            $this->fineAmount += $totalFines;
-                                        }
+                                else{
+                                    // тут уже сложнее, придётся считать оплаты
+                                    $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
+                                    if($fineAmount > 0){
+                                        $this->fineDetails .= 'Э* ' . $month->month . ' : ' . $fineAmount . "<br/>\n";
+                                        $this->fineAmount += $fineAmount;
                                     }
-                                }*/
+                                }
                             }
+                        } catch (Exception $e) {
                         }
                     }
                 }
@@ -208,37 +146,6 @@ class CottageDutyReport
                 if (empty($payed)) {
                     $this->membershipDetails .= $item . ' : ' . $accrued . "<br/>\n";
                     $total += $accrued;
-                    $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'membership', 'period' => $item]);
-                    if (!empty($savedFine) && $savedFine->is_enabled) {
-                        $payUp = TimeHandler::getPayUpQuarterTimestamp($item);
-                        if ($payUp < FinesHandler::START_POINT) {
-                            $payUp = FinesHandler::START_POINT;
-                        }
-                        // если месяц не оплачен и прошел срок выплат- считаю пени
-                        if ($payUp < $this->periodEnd) {
-                            // посчитаю сумму пени
-                            // посчитаю количество дней задолженности
-                            $dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                            if ($dayDifference > 0) {
-                                $finesPerDay = CashHandler::countPercent($accrued, FinesHandler::PERCENT);
-                                $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                // теперь попробую найти оплату по данному пени
-                                $payedFines = Table_payed_fines::find()->where(['fine_id' => $savedFine->id])->andWhere(['<', 'pay_date', $this->periodEnd])->all();
-                                $payedFineAmount = 0;
-                                if (!empty($payedFines)) {
-                                    foreach ($payedFines as $payedFine) {
-                                        $payedFineAmount += CashHandler::toRubles($payedFine->summ);
-                                    }
-                                }
-                                $fineDuty = CashHandler::toRubles($totalFines - $payedFineAmount);
-                                if ($fineDuty > 0) {
-                                    $this->fineDetails .= "Ч* " . $item . ' : ' . $fineDuty . "<br/>\n";
-                                    $this->fineAmount += $fineDuty;
-                                }
-
-                            }
-                        }
-                    }
                 } else {
                     $payedAmount = 0;
                     // если сумма оплаченного меньше суммы начисленного - добавляю месяц в детализацию
@@ -251,72 +158,36 @@ class CottageDutyReport
                         $this->membershipDetails .= $item . ' : ' . $difference . "<br/>\n";
                         $total += $difference;
                     }
-                    // проверю наличие пени по платежу
-                    $savedFine = Table_penalties::find()->where(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'membership', 'period' => $item])->one();
-                    if (!empty($savedFine) && $savedFine->is_enabled && $savedFine->cottage_number === $this->cottage->cottageNumber) {
-                        $totalFines = 0;
-                        // найду факты оплаты счёта
-                        $payUp = TimeHandler::getPayUpQuarterTimestamp($item);
-                        if ($payUp < FinesHandler::START_POINT) {
-                            $payUp = FinesHandler::START_POINT;
-                        }
-                        // если месяц не оплачен и прошел срок выплат- считаю пени
-                        if ($payUp < $this->periodEnd) {
-                            $pays = Table_payed_membership::find()->where(['quarter' => $item, 'cottageId' => $this->cottage->cottageNumber])->all();
-                            $totalPayed = 0;
-                            foreach ($pays as $pay) {
-                                $totalPayed += $pay->summ;
+                }
+                // проверю, не начислялись ли пени
+                $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'membership', 'period' => $item]);
+                // ага, платёж просрочен. подсчитаю количество дней просрочки на момент конца периода
+                // определю срок оплаты
+                // если месяц не оплачен и прошел срок выплат- считаю пени
+                if(($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
+                    // посчитаю сумму пени
+                    // посчитаю количество дней задолженности
+                    try {
+                        $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
+                        if($dayDifference > 0){
+                            // тут посчитаю общую сумму задолженности.
+                            //Если платежей по счёту не было- это просто 5% в день
+                            if(empty($payed)){
+                                $finesPerDay = CashHandler::countPercent($total, FinesHandler::PERCENT);
+                                $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
+                                $this->fineDetails .= 'Ч* ' . $item . ' : ' . $totalFines . "<br/>\n";
+                                $this->fineAmount += $totalFines;
                             }
-                            $dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                            if($dayDifference > 0){
-                                $finesPerDay = CashHandler::countPercent($accrued - $totalPayed, FinesHandler::PERCENT);
-                                $countedFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                $this->fineDetails .= "Ч* " . $item . ' : ' . $countedFines . "<br/>\n";
-                                $this->fineAmount += $countedFines;
-                            }
-                            /*$dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                            if ($dayDifference > 0) {
-                                // получу дату первого платежа
-                                if (!empty($pays)) {
-                                    $previousDate = $payUp;
-                                    $payDate = null;
-                                    $spendDuty = $accrued;
-                                    foreach ($pays as $pay) {
-                                        // получу дату платежа
-                                        $payDate = $pay->paymentDate;
-                                        // если дата меньше, чем дата конца периода- она будет использована в расчёте пени
-                                        $dayDiff = TimeHandler::checkDayDifference($previousDate, $payDate);
-                                        if ($dayDiff < $this->periodEnd) {
-                                            // посчитаю стоимость периода
-                                            $finesPerDay = CashHandler::countPercent($spendDuty, FinesHandler::PERCENT);
-                                            $countedFines = CashHandler::toRubles($finesPerDay * $dayDiff);
-                                            $spendDuty -= $pay->summ;
-                                            $totalFines += $countedFines;
-                                        } else {
-                                            // обычный расчёт стоимости
-                                            $finesPerDay = CashHandler::countPercent($accrued, FinesHandler::PERCENT);
-                                            $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                            break;
-                                        }
-                                        //
-                                    }
-                                    // проверю дату поледнего платежа- если она за пределами периода- ничего не делаю, если в пределах- расчитаю сумму, которую нужно заплатить
-                                    if ($payDate < $this->periodEnd) {
-                                        $dayDiff = TimeHandler::checkDayDifference($payDate, $this->periodEnd);
-                                        $finesPerDay = CashHandler::countPercent($spendDuty, FinesHandler::PERCENT);
-                                        $countedFines = CashHandler::toRubles($finesPerDay * $dayDiff);
-                                        $totalFines += $countedFines;
-                                    }
-                                    // посчитаю уже оплаченное
-                                    $payed = $this->getPayedAmount($savedFine->id);
-                                    $totalFines = CashHandler::toRubles($totalFines - $payed);
-                                    if ($totalFines > 0) {
-                                        $this->fineDetails .= "Ч* " . $item . ' : ' . $totalFines . "<br/>\n";
-                                        $this->fineAmount += $totalFines;
-                                    }
+                            else{
+                                // тут уже сложнее, придётся считать оплаты
+                                $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
+                                if($fineAmount > 0) {
+                                    $this->fineDetails .= 'Ч* ' . $item . ' : ' . $fineAmount . "<br/>\n";
+                                    $this->fineAmount += $fineAmount;
                                 }
-                            }*/
+                            }
                         }
+                    } catch (Exception $e) {
                     }
                 }
             }
@@ -342,7 +213,7 @@ class CottageDutyReport
                 }
             } else {
                 $tariff = Table_tariffs_target::findOne(['year' => $year]);
-                if (!empty($tariff)) {
+                if ($tariff !== null) {
                     $accrued = CashHandler::toRubles(Calculator::countFixedFloat($tariff->fixed_part, $tariff->float_part, $this->cottage->cottageSquare));
                 }
             }
@@ -358,37 +229,6 @@ class CottageDutyReport
                         if ($unpayed > 0) {
                             $this->targetDetails .= $year . ' : ' . $unpayed . "<br/>\n";
                             $total += $unpayed;
-                        }
-                        $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'target', 'period' => $year]);
-                        if (!empty($savedFine) && $savedFine->is_enabled) {
-                            $payUp = Table_tariffs_target::find()->where(['year' => $year])->one()->payUpTime;
-                            if ($payUp < FinesHandler::START_POINT) {
-                                $payUp = FinesHandler::START_POINT;
-                            }
-                            // если месяц не оплачен и прошел срок выплат- считаю пени
-                            if ($payUp < $this->periodEnd) {
-                                // посчитаю сумму пени
-                                // посчитаю количество дней задолженности
-                                $dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                                if ($dayDifference > 0) {
-                                    $finesPerDay = CashHandler::countPercent($accrued, FinesHandler::PERCENT);
-                                    $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                    // теперь попробую найти оплату по данному пени
-
-                                    $payedFines = Table_payed_fines::find()->where(['fine_id' => $savedFine->id])->andWhere(['<', 'pay_date', $this->periodEnd])->all();
-                                    $payedFineAmount = 0;
-                                    if (!empty($payedFines)) {
-                                        foreach ($payedFines as $payedFine) {
-                                            $payedFineAmount += CashHandler::toRubles($payedFine->summ);
-                                        }
-                                    }
-                                    $fineDuty = CashHandler::toRubles($totalFines - $payedFineAmount);
-                                    if ($fineDuty > 0) {
-                                        $this->fineDetails .= "Ц* " . $year . ' : ' . $fineDuty . "<br/>\n";
-                                        $this->fineAmount += $fineDuty;
-                                    }
-                                }
-                            }
                         }
                     }
                 } else {
@@ -407,81 +247,39 @@ class CottageDutyReport
                             $total += $difference;
                         }
                     }
-                    // проверю наличие пени по платежу
-                    $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'target', 'period' => $year]);
-                    if (!empty($savedFine) && $savedFine->is_enabled) {
-                        $totalFines = 0;
-                        // найду факты оплаты счёта
-                        $payUp = Table_tariffs_target::find()->where(['year' => $year])->one()->payUpTime;
-                        if ($payUp < FinesHandler::START_POINT) {
-                            $payUp = FinesHandler::START_POINT;
-                        }
-                        // если месяц не оплачен и прошел срок выплат- считаю пени
-                        if ($payUp < $this->periodEnd) {
-                            $pays = Table_payed_target::find()->where(['year' => $year, 'cottageId' => $this->cottage->cottageNumber])->all();
-                            $totalPayed = 0;
-                            foreach ($pays as $pay) {
-                                $totalPayed += $pay->summ;
-                            }
-                            $dayDifference = TimeHandler::checkDayDifference($payUp, $this->periodEnd);
-                            if($dayDifference > 0){
-                                $finesPerDay = CashHandler::countPercent($accrued - $totalPayed, FinesHandler::PERCENT);
-                                $countedFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                $this->fineDetails .= "Ц* " . $year . ' : ' . $countedFines . "<br/>\n";
-                                $this->fineAmount += $countedFines;
-                            }
-                            /*if ($dayDifference > 0) {
-                                // получу дату первого платежа
-                                if (!empty($pays)) {
-                                    $previousDate = $payUp;
-                                    $payDate = null;
-                                    $spendDuty = $accrued;
-                                    foreach ($pays as $pay) {
-                                        $beginSpend = $spendDuty;
-                                        // получу дату платежа
-                                        $payDate = $pay->paymentDate;
-                                        // если дата меньше, чем дата конца периода- она будет использована в расчёте пени
-                                        $dayDiff = TimeHandler::checkDayDifference($previousDate, $payDate);
-                                        if ($dayDiff < $this->periodEnd) {
-                                            // посчитаю стоимость периода
-                                            $finesPerDay = CashHandler::countPercent($spendDuty, FinesHandler::PERCENT);
-                                            $countedFines = CashHandler::toRubles($finesPerDay * $dayDiff);
-                                            $spendDuty -= $pay->summ;
-                                            $totalFines += $countedFines;
-                                        } else {
-                                            // обычный расчёт стоимости
-                                            $finesPerDay = CashHandler::countPercent($accrued, FinesHandler::PERCENT);
-                                            $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                            break;
-                                        }
-                                        echo "Период: с " . TimeHandler::getDateFromTimestamp($previousDate) . " по " . TimeHandler::getDateFromTimestamp($payDate) . ", итого " . $dayDiff . " дней, расчётная стоимость: {$beginSpend}, переплата в день: {$finesPerDay} на общую сумму: {$countedFines}<br/>";
-                                        //
-                                        $previousDate = $payDate;
-                                    }
-                                    // проверю дату поледнего платежа- если она за пределами периода- ничего не делаю, если в пределах- расчитаю сумму, которую нужно заплатить
-                                    if ($payDate < $this->periodEnd) {
-                                        $dayDiff = TimeHandler::checkDayDifference($payDate, $this->periodEnd);
-                                        $finesPerDay = CashHandler::countPercent($spendDuty, FinesHandler::PERCENT);
-                                        $countedFines = CashHandler::toRubles($finesPerDay * $dayDiff);
-                                        echo "Период: с " . TimeHandler::getDateFromTimestamp($previousDate) . " по " . TimeHandler::getDateFromTimestamp($this->periodEnd) . ", итого " . $dayDiff . " дней, расчётная стоимость: {$spendDuty}, переплата в день: {$finesPerDay} на общую сумму: {$countedFines}<br/>";
-                                        $totalFines += $countedFines;
-                                    }
-                                    // посчитаю уже оплаченное
-                                    $payed = $this->getPayedAmount($savedFine->id);
-                                    $totalFines = CashHandler::toRubles($totalFines - $payed);
-                                    if ($totalFines > 0) {
-                                        $this->fineDetails .= "Ц* " . $year . ' : ' . $totalFines . "<br/>\n";
-                                        $this->fineAmount += $totalFines;
-                                    }
-                                    echo "Просрочено дней всего: ". $dayDifference . "<br/>";
-                                    echo "Пени всего: " . $totalFines;
-                                }
-                            }*/
-                        }
-                    }
-
                 }
                 $this->targetAmount = CashHandler::toRubles($total);
+                // проверю, не начислялись ли пени
+                $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'target', 'period' => $year]);
+                // ага, платёж просрочен. подсчитаю количество дней просрочки на момент конца периода
+                // определю срок оплаты
+                // если месяц не оплачен и прошел срок выплат- считаю пени
+                if(($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
+                    // посчитаю сумму пени
+                    // посчитаю количество дней задолженности
+                    try {
+                        $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
+                        if($dayDifference > 0){
+                            // тут посчитаю общую сумму задолженности.
+                            //Если платежей по счёту не было- это просто 5% в день
+                            if(empty($payed)){
+                                $finesPerDay = CashHandler::countPercent($total, FinesHandler::PERCENT);
+                                $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
+                                $this->fineDetails .= 'Ц* ' . $year . ' : ' . $totalFines . "<br/>\n";
+                                $this->fineAmount += $totalFines;
+                            }
+                            else{
+                                // тут уже сложнее, придётся считать оплаты
+                                $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
+                                if($fineAmount > 0) {
+                                    $this->fineDetails .= 'Ц* ' . $year . ' : ' . $fineAmount . "<br/>\n";
+                                    $this->fineAmount += $fineAmount;
+                                }
+                            }
+                        }
+                    } catch (Exception $e) {
+                    }
+                }
             }
         }
 
@@ -495,8 +293,8 @@ class CottageDutyReport
                     // проверю назначение платежа
                     $description = urldecode($duty->description);
                     $accrued += CashHandler::toRubles(CashHandler::toRubles($duty->amount) - CashHandler::toRubles($duty->partialPayed));
-                    if (stripos($description, "электроэнергии")) {
-                        $this->signleDetails .= "(Э*) " . $accrued;
+                    if (stripos($description, 'электроэнергии')) {
+                        $this->singleDetails .= '(Э*) ' . $accrued;
                     }
                 }
             }
@@ -504,15 +302,49 @@ class CottageDutyReport
         $this->singleAmount = CashHandler::toRubles($accrued);
     }
 
-    private function getPayedAmount($fineId)
+    /**
+     * @param $pays
+     * @param int $payUp
+     * @param $totalPay
+     * @param $endPeriod
+     * @return float
+     * @throws Exception
+     */
+    private function handlePeriodPayments($pays, int $payUp, $totalPay, $endPeriod): float
     {
-        $payedFines = Table_payed_fines::find()->where(['fine_id' => $fineId])->andWhere(['<', 'pay_date', $this->periodEnd])->all();
-        $payedFineAmount = 0;
-        if (!empty($payedFines)) {
-            foreach ($payedFines as $payedFine) {
-                $payedFineAmount += CashHandler::toRubles($payedFine->summ);
+        $lastPayDate = null;
+        $payed = 0;
+        $fullAmount = 0;
+        $lastPay = null;
+        foreach ($pays as $pay) {
+            // проверю, если дата платежа раньше ограничения- просто сохраню сумму платежа
+            if ($pay->paymentDate < $payUp) {
+                $payed = CashHandler::toRubles($payed + $pay->summ);
+                $lastPayDate = $pay->paymentDate;
+            } elseif($pay->paymentDate < $endPeriod) {
+                // платёж просрочен но оплачен в рамках периода
+                //Если есть дата последнего платежа, считаю разницу дней от неё, иначе- от срока оплаты платежа
+                if ($lastPayDate === null) {
+                    $lastPayDate = $payUp;
+                }
+                // посчитаю количество просроченных дней
+                $daysLeft = TimeHandler::checkDayDifference($lastPayDate, $pay->paymentDate);
+                if ($daysLeft > 0) {
+                    // добавлю сумму к пени
+                    $fullAmount += FinesHandler::countFine($totalPay - $payed, $daysLeft);
+                }
+                $lastPayDate = $pay->paymentDate;
+                $payed = CashHandler::toRubles($payed + $pay->summ);
+                $lastPay = $pay;
             }
         }
-        return $payedFineAmount;
+        // если после всех платежей ещё остался долг- считаю начисления начиная с последней даты оплаты до этого дня
+        if (CashHandler::toRubles($payed) < CashHandler::toRubles($totalPay)) {
+            $daysLeft = TimeHandler::checkDayDifference($lastPayDate, $lastPay->paymentDate);
+            if ($daysLeft > 0) {
+                $fullAmount += FinesHandler::countFine($totalPay - $payed, $daysLeft);
+            }
+        }
+        return $fullAmount;
     }
 }

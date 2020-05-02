@@ -18,7 +18,7 @@ use yii\web\View;
 ShowLoadingAsset::register($this);
 printAsset::register($this);
 
-$this->title = "Отчёт по платежам";
+$this->title = 'Отчёт по платежам';
 
 /* @var $this View */
 /* @var $cottageInfo Table_cottages */
@@ -26,6 +26,7 @@ $this->title = "Отчёт по платежам";
 /** @var $transactionsInfo [] */
 /** @var string $start */
 
+// получу выборку по задолженностям участка
 $duty = new CottageDutyReport($cottageInfo, $end);
 ?>
 
@@ -94,7 +95,7 @@ $duty = new CottageDutyReport($cottageInfo, $end);
         <td><?= $duty->powerAmount ?></td>
         <td><?= $duty->targetDetails ?></td>
         <td><?= $duty->targetAmount ?></td>
-        <td><?= $duty->signleDetails ?></td>
+        <td><?= $duty->singleDetails ?></td>
         <td><?= $duty->singleAmount ?></td>
         <td><?= $duty->fineDetails ?></td>
         <td><?= $duty->fineAmount ?></td>

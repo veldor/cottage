@@ -15,10 +15,11 @@ use yii\web\Controller;
 
 class SiteController extends Controller
 {
+    public string $layout = 'main';
     /**
      * {@inheritdoc}
      */
-    public function behaviors()
+    public function behaviors():array
     {
         return [
             'access' => [
