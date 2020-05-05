@@ -13,6 +13,7 @@ use app\models\PowerHandler;
 use app\models\Registry;
 use app\models\SerialInvoices;
 use app\models\TimeHandler;
+use Throwable;
 use Yii;
 use yii\base\ErrorException;
 use yii\filters\AccessControl;
@@ -58,6 +59,7 @@ class FillingController extends Controller
 
         if (Yii::$app->request->isPost) {
             $errorMessage = null;
+            $emails = Mail::getAllRegistered();
             $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
             $registryModel->file = UploadedFile::getInstances($registryModel, 'file');
             $registryModel->getUnhandled();
@@ -76,7 +78,7 @@ class FillingController extends Controller
      * @param bool $additional
      * @return array|bool
      * @throws NotFoundHttpException
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function actionCancelPower($cottageNumber, $additional = false)
     {
@@ -216,11 +218,12 @@ class FillingController extends Controller
      */
     public function actionFillCounters(): string
     {
+        $emails = Mail::getAllRegistered();
         $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
         $registryModel->getUnhandled();
         $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
         $countersModel->file = UploadedFile::getInstance($countersModel, 'file');
         $countersData = $countersModel->parseIndications();
-        return $this->render('filling', ['countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'counters', 'errorMessage' => '', 'countersData' => $countersData]);
+        return $this->render('filling', ['countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'counters', 'errorMessage' => '', 'countersData' => $countersData, 'emails' => $emails]);
     }
 }
