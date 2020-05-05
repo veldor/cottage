@@ -63,8 +63,8 @@ class FillingController extends Controller
             $emails = Mail::getAllRegistered();
             $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
             $registryModel->file = UploadedFile::getInstances($registryModel, 'file');
-            $registryModel->getUnhandled();
             $registryModel->handleRegistry();
+            $registryModel->getUnhandled();
             $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
             return $this->render('filling', ['countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'registry', 'errorMessage' => $errorMessage, 'countersData' => null, 'emails' => $emails]);
         }

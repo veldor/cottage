@@ -12,7 +12,7 @@ ShowLoadingAsset::register($this);
 IndexAsset::register($this);
 
 if(Reminder::requreRemind()){
-    Yii::$app->session->addFlash('info', 'Пора напомнить о членских взносах! <a href="/membership/remind" target="_blank" class="btn btn-default"><span class="text-info">Напомнить</span></a>');
+    Yii::$app->session->addFlash('info', 'Пора напомнить о членских взносах! <a href="' . \yii\helpers\Url::toRoute('/membership/remind') . '" target="_blank" class="btn btn-default"><span class="text-info">Напомнить</span></a>');
 }
 
 $this->title = 'Центр управления';
@@ -24,6 +24,9 @@ $this->title = 'Центр управления';
         </p>
     </div>
     <div class="col-lg-12">
-        <?=CottagesShowWidget::widget(['cottages' => $existedCottages]);?>
+        <?php try {
+            echo CottagesShowWidget::widget(['cottages' => $existedCottages]);
+        } catch (Exception $e) {
+        } ?>
     </div>
 </div>

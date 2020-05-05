@@ -40,42 +40,47 @@ class Cottage extends Model
     {
         parent::__construct();
         // заполню общую информацию об участке
-        $this->globalInfo = Cottage::getCottageInfo($cottageId);
-        if (empty($this->globalInfo->cottageNumber)) {
+        $this->globalInfo = self::getCottageInfo($cottageId);
+        if ($this->globalInfo->cottageNumber === null) {
             throw new NotFoundHttpException('Участка с таким номером не существует');
         }
-        // проверю, не менялся ли в прошлом месяце счётчик
-        $this->counterChanged = CounterChangeHandler::checkChange($this->globalInfo);
-        // проверю созданные и неоплаченные счета
-        $this->unpayedBills = Table_payment_bills::findOne(['cottageNumber' => $this->globalInfo->cottageNumber, 'isPayed' => 0]);
-        $powerStatus = PowerHandler::getCottageStatus($this->globalInfo);
-        $this->filledPower = $powerStatus['filledPower'];
-        $this->lastPowerFillDate = $powerStatus['lastPowerFillDate'];
-        $this->powerPayDifference = $powerStatus['powerPayDifference'];
-        // определю, можно ли удалить данные по потреблению электроэнергии. Можно, если ещё не поступала оплата
-        $this->powerDataCancellable = PowerHandler::isDataCancellable($this->globalInfo);
-        $this->powerDebts = PowerHandler::getDebt($this->globalInfo);
-        if($this->powerDebts !== $this->globalInfo->powerDebt){
-            $this->globalInfo->powerDebt = $this->powerDebts;
-            $this->globalInfo->save();
-        }
-        // Посчитаю задолженности
-        if ($this->globalInfo->individualTariff) {
-            $this->membershipDebts = PersonalTariff::countMembershipDebt($this->globalInfo)['summ'];
-        } else {
-            $this->membershipDebts = MembershipHandler::getCottageStatus($this->globalInfo);
-        }
-        $this->targetDebts = $this->globalInfo->targetDebt;
-        $this->totalDebt = CashHandler::toRubles($this->membershipDebts) + CashHandler::toRubles($this->targetDebts) + CashHandler::toRubles($this->powerDebts) + CashHandler::toRubles($this->globalInfo->singleDebt);
-
-        // проверю, не привязан ли дополнительный участок
-        if ($this->globalInfo->haveAdditional) {
-            $this->additionalCottageInfo = AdditionalCottage::getCottageInfo($cottageId);
-            if (!$this->unpayedBills && !empty($this->additionalCottageInfo['powerStatus']['lastPowerFillDate']) && $this->additionalCottageInfo['powerStatus']['lastPowerFillDate'] === TimeHandler::getPreviousShortMonth() && $this->additionalCottageInfo['powerStatus']['powerPayed'] === 'no') {
-                $this->powerDataAdditionalCancellable = true;
+        if($this->globalInfo->cottageNumber !== 0){
+            // проверю, не менялся ли в прошлом месяце счётчик
+            $this->counterChanged = CounterChangeHandler::checkChange($this->globalInfo);
+            // проверю созданные и неоплаченные счета
+            $this->unpayedBills = Table_payment_bills::findOne(['cottageNumber' => $this->globalInfo->cottageNumber, 'isPayed' => 0]);
+            $powerStatus = PowerHandler::getCottageStatus($this->globalInfo);
+            $this->filledPower = $powerStatus['filledPower'];
+            $this->lastPowerFillDate = $powerStatus['lastPowerFillDate'];
+            $this->powerPayDifference = $powerStatus['powerPayDifference'];
+            // определю, можно ли удалить данные по потреблению электроэнергии. Можно, если ещё не поступала оплата
+            $this->powerDataCancellable = PowerHandler::isDataCancellable($this->globalInfo);
+            $this->powerDebts = PowerHandler::getDebt($this->globalInfo);
+            if($this->powerDebts !== $this->globalInfo->powerDebt){
+                $this->globalInfo->powerDebt = $this->powerDebts;
+                $this->globalInfo->save();
             }
+            // Посчитаю задолженности
+            if ($this->globalInfo->individualTariff) {
+                $this->membershipDebts = PersonalTariff::countMembershipDebt($this->globalInfo)['summ'];
+            } else {
+                $this->membershipDebts = MembershipHandler::getCottageStatus($this->globalInfo);
+            }
+            $this->targetDebts = $this->globalInfo->targetDebt;
+            $this->totalDebt = CashHandler::toRubles($this->membershipDebts) + CashHandler::toRubles($this->targetDebts) + CashHandler::toRubles($this->powerDebts) + CashHandler::toRubles($this->globalInfo->singleDebt);
+
+            // проверю, не привязан ли дополнительный участок
+            if ($this->globalInfo->haveAdditional) {
+                $this->additionalCottageInfo = AdditionalCottage::getCottageInfo($cottageId);
+                if (!$this->unpayedBills && !empty($this->additionalCottageInfo['powerStatus']['lastPowerFillDate']) && $this->additionalCottageInfo['powerStatus']['lastPowerFillDate'] === TimeHandler::getPreviousShortMonth() && $this->additionalCottageInfo['powerStatus']['powerPayed'] === 'no') {
+                    $this->powerDataAdditionalCancellable = true;
+                }
+            }
+            $this->fines = Table_penalties::find()->where(['cottage_number' => $cottageId])->all();
         }
-        $this->fines = Table_penalties::find()->where(['cottage_number' => $cottageId])->all();
+        else{
+            $this->lastPowerFillDate = TimeHandler::getCurrentShortMonth();
+        }
     }
 
     /**
@@ -284,7 +289,9 @@ class Cottage extends Model
         // если не оплачен текущий квартал
         if ($cottage->membershipPayFor < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
             return true;
-        } elseif ($cottage->membershipPayFor == TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
+        }
+
+        if ($cottage->membershipPayFor === TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
             $payUp = TimeHandler::getPayUpQuarterTimestamp(TimeHandler::getCurrentQuarter());
             $dayDifference = TimeHandler::checkDayDifference($payUp);
             if ($dayDifference > 0) {
@@ -300,7 +307,7 @@ class Cottage extends Model
         if (preg_match('/https\:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
             while ($next = --$matches[1]) {
                 try{
-                    if (!empty(Cottage::getCottageByLiteral($next))) {
+                    if (Cottage::getCottageByLiteral($next) !== null) {
                         return 'https://dev.com/show-cottage/' . $next;
                     }
                     if ($next < 1) {

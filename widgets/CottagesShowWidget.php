@@ -12,8 +12,8 @@ use yii\helpers\Html;
 
 class CottagesShowWidget extends Widget{
 
-    public $cottages;
-    public $content = '';
+    public array $cottages;
+    public string $content = '';
 
     public function init(){
         $index = 1;
@@ -21,6 +21,9 @@ class CottagesShowWidget extends Widget{
         $nowQuarter = TimeHandler::getCurrentQuarter();
         /** @var Table_cottages $cottage */
         foreach($this->cottages as $cottage){
+            if($cottage->cottageNumber === 0){
+                continue;
+            }
             while($cottage->cottageNumber !== $index){
                 $this->content .= "<div class='col-md-1 col-sm-2 col-xs-3 text-center margened inlined'><button class='btn empty cottage-button' data-index='$index' data-toggle='tooltip' data-placement='top' title='Регистрация участка № $index'>$index</button></div>";
                 $index ++;
@@ -32,7 +35,7 @@ class CottagesShowWidget extends Widget{
             }
             // проверю наличие незакрытого счёта у участка
             $unpayedBill = ComplexPayment::checkUnpayed($cottage->cottageNumber);
-            if(!empty($unpayedBill)){
+            if($unpayedBill !== null){
                 $additionalBlock .= "<span class='custom-icon has-bill' data-toggle=\"tooltip\" data-placement=\"auto\" title=\"Есть открытый счёт\"></span>";
                 if($unpayedBill->isInvoicePrinted){
                     $additionalBlock .= "<span class='custom-icon invoice_printed' data-toggle=\"tooltip\" data-placement=\"auto\" title=\"Печаталась квитанция\"></span>";
@@ -41,7 +44,7 @@ class CottagesShowWidget extends Widget{
                     $additionalBlock .= "<span class='custom-icon message_sended' data-toggle=\"tooltip\" data-placement=\"auto\" title=\"Квитанция отправлена на электронную почту\"></span>";
                 }
             }
-            $additionalBlock .= "</div>";
+            $additionalBlock .= '</div>';
             $additional = '';
             if($cottage->haveAdditional){
                 $additional = "<span class='glyphicon glyphicon-plus'></span>";
