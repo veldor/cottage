@@ -39,7 +39,7 @@ class Registry extends Model
     /**
      * @throws ExceptionWithStatus
      */
-    public function handleRegistry()
+    public function handleRegistry(): array
     {
         if ($this->validate()) {
 
@@ -53,7 +53,7 @@ class Registry extends Model
                 $handle = fopen($file, 'r');
                 while (($buffer = fgets($handle, 4096)) !== false) {
                     $billInfo = $this->handleBill($buffer);
-                    if(!empty($billInfo)){
+                    if($billInfo !== null){
                         $billsList[] = $billInfo;
                     }
                     else{
@@ -140,7 +140,7 @@ class Registry extends Model
                     return $registryInfo;
                 }
                 else{
-                    throw new ExceptionWithStatus("Ошибка обработки платежа", 3);
+                    throw new ExceptionWithStatus('Ошибка обработки платежа', 3);
                 }
 
             }

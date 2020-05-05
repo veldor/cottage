@@ -50,6 +50,7 @@ class FillingController extends Controller
     /**
      * @return string|Response
      * @throws ErrorException
+     * @throws ExceptionWithStatus
      */
     public function actionView()
     {
@@ -63,6 +64,7 @@ class FillingController extends Controller
             $registryModel = new Registry(['scenario' => Registry::SCENARIO_PARSE]);
             $registryModel->file = UploadedFile::getInstances($registryModel, 'file');
             $registryModel->getUnhandled();
+            $registryModel->handleRegistry();
             $countersModel = new PowerCounters(['scenario' => PowerCounters::SCENARIO_PARSE]);
             return $this->render('filling', ['countersModel' => $countersModel, 'model' => $registryModel, 'tab' => 'registry', 'errorMessage' => $errorMessage, 'countersData' => null, 'emails' => $emails]);
         }
