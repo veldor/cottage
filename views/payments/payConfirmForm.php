@@ -53,7 +53,7 @@ $summToPay = CashHandler::toRubles($fullSumm - $fromDeposit - $discount - $payed
 echo '
     <h2>К оплате: <b id="paySumm" class="text-info" data-full-summ="' . $fullSumm . '" data-summ="' . $summToPay . '" data-deposit="' . $fromDeposit . '" data-discount="' . $discount . '" data-payed-before="' . $payedBefore . '">' . CashHandler::toSmoothRubles($summToPay) . '</b></h2>';
 
-if ($fullSumm != $summToPay) {
+if ($fullSumm !== $summToPay) {
     $text = '<p> <b class="text-danger"> ' . CashHandler::toSmoothRubles($fullSumm) . ' (Полная сумма)</b><br/>';
     if ($fromDeposit) {
         $text .= '<b class="text-success">-' . CashHandler::toSmoothRubles($fromDeposit) . ' (Оплачено с депозита)</b><br/>';
@@ -68,10 +68,10 @@ if ($fullSumm != $summToPay) {
     echo $text . '</p>';
 }
 
-echo $form->field($model, 'billIdentificator', ['template' => "{input}"])->hiddenInput()->label(false);
-echo $form->field($model, 'totalSumm', ['template' => "{input}"])->hiddenInput()->label(false);
-echo $form->field($model, 'change', ['template' => "{input}"])->hiddenInput()->label(false);
-echo $form->field($model, 'double', ['template' => "{input}"])->hiddenInput()->label(false);
+echo $form->field($model, 'billIdentificator', ['template' => '{input}'])->hiddenInput()->label(false);
+echo $form->field($model, 'totalSumm', ['template' => '{input}'])->hiddenInput()->label(false);
+echo $form->field($model, 'change', ['template' => '{input}'])->hiddenInput()->label(false);
+echo $form->field($model, 'double', ['template' => '{input}'])->hiddenInput()->label(false);
 
 if(empty($model->bankTransaction)){
     echo $form->field($model, 'rawSumm', ['template' =>
@@ -82,7 +82,7 @@ if(empty($model->bankTransaction)){
         ->label('Получено средств');
 }
 else{
-    echo $form->field($model, 'bankTransactionId', ['template' => "{input}"])->hiddenInput(['value' => $model->bankTransaction->bank_operation_id])->label(false);
+    echo $form->field($model, 'bankTransactionId', ['template' => '{input}'])->hiddenInput(['value' => $model->bankTransaction->bank_operation_id])->label(false);
     echo $form->field($model, 'rawSumm', ['template' =>
         '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group">{input}<span class="input-group-addon">&#8381;</span></div>
 									{error}{hint}</div>'])
@@ -104,10 +104,10 @@ if (!empty($model->billInfo['paymentContent']['power'])) {
             $previousPayedPower += CashHandler::toRubles($item->summ);
         }
         $powerSummToPay = $fullPowerSumm - $previousPayedPower;
-        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedPower) . ",осталось оплатить " . CashHandler::toSmoothRubles($powerSummToPay);
+        $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($previousPayedPower) . ',осталось оплатить ' . CashHandler::toSmoothRubles($powerSummToPay);
     } else {
         $powerSummToPay = $fullPowerSumm;
-        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullPowerSumm);
+        $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($fullPowerSumm);
     }
     if ($powerSummToPay > 0) {
         echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Электроэнергия</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedPower' data-max-summ='{$powerSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[power]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
@@ -123,10 +123,10 @@ if (!empty($model->billInfo['paymentContent']['additionalPower'])) {
             $previousPayedPower += CashHandler::toRubles($item->summ);
         }
         $powerSummToPay = $fullPowerSumm - $previousPayedPower;
-        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedPower) . ",осталось оплатить " . CashHandler::toSmoothRubles($powerSummToPay);
+        $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($previousPayedPower) . ',осталось оплатить ' . CashHandler::toSmoothRubles($powerSummToPay);
     } else {
         $powerSummToPay = $fullPowerSumm;
-        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullPowerSumm);
+        $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($fullPowerSumm);
     }
     if ($powerSummToPay > 0) {
         echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Электроэнергия(доп.)</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedPower' data-max-summ='{$powerSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[additionalPower]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
@@ -150,10 +150,10 @@ if (!empty($model->billInfo['paymentContent']['membership'])) {
         }
         $previousPayedMembership = CashHandler::toRubles($previousPayedMembership);
         $membershipSummToPay = CashHandler::toRubles($fullMembershipSumm - $previousPayedMembership);
-        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedMembership) . ",осталось оплатить " . CashHandler::toSmoothRubles($membershipSummToPay);
+        $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($previousPayedMembership) . ',осталось оплатить ' . CashHandler::toSmoothRubles($membershipSummToPay);
     } else {
         $membershipSummToPay = $fullMembershipSumm;
-        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullMembershipSumm);
+        $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($fullMembershipSumm);
     }
     if ($membershipSummToPay > 0) {
         echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input popovered' type='number' step='0.01' name='Pay[membership]'  data-container='body' data-toggle='popover' data-placement='auto' data-content='$popover' data-html='true' data-trigger='hover'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
@@ -175,10 +175,10 @@ if (!empty($model->billInfo['paymentContent']['additionalMembership'])) {
         }
         $previousPayedMembership = CashHandler::toRubles($previousPayedMembership);
         $membershipSummToPay = CashHandler::toRubles($fullMembershipSumm - $previousPayedMembership);
-        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($previousPayedMembership) . ",осталось оплатить " . CashHandler::toSmoothRubles($membershipSummToPay);
+        $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($previousPayedMembership) . ',осталось оплатить ' . CashHandler::toSmoothRubles($membershipSummToPay);
     } else {
         $membershipSummToPay = $fullMembershipSumm;
-        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($fullMembershipSumm);
+        $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($fullMembershipSumm);
     }
     if ($membershipSummToPay > 0) {
         echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Членские (доп.) </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$membershipSummToPay}' class='form-control distributed-summ-input popovered' type='number' step='0.01' name='Pay[additionalMembership]' data-container='body' data-toggle='popover' data-placement='auto' data-content='$popover' data-html='true' data-trigger='hover'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
@@ -203,10 +203,10 @@ if (!empty($model->billInfo['paymentContent']['target'])) {
         }
             if (!empty($payed)) {
                 $targetSummToPay = $summToPay;
-                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($summToPay);
+                $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($payed) . ',осталось оплатить ' . CashHandler::toSmoothRubles($summToPay);
             } else {
                 $targetSummToPay = $summToPay;
-                $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($targetSummToPay);
+                $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($targetSummToPay);
             }
             echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Целевые {$item['year']}</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$targetSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[target][{$item['year']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
     }
@@ -232,10 +232,10 @@ if (!empty($model->billInfo['paymentContent']['additionalTarget'])) {
         }
             if (!empty($payed)) {
                 $targetSummToPay = $summToPay;
-                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($summToPay);
+                $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($payed) . ',осталось оплатить ' . CashHandler::toSmoothRubles($summToPay);
             } else {
                 $targetSummToPay = $summToPay;
-                $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($targetSummToPay);
+                $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($targetSummToPay);
             }
             echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Целевые {$item['year']} (доп.)</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$targetSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[additionalTarget][{$item['year']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
 
@@ -248,7 +248,7 @@ if (!empty($model->billInfo['paymentContent']['single'])) {
     foreach ($model->billInfo['paymentContent']['single']['values'] as $item) {
         // получу актуальную информацию о платеже
         foreach ($singleInfo as $singleDebtItem) {
-            if($singleDebtItem->time == $item['timestamp']){
+            if($singleDebtItem->time === $item['timestamp']){
                 $targetDebt = $singleDebtItem;
             }
         }
@@ -256,12 +256,12 @@ if (!empty($model->billInfo['paymentContent']['single'])) {
             $realSumm = CashHandler::toRubles($targetDebt->amount);
             if (!empty($payed)) {
                 $singleSummToPay = $realSumm - $payed;
-                $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payed) . ",осталось оплатить " . CashHandler::toSmoothRubles($singleSummToPay);
+                $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($payed) . ',осталось оплатить ' . CashHandler::toSmoothRubles($singleSummToPay);
             } else {
                 $singleSummToPay = $realSumm;
-                $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($singleSummToPay);
+                $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($singleSummToPay);
             }
-            echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Разовый: {$item['description']}</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$singleSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[single][{$item['timestamp']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
+            echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Разовый: " . urldecode($item['description']) . "</label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input data-max-summ='{$singleSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[single][{$item['timestamp']}]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
     }
 }
 $fines = Table_view_fines_info::find()->where(['bill_id' => $model->billIdentificator])->all();
@@ -275,10 +275,10 @@ if (!empty($fines)) {
     }
     if (!empty($payedSumm)) {
         $finesSummToPay = $totalSumm - $payedSumm;
-        $hint = "Оплачено ранее " . CashHandler::toShortSmoothRubles($payedSumm) . ",осталось оплатить " . CashHandler::toSmoothRubles($finesSummToPay);
+        $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($payedSumm) . ',осталось оплатить ' . CashHandler::toSmoothRubles($finesSummToPay);
     } else {
         $finesSummToPay = $totalSumm;
-        $hint = "Осталось оплатить " . CashHandler::toSmoothRubles($finesSummToPay);
+        $hint = 'Осталось оплатить ' . CashHandler::toSmoothRubles($finesSummToPay);
     }
     if ($finesSummToPay > 0) {
         echo "<div class='form-group margened payment-details hidden'><div class='col-sm-5'><label class='control-label'>Пени </label></div><div class='col-sm-4'><div class='input-group'><span class='btn btn-success input-group-addon all-distributed-button'>Максимум</span><input id='dividedMembership' data-max-summ='{$finesSummToPay}' class='form-control distributed-summ-input' type='number' step='0.01' name='Pay[fines]'><span class='input-group-addon'>₽</span></div><div class='hint-block'>$hint</div></div></div>";
@@ -301,8 +301,8 @@ if(empty($model->bankTransaction)){
 echo "<div class='margened'></div>";
 echo $form->field($model, 'sendConfirmation', ['template' =>
     '<div class="col-sm-5">{label}</div><div class="col-sm-7">{input}{error}{hint}</div>'])
-    ->checkbox(['class' => "form-control"])
-    ->label("Отправить подтвержение на e-mail");
+    ->checkbox(['class' => 'form-control'])
+    ->label('Отправить подтвержение на e-mail');
 echo "<div class='clearfix'></div>";
 echo Html::submitButton('Сохранить', ['class' => 'btn btn-success   ', 'id' => 'addSubmit', 'data-toggle' => 'tooltip', 'data-placement' => 'top', 'data-html' => 'true',]);
 ActiveForm::end();

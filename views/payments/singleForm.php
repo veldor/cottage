@@ -11,7 +11,7 @@ echo $form->field($matrix, 'cottageNumber', ['template' => '{input}'])->hiddenIn
 echo $form->field($matrix, 'double', ['template' => '{input}'])->hiddenInput()->label(false);
 echo $form->field($matrix, 'summ', ['template' =>
     '<div class="col-lg-5">{label}</div><div class="col-lg-3">{input}{error}{hint}</div>'])
-    ->textInput(['autocomplete' => 'off', 'type' => 'number'])
+    ->textInput(['autocomplete' => 'off', 'type' => 'number', 'step' => '0.02'])
     ->hint('В рублях')
     ->label('Сумма оплаты');
 echo $form->field($matrix, 'description', ['template' =>
