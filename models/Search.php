@@ -35,7 +35,12 @@ class Search extends Model
         if (!empty($results)) {
             foreach ($results as $result) {
                 $totalSumm += CashHandler::toRubles($result->transactionSumm);
-                $date = TimeHandler::getDateFromTimestamp($result->transactionDate);
+                if(!empty($result->bankDate)){
+                    $date = TimeHandler::getDateFromTimestamp($result->bankDate);
+                }
+                else{
+                    $date = TimeHandler::getDateFromTimestamp($result->transactionDate);
+                }
                 $summ = CashHandler::toShortSmoothRubles($result->transactionSumm);
                 if ($result instanceof Table_transactions) {
                     $text .= "<tr><td>$date</td><td><a href='#' class='bill-info' data-bill-id='{$result->billId}'>{$result->billId}</a></td><td><a href='/show-cottage/{$result->cottageNumber}'>{$result->cottageNumber}</a></td></td><td><b class='text-info'>{$summ}</b></td><td><button type='button' data-transaction-id='{$result->id}' class='btn btn-danger change-date'>Изменить</button></td></tr>";
@@ -103,11 +108,11 @@ class Search extends Model
             $data = self::handleTransactions($doubleResults);
             $content .= $data['text'];
             $totalSumm += $data['summ'];
-            $content .= "</tbody></table>";
+            $content .= '</tbody></table>';
             return ['status' => 1, 'data' => $content, 'totalSumm' => $totalSumm];
-        } else {
-            return ['status' => 1, 'data' => "<h2>Транзакций за период не было</h2>", 'totalSumm' => 0];
         }
+
+        return ['status' => 1, 'data' => '<h2>Транзакций за период не было</h2>', 'totalSumm' => 0];
     }
 
     private function getSummary($interval): array
