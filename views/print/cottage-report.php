@@ -129,7 +129,7 @@ $duty = new CottageDutyReport($cottageInfo, $end);
 
 <div class="row">
     <div class="col-sm-12 text-center">
-        <button id="sendReportButton" class="btn btn-default no-print"><span class="text-success">Отправить отчёт владельцу</span>
+        <button id="sendReportButton" class="btn btn-default no-print" data-start="<?=$start?>" data-finish="<?=$end?>"><span class="text-success">Отправить отчёт владельцу</span>
         </button>
         <a class="btn btn-default no-print" target="_blank" href="/report.pdf"><span
                     class="text-success">Скачать PDF</span></a>

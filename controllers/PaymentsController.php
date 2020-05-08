@@ -179,21 +179,6 @@ class PaymentsController extends Controller
         // поставлю в очередь отправки
         Yii::$app->response->format = Response::FORMAT_JSON;
         return MailingSchedule::addBankInvoiceSending($identificator);
-       /* if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            // генерирую PDF
-            $info = ComplexPayment::getBankInvoice($identificator, $double);
-            $invoice =  $this->renderPartial('bank-invoice-pdf', ['info' => $info]);
-            PDFHandler::renderPDF($invoice, 'invoice.pdf', 'portrait');
-            // отправлю письмо
-            $billInfo = ComplexPayment::getBill($identificator, $double);
-            $payDetails = Filling::getPaymentDetails($billInfo);
-            $message = Cloud::sendInvoiceMail($this->renderPartial('/site/mail', ['billInfo' => $payDetails]), $info);
-            $billInfo->isMessageSend = 1;
-            $billInfo->save();
-            return['status' => 1, 'message' => $message];
-        }
-        throw new NotFoundHttpException('Страница не найдена');*/
     }
 
     public function actionSendInvoice($identificator)
@@ -260,9 +245,8 @@ class PaymentsController extends Controller
                 $session->addFlash('success', 'Счёт успешно оплачен.');
                 return ['status' => 1];
             }
-            else{
-                return ['status' => 2, 'message' => $model->errors];
-            }
+
+            return ['status' => 2, 'message' => $model->errors];
         }
         throw new NotFoundHttpException('Страница не найдена');
     }
@@ -376,13 +360,14 @@ class PaymentsController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
         try{
             $info = TransactionsHandler::handle($billId, $transactionId);
-            $view = $this->renderPartial("transactionComparison", ['info' => $info]);
+            $view = $this->renderPartial('transactionComparison', ['info' => $info]);
             return ['status' => 1, 'header' => 'Связывание счёта' ,'view' => $view];
         }
         catch (ExceptionWithStatus $e){
             return ['status' => 2, 'message' => $e->getMessage(), 'code' => $e->getCode()];
         }
     }
+
     public function actionChainConfirm(){
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
@@ -392,7 +377,9 @@ class PaymentsController extends Controller
         }
         throw new NotFoundHttpException('Страница не найдена');
     }
-    public function actionChainConfirmManual(){
+
+    public function actionChainConfirmManual(): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $handler = new ComparisonHandler(['scenario' => ComparisonHandler::SCENARIO_MANUAL_COMPARISON]);
@@ -409,7 +396,8 @@ class PaymentsController extends Controller
             $data->fill($id);
             return ['status' => 1, 'header' => 'Смена даты транзакции', 'view' => $this->renderAjax('changeTransactionDate', ['data' => $data])];
         }
-        elseif(Yii::$app->request->isAjax && Yii::$app->request->isPost){
+
+        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             $model = new TransactionsHandler(['scenario' => TransactionsHandler::SCENARIO_CHANGE_DATE]);
             $model->load(Yii::$app->request->post());
             return $model->changeDate();

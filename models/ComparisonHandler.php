@@ -4,6 +4,7 @@
 namespace app\models;
 
 
+use app\models\database\MailingSchedule;
 use app\models\tables\Table_bill_fines;
 use app\models\tables\Table_payed_fines;
 use app\models\utils\DbTransaction;
@@ -200,7 +201,7 @@ class ComparisonHandler extends Model
                 $cottageInfo->save();
                 $transaction->commitTransaction();
                 if ((bool)$this->sendConfirmation) {
-                    Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
+                    return MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($t->transactionSumm) . '. Благодарим за оплату.');
                 }
                 return ['status' => 1];
             }
@@ -383,7 +384,7 @@ class ComparisonHandler extends Model
             $cottageInfo->save();
             $transaction->commitTransaction();
             if ((bool)$this->sendConfirmation) {
-                Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($t->transactionSumm) . ". Благодарим за оплату.");
+                MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($t->transactionSumm) . '. Благодарим за оплату.');
             }
             return ['status' => 1];
 

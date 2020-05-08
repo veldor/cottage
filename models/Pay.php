@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\database\MailingSchedule;
 use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use Exception;
@@ -199,7 +200,11 @@ class Pay extends Model
         return true;
     }
 
-    public function confirm()
+    /**
+     * @return array|null
+     * @throws Exception
+     */
+    public function confirm(): ?array
     {
         $transaction = new DbTransaction();
         try {
@@ -435,11 +440,11 @@ class Pay extends Model
                 $bankTransaction->bounded_bill_id = $billInfo->id;
                 $bankTransaction->save();
             }
-            if(!empty($additionalCottageInfo)){
+            if($additionalCottageInfo !== null){
                 $additionalCottageInfo->save();
             }
             if ($this->sendConfirmation) {
-                Cloud::sendMessage($cottageInfo, 'Получен платёж', "Получен платёж на сумму " . CashHandler::toSmoothRubles($billTransaction->transactionSumm) . ". Благодарим за оплату.");
+                MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($billTransaction->transactionSumm) . '. Благодарим за оплату.');
             }
             $transaction->commitTransaction();
             return ['status' => 1, 'message' => 'Счёт успешно оплачен'];

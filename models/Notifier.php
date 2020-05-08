@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\database\MailingSchedule;
 use app\priv\Info;
 use Yii;
 use yii\base\Model;
@@ -36,7 +37,7 @@ $dutyText
 $depositInfo
 </table>
 EOT;
-            return self::sendNotification($cottage, 'Напоминание о задолженностях', $text, true);
+            return MailingSchedule::addSingleMailing($cottage, 'Напоминание о задолженностях', $text);
         }
         return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
     }
@@ -45,14 +46,13 @@ EOT;
      * @param $cottageInfo Table_additional_cottages|Table_cottages
      * @return string
      */
-    public static function getRegInfo($cottageInfo)
+    public static function getRegInfo($cottageInfo): string
     {
         $main = Cottage::isMain($cottageInfo);
         $depositInfo = $cottageInfo->deposit > 0 ? "<tr><td colspan='2'><h3>Депозит участка</h3></td></tr><tr><td colspan='2'>Средств на депозите: <b style='color: #3e8f3e'>{$cottageInfo->deposit}</b> &#8381;</td></tr><tr><td colspan='2'><b style='color: #3e8f3e'>Средства, находящиеся на депозите, вы можете использовать для оплаты любых взносов СНТ или потребленной электроэнергии.</b></td></tr>" : '';
-        if($main){
+        if ($main) {
             $regData = Filling::getRow('Номер участка', $cottageInfo->cottageNumber);
-        }
-        else{
+        } else {
             $regData = Filling::getRow('Номер участка', $cottageInfo->masterId . '-a');
         }
         $regData .= Filling::getRow('Площадь участка', $cottageInfo->cottageSquare, '', 'м<sup>2</sup>');
@@ -77,10 +77,10 @@ EOT;
         }
 
         // проверю наличие дополнительного участка
-        if(Cottage::isMain($cottageInfo) && $cottageInfo->haveAdditional){
+        if (Cottage::isMain($cottageInfo) && $cottageInfo->haveAdditional) {
             /** @var Table_additional_cottages $additionalCottage */
             $additionalCottage = Cottage::getCottageInfo($cottageInfo->cottageNumber, true);
-            if(!$additionalCottage->hasDifferentOwner){
+            if (!$additionalCottage->hasDifferentOwner) {
                 $regData .= Filling::getSingleRow('<h2>Зарегистрирован дополнительный участок</h2>');
                 $regData .= Filling::getEmptyRow();
                 $regData .= Filling::getRow('Площадь дополнительного участка', $additionalCottage->cottageSquare, '', 'м<sup>2</sup>');
@@ -136,13 +136,18 @@ $dutyText
 $depositInfo
 </table>
 EOT;
-                return self::sendNotification($cottage, 'Участок зарегистрирован', $text, true);
+                return MailingSchedule::addSingleMailing($cottage, 'Участок зарегистрирован', $text);
             }
             return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
         }
         return false;
     }
 
+    /**
+     * @param $billId
+     * @return array|bool
+     * @throws ExceptionWithStatus
+     */
     public static function sendPayReminder($billId)
     {
         $billInfo = Table_payment_bills::find()->where(['id' => $billId])->one();
@@ -153,13 +158,18 @@ EOT;
                 $dutyText = Filling::getCottageDutyText($cottageInfo);
                 $mailBody = $payDetails;
                 $mailBody .= $dutyText;
-                return self::sendNotification($cottageInfo, 'Вам выставлен счёт.', $mailBody, true);
+                return MailingSchedule::addSingleMailing($cottageInfo, 'Вам выставлен счёт.', $mailBody);
             }
-            return ['status' => 4, 'message' => "Нет ни одного адреса почты"];
+            return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
         }
         return false;
     }
 
+    /**
+     * @param $billId
+     * @return array|bool
+     * @throws ExceptionWithStatus
+     */
     public static function sendDoublePayReminder($billId)
     {
         $billInfo = Table_payment_bills_double::find()->where(['id' => $billId])->one();
@@ -170,9 +180,9 @@ EOT;
                 $dutyText = Filling::getCottageDutyText($cottageInfo);
                 $mailBody = $payDetails;
                 $mailBody .= $dutyText;
-                return self::sendNotification($cottageInfo, 'Вам выставлен счёт.', $mailBody, true);
+                return  MailingSchedule::addSingleMailing($cottageInfo, 'Вам выставлен счёт.', $mailBody);
             }
-            return ['status' => 4, 'message' => "Нет ни одного адреса почты"];
+            return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
         }
         return false;
     }
@@ -193,53 +203,6 @@ EOT;
             $answer['errorsStatus'] = 0;
         }
         return $answer;
-    }
-
-    public static function sendNotification($cottageInfo, $subject, $body, $isAjax = false)
-    {
-        $session = Yii::$app->session;
-        // отправлю сообщение
-        $result = Cloud::sendMessage($cottageInfo, $subject, $body);
-        if ($result['status'] == 1) {
-            // данные успешно отправлены.
-            if ($isAjax == true) {
-                return ['status' => 2, 'messageStatus' => $result];
-            } else {
-                if (!empty($result['results']['to-owner'])) {
-                    if ($result['results']['to-owner'] == 1) {
-                        $session->addFlash('success', 'Отправлено письмо владельцу');
-                    } elseif ($result['results']['to-owner'] != 1) {
-                        $session->addFlash('danger', 'Не удалось отправить письмо владельцу');
-                    }
-                }
-                if (!empty($result['results']['to-contacter'])) {
-                    if ($result['results']['to-contacter'] == 1) {
-                        $session->addFlash('success', 'Отправлено письмо контактному лицу');
-                    } elseif ($result['results']['to-contacter'] != 1) {
-                        $session->addFlash('danger', 'Не удалось отправить письмо контактному лицу');
-                    }
-                }
-                return true;
-            }
-        } elseif ($result['status'] == 2) {
-            // не удалось отправить данные. Вношу сообщение в базу неотправленных
-            Cloud::messageToUnsended($cottageInfo->cottageNumber, $subject, $body);
-            if ($isAjax) {
-                return ['status' => 3, 'message' => 'Не удалось отправить сообщения!'];
-            } else {
-                $session->addFlash('danger', 'Нет подключения к интернету. Сообщение сохранено, вы сможете отправить его, когда подключение появится!');
-                return true;
-            }
-        } else {
-            Cloud::messageToUnsended($cottageInfo, $subject, $body);
-            //неизвестная ошибка. не удалось отправить данные. Вношу сообщение в базу неотправленных
-            if ($isAjax) {
-                return ['status' => 3, 'message' => 'Не удалось отправить сообщения!'];
-            } else {
-                $session->addFlash('danger', 'Не удалось отправить сообщения о регистрации участков. Вероятно, отсутствует подключение к интернету.');
-                return true;
-            }
-        }
     }
 
     public static function resendNotifications()

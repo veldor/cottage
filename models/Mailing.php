@@ -4,8 +4,10 @@
 namespace app\models;
 
 
+use app\models\database\CottageReport;
 use app\models\database\Mail;
 use app\models\database\MailingSchedule;
+use app\models\database\SingleMail;
 use app\models\handlers\BillsHandler;
 use app\models\utils\DbTransaction;
 use app\models\utils\Email;
@@ -13,6 +15,7 @@ use Exception;
 use Throwable;
 use Yii;
 use yii\db\StaleObjectException;
+use yii\web\Controller;
 
 class Mailing
 {
@@ -129,8 +132,56 @@ class Mailing
                 $mail->setReceiverName($mailInfo->fio);
                 try {
                     $mail->send();
+                    $mail->sendToReserve();
                 } catch (Exception $e) {
                     return ['message' => 'Отправка не удалась, текст ошибки- "' . $e->getMessage() . '"'];
+                }
+            } elseif (!empty($waitingMail->singleMailId)) {
+                $singleMail = SingleMail::findOne($waitingMail->singleMailId);
+                if ($singleMail === null) {
+                    return ['message' => 'Письмо не найдена'];
+                }
+                $body = Yii::$app->controller->renderPartial('/mail/simple_template', ['text' => GrammarHandler::insertLexemes(urldecode($singleMail->body), $mailInfo, $cottageInfo)]);
+
+                // создам и отправлю новое письмо
+                $mail = new Email();
+                $mail->setFrom($mailSettings->address);
+                $mail->setAddress($mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email);
+                $mail->setSubject(urldecode($singleMail->title));
+                $mail->setBody($body);
+                $mail->setReceiverName($mailInfo->fio);
+                try {
+                    $mail->send();
+                    $mail->sendToReserve();
+                } catch (Exception $e) {
+                    return ['message' => 'Отправка не удалась, текст ошибки- "' . $e->getMessage() . '"'];
+                }
+            } elseif (!empty($waitingMail->reportId)) {
+                $reportInfo = CottageReport::findOne($waitingMail->reportId);
+                if ($reportInfo === null) {
+                    return ['message' => 'Письмо не найдена'];
+                }
+                // сгенерирую PDF
+                $info = Report::cottageReport($reportInfo->start, $reportInfo->finish, $cottageInfo->cottageNumber);
+                $reportPdf = Yii::$app->controller->renderPartial('/print/cottage-report-pdf', ['transactionsInfo' => $info, 'start' => $reportInfo->start, 'end' => $reportInfo->finish, 'cottageInfo' => $cottageInfo]);
+                PDFHandler::renderPDF($reportPdf, 'report.pdf', 'landscape');
+                // отправлю письмо
+                $text = GrammarHandler::insertLexemes('
+Для сверки расчетов Вам направляется отчет по платежам за участок №%COTTAGENUMBER%, произведенным на расчетный счет СНТ «Облепиха».  В отчете указаны даты поступления средств на расчетный счет.  Поскольку при оплате через Сбербанк средства зачисляются на следующий банковский день после платежа, даты фактической оплаты и даты в отчете могут различаться на 1-3 дня.', $mailInfo, $cottageInfo);
+                $email = new Email();
+                $email->setBody($text);
+                $email->setSubject('Сверка');
+                $email->setFrom(MailSettings::getInstance()->address);
+                $email->setAddress(MailSettings::getInstance()->is_test ? MailSettings::getInstance()->test_mail : $mailInfo->email);
+                $email->setReceiverName($mailInfo->fio);
+                $root = str_replace('\\', '/', Yii::getAlias('@app'));
+                $file = $root . '/public_html/report.pdf';
+                $email->setAttachment(['url' => $file, 'name' => 'отчёт по платежам.pdf']);
+                try {
+                    $email->send();
+                    $email->sendToReserve();
+                } catch (Exception $e) {
+                    return ['message' => 'Отправка не удалась, текст ошибки- "' . GrammarHandler::convert_from_latin1_to_utf8_recursively($e->getMessage()) . '"'];
                 }
             } else {
                 return ['message' => 'Не найден контент письма'];

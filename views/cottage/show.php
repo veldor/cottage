@@ -394,10 +394,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
 <a href='viber://chat?number={$cottageInfo->globalInfo->cottageOwnerPhone}'><img class='social-button' src='/graphics/viber.png' alt='viber icon'>" : 'Отсутствует' ?></td>
                     </tr>
                     <tr>
-                        <td>Адрес электронной почты владельца</td>
-                        <td><?= $cottageInfo->globalInfo->cottageOwnerEmail ? "<a href='mailto:{$cottageInfo->globalInfo->cottageOwnerEmail}'>{$cottageInfo->globalInfo->cottageOwnerEmail}" : 'Отсутствует' ?></td>
-                    </tr>
-                    <tr>
                         <td>Почтовый адрес</td>
                         <td><?= GrammarHandler::clearAddress($cottageInfo->globalInfo->cottageOwnerAddress) ?: 'Отсутствует' ?></td>
                     </tr>
@@ -431,10 +427,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                             <td>Телефон контактного лица</td>
                             <td><?= $cottageInfo->globalInfo->cottageContacterPhone ? "<a href='tel:{$cottageInfo->globalInfo->cottageContacterPhone}'>{$cottageInfo->globalInfo->cottageContacterPhone}" : 'Отсутствует' ?></td>
                         </tr>
-                        <tr>
-                            <td>Адрес электронной почты контактного лица</td>
-                            <td><?= $cottageInfo->globalInfo->cottageContacterEmail ? "<a href='mailto:{$cottageInfo->globalInfo->cottageContacterEmail}'>{$cottageInfo->globalInfo->cottageContacterEmail}" : 'Отсутствует' ?></td>
-                        </tr>
                         <?php
                     } else {
                         echo '<tr><td>Отсутствует</td></tr>';
@@ -462,10 +454,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                             <td>Телефон владельца</td>
                             <td><?= $phone ? "<a href='tel:$phone'>$phone<br/>
 <a href='viber://chat?number=$phone'><img class='social-button' src='/graphics/viber.png' alt='viber image'>" : 'Отсутствует' ?></td>
-                        </tr>
-                        <tr>
-                            <td>Адрес электронной почты владельца</td>
-                            <td><?= $email ? "<a href='mailto:$email'>$email" : 'Отсутствует' ?></td>
                         </tr>
                         <tr>
                             <td>Почтовый адрес</td>

@@ -9,6 +9,7 @@
 namespace app\controllers;
 
 use app\models\Cottage;
+use app\models\database\MailingSchedule;
 use app\models\ExceptionWithStatus;
 use app\models\GrammarHandler;
 use app\models\Notifier;
@@ -54,17 +55,16 @@ class ReportController extends Controller
     /**
      * @param $id
      * @return array
+     * @throws NotFoundHttpException
      */
     public function actionSend($id): array
     {
-        $root = str_replace('\\', '/', Yii::getAlias('@app'));
-        $file = $root . '/public_html/report.pdf';
-        $cottageInfo = Cottage::getCottageByLiteral($id);
-        $text = GrammarHandler::handleMailText('
-Для сверки расчетов Вам направляется отчет по платежам за участок №%COTTAGENUMBER%, произведенным в 2019 году на расчетный счет СНТ «Облепиха».  В отчете указаны даты поступления средств на расчетный счет.  Поскольку при оплате через Сбербанк средства зачисляются на следующий банковский день после платежа, даты фактической оплаты и даты в отчете могут различаться на 1-3 дня.', $cottageInfo, 'owner');
-        Notifier::sendNotificationWithFile($cottageInfo, 'Сверка', $text, $file, 'отчёт по платежам.pdf');
-        Yii::$app->response->format = Response::FORMAT_JSON;
-        return ['status' => 1, 'message' => 'Отправлено'];
+        // добавлю в очередь отправки
+        if(Yii::$app->request->isPost){
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            return MailingSchedule::scheduleReport($id, Yii::$app->request->post('start'), Yii::$app->request->post('finish'));
+        }
+        throw new NotFoundHttpException();
     }
 
     public function actionRemindMembership(): string
@@ -78,7 +78,7 @@ class ReportController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
         $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
-        Notifier::sendNotification($cottageInfo, 'Срок оплаты взносов', 'Сегодня последний день установленного срока для оплаты членского взноса за ' . TimeHandler::getFullFromShortQuarter(TimeHandler::getCurrentQuarter()) . '. Пожалуйста, не забывайте производить платежи своевременно. С завтрашнего дня при отсутствии оплаты начнется начисление пени.');
+        MailingSchedule::addSingleMailing($cottageInfo, 'Срок оплаты взносов', 'Сегодня последний день установленного срока для оплаты членского взноса за ' . TimeHandler::getFullFromShortQuarter(TimeHandler::getCurrentQuarter()) . '. Пожалуйста, не забывайте производить платежи своевременно. С завтрашнего дня при отсутствии оплаты начнется начисление пени.');
         return ['status' => 1];
     }
 

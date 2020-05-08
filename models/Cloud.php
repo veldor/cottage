@@ -20,7 +20,10 @@ class Cloud extends Model
         $this->drive->setServiceScheme(DiskClient::HTTPS_SCHEME);
     }
 
-    public static function sendBackup()
+    /**
+     * @return array
+     */
+    public static function sendBackup(): array
     {
         $file = 'Z:/sites/cottage/errors/backup.sql';
         try{
@@ -40,69 +43,6 @@ class Cloud extends Model
             unlink($file);
         }
         return ['status' => 1];
-    }
-
-
-    public function uploadFile($filename, $source): bool
-    {
-        if (is_file($source)) {
-            $this->drive->uploadFile(
-                '/Updates/',
-                array(
-                    'path' => $source,
-                    'size' => filesize($source),
-                    'name' => $filename
-                )
-            );
-            return true;
-        }
-        return false;
-    }
-
-    public function checkUpdates(): array
-    {
-        // проверю подключение к интернету
-        try {
-            $url = 'https://ya.ru/';
-            ini_set('default_socket_timeout', '2');
-            $fp = fopen($url, 'rb');
-            fclose($fp);
-        } catch (Exception $e) {
-            return ['status' => 2];
-        }
-        $dirContent = $this->drive->directoryContents('/Updates');
-        foreach ($dirContent as $dirItem) {
-            if ($dirItem['resourceType'] === 'file') {
-                $name = $dirItem['displayName'];
-                if (preg_match('/^update\_[\d]{1,11}\-[\d]{1,11}\.info?/', $name)) {
-                    $this->updates[] = $name;
-                }
-            }
-        }
-        return $this->updates;
-    }
-
-    public function getUpdates()
-    {
-        // Получаем список файлов из директории
-        $dirContent = $this->drive->directoryContents('/Updates');
-        foreach ($dirContent as $dirItem) {
-            if ($dirItem['resourceType'] === 'file') {
-                $name = $dirItem['displayName'];
-                if (preg_match('/^update\_[\d]{1,11}\-[\d]{1,11}\.zip?/', $name)) {
-                    $this->updates[] = $name;
-                }
-            }
-        }
-        return $this->updates;
-    }
-
-    public function downloadFile($path, $destination, $name): bool
-    {
-        if ($this->drive->downloadFile($path, $destination, $name)) {
-            return true;
-        }
-        return false;
     }
 
     public static function sendInvoice($info): int
@@ -228,42 +168,6 @@ class Cloud extends Model
             $finalText = GrammarHandler::insertPersonalAppeal($text, $info->cottageOwnerPersonals);
             self::send(Info::MAIL_REPORTS_ADDRESS, GrammarHandler::handlePersonals($info->cottageOwnerPersonals), $subject, $finalText, ['url' => $file,'name' =>  $filename]);
             return ['status' => 1];
-        } catch (ExceptionWithStatus $e) {
-            throw $e;
-        }
-    }
-
-    public static function sendInvoiceMail($text, $billInfo)
-    {
-        // проверю получателей
-        /** @var Table_cottages|Table_additional_cottages $cottageInfo */
-        $pdfUrl = str_replace('\\', '/', Yii::getAlias('@app')) . '/public_html/invoice.pdf';
-        $cottageInfo = $billInfo['billInfo']['cottageInfo'];
-        $main = Cottage::isMain($cottageInfo);
-        $ownerMail = $cottageInfo->cottageOwnerEmail;
-        if($main){
-            $contacterEmail = $cottageInfo->cottageContacterEmail;
-        }
-        $message = '';
-        try {
-            if (!empty($ownerMail)) {
-                $finalText = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
-                $message .= 'Отправлено владельцу ';
-                self::send($ownerMail, GrammarHandler::handlePersonals($cottageInfo->cottageOwnerPersonals), 'Квитанция на оплату', $finalText, ['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf']);
-                // отправлю письмо адресату
-            }
-            if (!empty($contacterEmail)) {
-                $finalText = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageContacterPersonals);
-                $message .= 'Отправлено к.л. ';
-                self::send($contacterEmail, GrammarHandler::handlePersonals($cottageInfo->cottageContacterPersonals), 'Квитанция на оплату', $finalText, ['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf']);
-                // отправлю письмо адресату
-            }
-            $finalText = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
-            self::send(Info::MAIL_REPORTS_ADDRESS, GrammarHandler::handlePersonals($cottageInfo->cottageOwnerPersonals), 'Квитанция на оплату', $finalText, ['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf']);
-            if ($message === '') {
-                $message = 'Почта не указана';
-            }
-            return $message;
         } catch (ExceptionWithStatus $e) {
             throw $e;
         }

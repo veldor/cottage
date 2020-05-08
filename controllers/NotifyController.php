@@ -35,33 +35,12 @@ class NotifyController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['duties', 'reg-info', 'pay', 'pay-double', 'check-unsended', 'resend', 'send-errors', 'get-mail-list', 'mailing'],
+                        'actions' => ['pay', 'pay-double', 'check-unsended', 'resend', 'send-errors', 'get-mail-list', 'mailing'],
                         'roles' => ['writer'],
                     ],
                 ],
             ],
         ];
-    }
-
-    public function actionDuties($cottageNumber)
-    {
-        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            if ($result = Notifier::sendDuties($cottageNumber)) {
-                return $result;
-            }
-        }
-        return false;
-    }
-    public function actionRegInfo($cottageNumber)
-    {
-        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            if ($result = Notifier::sendRegInfo($cottageNumber)) {
-                return $result;
-            }
-        }
-        return false;
     }
     public function actionPay($billId)
     {
@@ -90,56 +69,8 @@ class NotifyController extends Controller
         }
         return false;
     }
-
-    public function actionSendNotification(){
-        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return Notifier::checkUnsended();
-        }
-        return false;
-    }
-    public function actionResend(){
-        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return Notifier::resendNotifications();
-        }
-        return false;
-    }
     public function actionSendErrors(){
     	// отправлю письмо с ошибками
 	    return ErrorsHandler::sendErrors();
-    }
-    public function actionGetMailList(){
-        if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            // получу список всех участков c почтовыми адресами
-            $data = Notifier::getCottagesWithMails();
-            return $this->renderPartial('cottage_list', ['info' => $data]);
-
-
-        }
-        throw new NotFoundHttpException("Страница не найдена");
-    }
-    public function actionMailing($own, $type, $cottageNumber){
-
-        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            // обработаю текст письма на наличие лексем
-            // получу сведения об участке
-            $cottageInfo = Cottage::getCottageInfoForMail($own, $cottageNumber);
-            $text = GrammarHandler::handleMailText($_POST['text'], $cottageInfo, $type);
-            // получу шаблон письма
-            $template = $this->renderPartial('/mail/simple_template', ['text' => $text]);
-            try{
-                Notifier::sendMailing($cottageInfo, $type, $_POST['subject'], $template);
-                return ['status' => 1];
-            }
-            catch (Exception $e){
-                // запишу информацию в лог ошибок отправки
-                LogHandler::writeToLog(LogHandler::MAIL_ERRORS_LOG, $e->getMessage());
-                return ['status' => 2];
-            }
-        }
-        throw new NotFoundHttpException("Страница не найдена");
     }
 }

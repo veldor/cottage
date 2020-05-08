@@ -423,38 +423,7 @@ let tariffsFillWindow;
 let invoiceWindow;
 
 function remind(url) {
-    sendAjax('post', url, notificationCallback);
-}
-
-function notificationCallback(answer) {
-    //БЛОК ПРОВЕРКИ СТАТУСА ОТПРАВКИ АВТОМАТИЧЕСКОГО УВЕДОМЛЕНИЯ
-    if (answer['messageStatus']) {
-        if (answer['messageStatus'].status === 2) {
-            makeInformer('danger', 'Неуспешно', 'Нет подключения к интернету. Сообщение сохранено, вы сможете отправить его, когда подключение появится!');
-        } else if (answer['messageStatus'].status === 1) {
-            if (answer['messageStatus']['results']['to-owner']) {
-                if (answer['messageStatus']['results']['to-owner'] === true) {
-                    makeInformerModal('Успешно', 'Письмо владельцу успешно отправлено!', function () {
-                    });
-                } else {
-                    makeInformer('danger', 'Неуспешно', 'Письмо владельцу отправить не удалось!');
-                }
-            }
-            if (answer['messageStatus']['results']['to-contacter']) {
-                if (answer['messageStatus']['results']['to-contacter'] === true) {
-                    makeInformerModal('Успешно', 'Письмо контактному лицу успешно отправлено!', function () {
-                    });
-                } else {
-                    makeInformer('danger', 'Неуспешно', 'Письмо контактному лицу отправить не удалось!');
-                }
-            }
-        }
-    }
-    if (answer.status === 3) {
-        makeInformer('warning', "Не вышло", "Проверьте подключение к интернету, отправка не удалась")
-    } else if (answer.status === 4) {
-        makeInformer('warning', "Не вышло", "Ни у владельца ни у контактного лица не указан адрес электронной почты")
-    }
+    sendAjax('post', url, simpleAnswerHandler);
 }
 
 function deleteSingle(deleteActivator) {

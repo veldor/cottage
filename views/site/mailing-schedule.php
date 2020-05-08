@@ -2,9 +2,11 @@
 
 use app\assets\MailingScheduleAsset;
 use app\models\Cottage;
+use app\models\database\CottageReport;
 use app\models\database\Mail;
 use app\models\database\Mailing;
 use app\models\database\MailingSchedule;
+use app\models\database\SingleMail;
 use app\models\handlers\BillsHandler;
 use nirvana\showloading\ShowLoadingAsset;
 use yii\helpers\Url;
@@ -36,6 +38,13 @@ if (!empty($waiting)) {
         else if(!empty($item->billId)){
             $billInfo = BillsHandler::getBill($item->billId);
             echo "<tr class='text-center'><td><b class='text-success'>Счёт</b></td><td><a href='" . Url::toRoute(['cottage/show', 'cottageNumber' => $cottage->cottageNumber]) . "' target='_blank'>{$cottage->cottageNumber}</a></td><td>{$billInfo->id} </td><td>{$mailInfo->email}</td><td>{$mailInfo->fio}</td><td><b class='text-info mailing-status' data-schedule-id='{$item->id}'>Ожидает отправки</b></td><td><button class='mailing-cancel btn btn-default' data-schedule-id='{$item->id}'><span class='text-danger'>Отменить отправку</span></button></td></tr>";
+        }
+        else if(!empty($item->singleMailId)){
+            $textInfo = SingleMail::findOne($item->singleMailId);
+            echo "<tr class='text-center'><td><b class='text-success'>Уведомление</b></td><td><a href='" . Url::toRoute(['cottage/show', 'cottageNumber' => $cottage->cottageNumber]) . "' target='_blank'>{$cottage->cottageNumber}</a></td><td>{$textInfo->title} </td><td>{$mailInfo->email}</td><td>{$mailInfo->fio}</td><td><b class='text-info mailing-status' data-schedule-id='{$item->id}'>Ожидает отправки</b></td><td><button class='mailing-cancel btn btn-default' data-schedule-id='{$item->id}'><span class='text-danger'>Отменить отправку</span></button></td></tr>";
+        }
+        else if(!empty($item->reportId)){
+            echo "<tr class='text-center'><td><b class='text-success'>Уведомление</b></td><td><a href='" . Url::toRoute(['cottage/show', 'cottageNumber' => $cottage->cottageNumber]) . "' target='_blank'>{$cottage->cottageNumber}</a></td><td>Отчёт по платежам</td><td>{$mailInfo->email}</td><td>{$mailInfo->fio}</td><td><b class='text-info mailing-status' data-schedule-id='{$item->id}'>Ожидает отправки</b></td><td><button class='mailing-cancel btn btn-default' data-schedule-id='{$item->id}'><span class='text-danger'>Отменить отправку</span></button></td></tr>";
         }
     }
     echo '</tbody></table>';
