@@ -904,7 +904,7 @@ function handleModalFormNoValidate(data) {
             e.preventDefault();
                 sendAjax('post',
                     form.attr('action'),
-                    simpleAnswerHandler,
+                    ajaxFormAnswerHandler,
                     form,
                     true);
         });

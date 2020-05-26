@@ -9,7 +9,7 @@ use yii\widgets\ActiveForm;
 /* @var $this View */
 /* @var $matrix TotalDutyReport */
 
-$form = ActiveForm::begin(['id' => 'TotalDutyReport', 'options' => ['class' => 'form-horizontal bg-default no-print'], 'enableAjaxValidation' => false, 'validateOnSubmit' => true, 'validateOnChange' => false, 'validateOnBlur' => false, 'action' => ['/report/choose-date']]);
+$form = ActiveForm::begin(['id' => 'TotalDutyReport', 'options' => ['class' => 'form-horizontal bg-default no-print'], 'enableAjaxValidation' => false, 'validateOnSubmit' => false, 'validateOnChange' => false, 'validateOnBlur' => false, 'action' => ['/report/choose-date']]);
 
 try {
     echo $form->field($matrix, 'date',['template' =>
