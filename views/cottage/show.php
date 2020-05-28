@@ -83,7 +83,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             }
             ?>
             <tr>
-                <td>Электроэнергия</td>
+                <td><a class="activator" data-action="<?=Url::toRoute(['forms/power', 'cottageId' => $cottageInfo->globalInfo->cottageNumber])?>">Электроэнергия</a></td>
                 <td><?= $cottageInfo->powerDebts > 0 ? "<a class='btn btn-default detail-debt' data-type='power' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->powerDebts) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
             </tr>
             <tr>

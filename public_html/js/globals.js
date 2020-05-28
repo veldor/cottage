@@ -466,6 +466,18 @@ function toRubles(summ) {
     return parseFloat(summ.toFixed(2));
 }
 
+function checkRubles(summ) {
+    if (typeof (summ) === 'string')
+        summ = summ.replace(',', '.');
+    summ = parseFloat(summ);
+    if (summ > 0) {
+        let parts = summ.toFixed(2);
+        parts = parts.toString().split(".");
+        return parts[0] + ' руб. ' + parts[1] + ' коп.';
+    }
+    return null;
+}
+
 function ajaxDangerReload() {
     $(window).on('beforeunload.ajax', function () {
         return "Необходимо заполнить все поля на странице!";
@@ -836,15 +848,14 @@ function ajaxFormAnswerHandler(data) {
     "use strict";
     if (data.status === 1) {
         // если передана ссылка на скачивание файла- открою её в новом окне
-        if(data.href){
+        if (data.href) {
             // закрою модальное окно
             closeModal();
             console.log('saving file');
-            for(let i = 0; i < data.href.length; i++){
+            for (let i = 0; i < data.href.length; i++) {
                 let newWindow = window.open(data.href[i]);
             }
-        }
-        else{
+        } else {
             location.reload();
         }
     } else if (data.message) {
@@ -887,11 +898,11 @@ function handleModalForm(data) {
                 readyToSend = false;
             }
         });
-    }
-    else if(data.status && data.status === 2){
+    } else if (data.status && data.status === 2) {
         location.reload();
     }
 }
+
 // обработка формы, переданной через AJAX без валидации ===============================================================
 function handleModalFormNoValidate(data) {
     "use strict";
@@ -900,16 +911,15 @@ function handleModalFormNoValidate(data) {
         let form = modal.find('form');
         // при подтверждении форму не отправляю, жду валидации
         form.on('submit.sendByAjax', function (e) {
-            console.log('submit');
+            console.log('submit it');
             e.preventDefault();
-                sendAjax('post',
-                    form.attr('action'),
-                    ajaxFormAnswerHandler,
-                    form,
-                    true);
+            sendAjax('post',
+                form.attr('action'),
+                ajaxFormAnswerHandler,
+                form,
+                true);
         });
-    }
-    else if(data.status && data.status === 2){
+    } else if (data.status && data.status === 2) {
         location.reload();
     }
 }
@@ -919,6 +929,7 @@ function handleAjaxActivators() {
     "use strict";
     // найду активаторы AJAX-запросов
     let activators = $('.activator');
+    activators.off('click.request');
     activators.on('click.request', function () {
         let action = $(this).attr('data-action');
         if (action) {

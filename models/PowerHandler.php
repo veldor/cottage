@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\database\PersonalPower;
 use app\models\handlers\BillsHandler;
 use app\models\selections\PowerDebt;
 use app\models\utils\DbTransaction;
@@ -364,6 +365,11 @@ class PowerHandler extends Model
             }
         }
         return CashHandler::toRubles($duty);
+    }
+
+    public static function getCottagePowerData(Table_cottages $cottage)
+    {
+        return Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('month DESC')->all();
     }
 
     public function scenarios(): array
@@ -856,7 +862,14 @@ class PowerHandler extends Model
                 throw new ExceptionWithStatus('Сумма оплаты ' . CashHandler::toRubles($toPay) . ' за электроэнергию за ' . $key . ' больше максимальной- ' . CashHandler::toRubles($maxAmount - $payedSumm));
             }*/
             $realPowerLimit = $cottage->cottageNumber === 88 ? 100 : $tariff->powerLimit;
-            $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
+            // проверю наличие индивидуальных данных
+            $personalRate = PersonalPower::findOne(['month' => $key, 'cottage_number' => $cottage->cottageNumber]);
+            if($personalRate !== null){
+                $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$personalRate->cost}' powerOvercost='{$personalRate->over_cost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
+            }
+            else{
+                $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
+            }
             $summ += $toPay;
         }
         if ($additional) {

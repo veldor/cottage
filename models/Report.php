@@ -10,6 +10,7 @@ namespace app\models;
 
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
+use yii\base\ErrorException;
 use yii\base\Model;
 
 class Report extends Model
@@ -369,5 +370,28 @@ class Report extends Model
                             </tr>";
         }
         return ['content' => $content, 'cottageInfo' => $cottageInfo, 'singleDescriptions' => $singleDescriptions];
+    }
+
+    /**
+     * @param $cottageNumber
+     * @return string
+     * @throws ErrorException
+     */
+    public static function powerDebtReport($cottageNumber): string
+    {
+
+        $content = "<table class='table table-hover table-striped'><thead><tr><th>Месяц</th><th>Данные</th><th>Потрачено</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead>
+<tbody>";
+        $info = PowerHandler::getDebtReport(Cottage::getCottageByLiteral($cottageNumber));
+        foreach ($info as $item) {
+            $inLimitPay = CashHandler::toShortSmoothRubles($item->powerData->inLimitPay);
+            $overLimitPay = CashHandler::toShortSmoothRubles($item->powerData->overLimitPay);
+            $totalPay = CashHandler::toShortSmoothRubles($item->powerData->totalPay);
+
+            $date = TimeHandler::getFullFromShotMonth($item->powerData->month);
+            $content .= "<tr><td>$date</td><td>{$item->powerData->newPowerData} кВт.ч</td><td>{$item->powerData->difference} кВт.ч</td><td>$inLimitPay</td><td>$overLimitPay</td><td>$totalPay</td></tr>";
+        }
+        $content .= '</tbody></table>';
+        return $content;
     }
 }

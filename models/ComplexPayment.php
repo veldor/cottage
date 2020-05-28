@@ -177,7 +177,7 @@ class ComplexPayment extends Model
         } else {
             $find = Table_payment_bills::findOne(['cottageNumber' => $cottageNumber, 'isPayed' => '0']);
         }
-        if (!empty($find)) {
+        if ($find !== null) {
             return $find;
         }
         return null;
