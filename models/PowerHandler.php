@@ -865,7 +865,12 @@ class PowerHandler extends Model
             // проверю наличие индивидуальных данных
             $personalRate = PersonalPower::findOne(['month' => $key, 'cottage_number' => $cottage->cottageNumber]);
             if($personalRate !== null){
-                $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$personalRate->cost}' powerOvercost='{$personalRate->over_cost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
+                if(!empty($personalRate->fixed_amount)){
+                    $answer .= "<month date='$key' summ='{$personalRate->fixed_amount}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='0' over-limit='{$data->difference}' in-limit-cost='0' over-limit-cost='{$personalRate->fixed_amount}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
+                }
+                else{
+                    $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$personalRate->cost}' powerOvercost='{$personalRate->over_cost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
+                }
             }
             else{
                 $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";

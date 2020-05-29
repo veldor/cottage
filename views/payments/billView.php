@@ -125,6 +125,7 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
         <?php try {
             echo PaymentDetailsWidget::widget(['info' => $info['paymentContent']]);
         } catch (Exception $e) {
+            die($e->getMessage());
         } ?>
 
     </div>
