@@ -35,7 +35,7 @@ class NotifyController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['pay', 'pay-double', 'check-unsended', 'resend', 'send-errors', 'get-mail-list', 'mailing'],
+                        'actions' => ['duties', 'reg-info', 'pay', 'pay-double', 'check-unsended', 'resend', 'send-errors', 'get-mail-list', 'mailing'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -72,5 +72,27 @@ class NotifyController extends Controller
     public function actionSendErrors(){
     	// отправлю письмо с ошибками
 	    return ErrorsHandler::sendErrors();
+    }
+
+
+    public function actionDuties($cottageNumber)
+    {
+        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            if ($result = Notifier::sendDuties($cottageNumber)) {
+                return $result;
+            }
+        }
+        return false;
+    }
+    public function actionRegInfo($cottageNumber)
+    {
+        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            if ($result = Notifier::sendRegInfo($cottageNumber)) {
+                return $result;
+            }
+        }
+        return false;
     }
 }

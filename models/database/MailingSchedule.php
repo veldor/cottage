@@ -120,7 +120,7 @@ class MailingSchedule extends ActiveRecord
         // получу адреса почты
         $mails = Mail::getCottageMails($cottageInfo->cottageNumber);
         if (!empty($mails)) {
-            $newMail = new SingleMail(['title' => $subject, 'body' => $body]);
+            $newMail = new SingleMail(['subject' => $subject, 'body' => $body]);
             $newMail->save();
             $inQueue = [];
             // создам письмо

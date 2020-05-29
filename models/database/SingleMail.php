@@ -11,8 +11,8 @@ use yii\db\ActiveRecord;
  * @package app\models\database
  *
  * @property int $id [int(10) unsigned]
- * @property string $title
  * @property string $body
+ * @property string $subject [varchar(255)]
  */
 
 class SingleMail extends ActiveRecord
