@@ -125,8 +125,11 @@ class Search extends Model
         $discountsSumm = 0;
         $toDepositSumm = 0;
         $fromDepositSumm = 0;
+        $powerDetails = [];
+        $membershipDetails = [];
+        $targetDetails = [];
 
-        // найду транзакции за день
+        // найду транзакции
         $results = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
         $doubleResults = Table_transactions_double::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
         $results = array_merge($results, $doubleResults);
@@ -155,16 +158,35 @@ class Search extends Model
                 }
                 if(!empty($powers)){
                     foreach ($powers as $p){
+                        if(!empty($powerDetails[$p->month])){
+                            $powerDetails[$p->month] += $p->summ;
+                        }
+                        else{
+                            $powerDetails[$p->month] = $p->summ;
+                        }
+                        // посчитаю детали
                         $totalPowerSumm += CashHandler::toRubles($p->summ);
                     }
                 }
                 if(!empty($memberships)){
                     foreach ($memberships as $p){
+                        if(!empty($membershipDetails[$p->quarter])){
+                            $membershipDetails[$p->quarter] += $p->summ;
+                        }
+                        else{
+                            $membershipDetails[$p->quarter] = $p->summ;
+                        }
                         $totalMemSumm += CashHandler::toRubles($p->summ);
                     }
                 }
                 if(!empty($targets)){
                     foreach ($targets as $p){
+                        if(!empty($targetDetails[$p->year])){
+                            $targetDetails[$p->year] += $p->summ;
+                        }
+                        else{
+                            $targetDetails[$p->year] = $p->summ;
+                        }
                         $totalTargetSumm += CashHandler::toRubles($p->summ);
                     }
                 }
@@ -194,13 +216,34 @@ class Search extends Model
                     }
                 }
             }
-            $content = "<table class='table table-striped'><thead><th>Электроэнергия</th><th>Членские</th><th>Целевые</th><th>Разовые</th><th>Пени</th><th>С депозита</th><th>На депозит</th><th>Скидка</th></thead><tbody>";
+            $powerDetailsValue = '<br/>Детали:';
+            if(!empty($powerDetails)){
+                ksort($powerDetails);
+                foreach ($powerDetails as $key => $value) {
+                    $powerDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toSmoothRubles($value);
+                }
+            }
+            $membershipDetailsValue = '<br/>Детали:';
+            if(!empty($membershipDetails)){
+                ksort($membershipDetails);
+                foreach ($membershipDetails as $key => $value) {
+                    $membershipDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toSmoothRubles($value);
+                }
+            }
+            $targetDetailsValue = '<br/>Детали:';
+            if(!empty($targetDetails)){
+                ksort($targetDetails);
+                foreach ($targetDetails as $key => $value) {
+                    $targetDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toSmoothRubles($value);
+                }
+            }
+            $content = "<table class='table table-striped'><thead><th>Электроэнергия</th><th>Членские</th><th>Целевые</th><th>Разовые</th><th>Пени</th><th>С депозита</th><th>На депозит</th></thead><tbody>";
 
-            $content .= "<tr><td>" . CashHandler::toShortSmoothRubles($totalPowerSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalMemSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalTargetSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalSingleSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($totalFinesSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($fromDepositSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($toDepositSumm) . "</td><td>" . CashHandler::toShortSmoothRubles($discountsSumm) . "</td></tr></tbody></table>";
+            $content .= '<tr><td>' . CashHandler::toShortSmoothRubles($totalPowerSumm) . $powerDetailsValue . '</td><td>' . CashHandler::toShortSmoothRubles($totalMemSumm) . $membershipDetailsValue . '</td><td>' . CashHandler::toShortSmoothRubles($totalTargetSumm) . $targetDetailsValue . '</td><td>' . CashHandler::toShortSmoothRubles($totalSingleSumm) . '</td><td>' . CashHandler::toShortSmoothRubles($totalFinesSumm) . '</td><td>' . CashHandler::toShortSmoothRubles($fromDepositSumm) . '</td><td>' . CashHandler::toShortSmoothRubles($toDepositSumm) . '</td></tr></tbody></table>';
             $total = CashHandler::toRubles($totalSingleSumm + $totalPowerSumm + $totalTargetSumm + $totalFinesSumm + $totalMemSumm - $discountsSumm - $fromDepositSumm + $toDepositSumm, true);
-            return ['status' => 1, 'data' => $content, 'totalSumm' => $total];
+            return ['status' => 1, 'data' => $content, 'totalSumm' => $total, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
         }
-        return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0];
+        return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
     }
 
     /**
@@ -360,7 +403,7 @@ class Search extends Model
                         $toDepositSumm = 0;
                     }
                     $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
-                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}</td><td class='cottage-number-cell'>{$transaction->cottageNumber}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . "</td></tr>";
+                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}</td><td class='cottage-number-cell'>{$transaction->cottageNumber}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . '</td></tr>';
                 }
                 else{
                     $date = TimeHandler::getDateFromTimestamp($transaction->bankDate);
@@ -494,7 +537,7 @@ class Search extends Model
                         $toDepositSumm = 0;
                     }
                     $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
-                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}-a</td><td class='cottage-number-cell'>{$transaction->cottageNumber}-a</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . "</td></tr>";
+                    $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}-a</td><td class='cottage-number-cell'>{$transaction->cottageNumber}-a</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . '</td></tr>';
                 }
             }
             $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td>$wholeSingle</td><td></td><td>$wholeFines</td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";

@@ -75,7 +75,7 @@ if (!empty($activeSearch)) {
 			if ($result !== null && $activeSearch === 'cashSearch' && $result['status'] === 1) {
 				if (!empty($result['totalSumm'])) {
 					$summ = CashHandler::toSmoothRubles($result['totalSumm']);
-					echo "<h4>Всего: <span class='text-info'>{$summ}</span></h4>";
+					echo "<h4>Всего: <span class='text-info'>{$summ}</span> За период с <span class='text-success'>{$result['from']}</span> по <span class='text-success'>{$result['to']}</span></h4>";
 				}
 				if (is_string($result['data'])) {
 					echo $result['data'];
