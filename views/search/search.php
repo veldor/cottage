@@ -98,7 +98,6 @@ if (!empty($activeSearch)) {
                             <th colspan="2" class="text-center">Целевые</th>
                             <th colspan="2" class="text-center">Разовые</th>
                             <th colspan="2" class="text-center">Пени</th>
-                            <th rowspan="2" class="text-center vertical-top">Скид.</th>
                             <th rowspan="2" class="text-center vertical-top">Деп</th>
                             <th rowspan="2" class="text-center vertical-top">Итого</th>
                         </tr>
