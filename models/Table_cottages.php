@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\interfaces\CottageInterface;
 use yii\db\ActiveRecord;
 
 /**
@@ -47,10 +48,18 @@ use yii\db\ActiveRecord;
  * @property bool $is_mail [tinyint(1)]  Наличие электронной почты
  */
 
-class Table_cottages extends ActiveRecord
+class Table_cottages extends ActiveRecord implements CottageInterface
 {
     public static function tableName()
     {
         return 'cottages';
+    }
+
+    /**
+     * @return string
+     */
+    public function getCottageNumber():string
+    {
+        return (string) $this->cottageNumber;
     }
 }

@@ -6,6 +6,7 @@ namespace app\models\utils;
 
 use app\models\Calculator;
 use app\models\CashHandler;
+use app\models\database\CottageSquareChanges;
 use app\models\FinesHandler;
 use app\models\PersonalTariff;
 use app\models\SingleHandler;
@@ -133,13 +134,15 @@ class CottageDutyReport
 // обработаю список
         if (!empty($list)) {
             foreach ($list as $item) {
+                // получу площадь участка на данный момент времени
+                $cottageSquare = CottageSquareChanges::getQuarterSquare($this->cottage, $item);
                 // получу начисление за квартал
                 if ($this->cottage->individualTariff) {
                     $tariff = PersonalTariff::getMembershipRate($this->cottage, $item);
-                    $accrued = CashHandler::toRubles(Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $this->cottage->cottageSquare));
+                    $accrued = CashHandler::toRubles(Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $cottageSquare));
                 } else {
                     $tariff = Table_tariffs_membership::findOne(['quarter' => $item]);
-                    $accrued = CashHandler::toRubles(Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $this->cottage->cottageSquare));
+                    $accrued = CashHandler::toRubles(Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottageSquare));
                 }
                 // найду оплаты за данный период
                 $payed = Table_payed_membership::find()->where(['quarter' => $item, 'cottageId' => $this->cottage->cottageNumber])->andWhere(['<=', 'paymentDate', $this->periodEnd])->all();

@@ -689,4 +689,17 @@ class TimeHandler extends Model
         return false;
     }
 
+    /**
+     * @param int $date
+     * @return string
+     * @throws Exception
+     */
+    public static function getQuarterFromTimestamp(int $date): string
+    {
+        $changeDate = new DateTime();
+        $changeDate->setTimestamp($date);
+        $month = $changeDate->format('m');
+        return $changeDate->format('Y') . '-' . self::quarterFromMonth($month);
+    }
+
 }

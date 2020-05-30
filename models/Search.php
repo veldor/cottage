@@ -207,7 +207,7 @@ class Search extends Model
      * @param $interval
      * @return array
      */
-    private function getReport($interval)
+    private function getReport($interval): ?array
     {
         $wholePower = 0;
         $wholeTarget = 0;
@@ -218,7 +218,7 @@ class Search extends Model
         $fullSumm = 0;
         $wholeDeposit = 0;
         // найду транзакции за день по банковскому отчёту
-        $transactions = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
+        $transactions = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->orderBy('bankDate')->all();
         $trs = Table_transactions_double::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
         $transactions = array_merge($transactions, $trs);
 
@@ -266,7 +266,7 @@ class Search extends Model
                             if($power instanceof Table_payed_power){
                                 // найду данные о показаниях
                                 $powData = Table_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
-                                if(empty($powData)){
+                                if($powData === null){
                                     echo 'p' . $transaction->id . ' ' . ' ' . $transaction->cottageNumber . ' ' . $power->month;
                                     die;
                                 }

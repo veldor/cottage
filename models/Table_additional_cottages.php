@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\interfaces\CottageInterface;
 use yii\db\ActiveRecord;
 
 /**
@@ -36,10 +37,18 @@ use yii\db\ActiveRecord;
  * @property float $deposit [float]
  * @property float $singleDebt [float]
  */
-class Table_additional_cottages extends ActiveRecord
+class Table_additional_cottages extends ActiveRecord implements CottageInterface
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'additional_cottages';
+    }
+
+    /**
+     * @return string
+     */
+    public function getCottageNumber():string
+    {
+        return $this->masterId . '-a';
     }
 }

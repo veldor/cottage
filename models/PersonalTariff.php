@@ -10,6 +10,7 @@ namespace app\models;
 
 
 use app\validators\CheckCottageNoRegistred;
+use DOMDocument;
 use Yii;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
@@ -194,7 +195,7 @@ class PersonalTariff extends Model
         if (!empty($cottageInfo)) {
             $quarterList = [];
             $yearList = [];
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $existedQuarters = $xpath->query('/tariffs/membership/quarter');
@@ -211,7 +212,7 @@ class PersonalTariff extends Model
             $existedYears = $xpath->query('/tariffs/target/year');
             if ($existedYears->length > 0) {
                 // получу данные о текущем состоянии оплаты целевых платежей
-                $targetDom = new \DOMDocument('1.0', 'UTF-8');
+                $targetDom = new DOMDocument('1.0', 'UTF-8');
                 $targetDom->loadXML($cottageInfo->targetPaysDuty);
                 $targetXpath = new \DOMXpath($targetDom);
                 foreach ($existedYears as $existedYear) {
@@ -219,7 +220,7 @@ class PersonalTariff extends Model
                     $fixed = CashHandler::toRubles($existedYear->getAttribute('fixed'));
                     $float = CashHandler::toRubles($existedYear->getAttribute('float'));
                     $payedBefore = 0;
-                    if($additional){
+                    if ($additional) {
                         // проверю, не производилась ли оплата по данному году по данному участку
                         if (!Table_additional_payed_target::find()->where(['cottageId' => $cottageNumber, 'year' => $date])->count()) {
                             // пробую найти информацию о задолженностях по оплате за этот год
@@ -231,8 +232,7 @@ class PersonalTariff extends Model
                             $yearList[$date] = ['fixed' => $fixed, 'float' => $float, 'payed-before' => $payedBefore];
 
                         }
-                    }
-                    else{
+                    } else {
                         // проверю, не производилась ли оплата по данному году по данному участку
                         if (!Table_payed_target::find()->where(['cottageId' => $cottageNumber, 'year' => $date])->count()) {
                             // пробую найти информацию о задолженностях по оплате за этот год
@@ -431,7 +431,7 @@ class PersonalTariff extends Model
         $unpayed = [];
         // проверю, подключен ли индивидуальный тариф
         if ($cottageInfo->individualTariff) {
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $quarters = $xpath->query('/tariffs/membership/quarter');
@@ -468,7 +468,7 @@ class PersonalTariff extends Model
         // проверю, подключен ли индивидуальный тариф
         $cottageInfo = Table_cottages::findOne($cottageNumber);
         if (!empty($cottageInfo) && $cottageInfo->individualTariff) {
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $quarters = $xpath->query('/tariffs/membership/quarter');
@@ -501,7 +501,7 @@ class PersonalTariff extends Model
             // проверю, заполнены ли ставки на данные кварталы
             $quarters = TimeHandler::getQuarterList(TimeHandler::getQuarterShift($quantity));
             $unfilled = [];
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             /**
@@ -541,8 +541,7 @@ class PersonalTariff extends Model
 //                        $content .= "<div class='col-lg-12 text-center'><h3>{$fullDate}: квартал уже оплачен</h3></div>";
 //                    }
                     }
-                }
-                else{
+                } else {
                     // не заполнены ставки на квартал
                     $unfilled[$key] = true;
                 }
@@ -561,7 +560,7 @@ class PersonalTariff extends Model
         if ($this->additional) {
             $this->currentCondition = AdditionalCottage::getCottage($this->cottageNumber);
         }
-        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->loadXML($this->currentCondition->individualTariffRates);
         $xpath = DOMHandler::getXpath($dom);
         $parent = $dom->documentElement->getElementsByTagName('membership')->item(0);
@@ -581,7 +580,7 @@ class PersonalTariff extends Model
         if (!empty($this->target)) {
             $parent = $dom->documentElement->getElementsByTagName('target')->item(0);
             // получу данные о текущем состоянии оплаты целевых платежей
-            $targetDom = new \DOMDocument('1.0', 'UTF-8');
+            $targetDom = new DOMDocument('1.0', 'UTF-8');
             $targetDom->loadXML($this->currentCondition->targetPaysDuty);
             $targetXpath = new \DOMXpath($targetDom);
             foreach ($this->target as $key => $value) {
@@ -646,7 +645,7 @@ class PersonalTariff extends Model
 
     public function saveChanges(): bool
     {
-        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->loadXML($this->currentCondition->individualTariffRates);
         $xpath = new \DOMXpath($dom);
         if ($this->membership !== null) {
@@ -663,7 +662,7 @@ class PersonalTariff extends Model
         }
         if (!empty($this->target)) {
             // получу данные о текущем состоянии оплаты целевых платежей
-            $targetDom = new \DOMDocument('1.0', 'UTF-8');
+            $targetDom = new DOMDocument('1.0', 'UTF-8');
             $targetDom->loadXML($this->currentCondition->targetPaysDuty);
             $targetXpath = new \DOMXpath($targetDom);
             foreach ($this->target as $key => $value) {
@@ -686,7 +685,7 @@ class PersonalTariff extends Model
                         $float = CashHandler::toRubles($this->target[$year]['float']);
                         $payed = CashHandler::toRubles($this->target[$year]['payed-before']);
                         $summ = Calculator::countFixedFloat($fixed, $float, $this->currentCondition->cottageSquare);
-                        if($summ > 0){
+                        if ($summ > 0) {
                             $targetDebtSumm += $summ - $payed;
                             // пересчитаю тариф
                             $debt->setAttribute('fixed', $fixed);
@@ -694,8 +693,7 @@ class PersonalTariff extends Model
                             $debt->setAttribute('payed', $payed);
                             $debt->setAttribute('summ', $summ);
                             unset ($this->target[$year]);
-                        }
-                        else{
+                        } else {
                             $debt->parentNode->removeChild($debt);
                         }
                     } else {
@@ -710,7 +708,7 @@ class PersonalTariff extends Model
                 $float = CashHandler::toRubles($value['float']);
                 $payed = CashHandler::toRubles($value['payed-before']);
                 $summ = Calculator::countFixedFloat($fixed, $float, $this->currentCondition->cottageSquare);
-                if($summ > 0){
+                if ($summ > 0) {
                     if ($payed < $summ) {
                         $elem = $targetDom->createElement('target');
                         $elem->setAttribute('year', $key);
@@ -792,7 +790,7 @@ class PersonalTariff extends Model
         }
         if (!empty($cottageInfo) && $cottageInfo->individualTariff) {
             $tariffText = '';
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $quarters = $xpath->query('/tariffs/membership/quarter');
@@ -835,7 +833,7 @@ class PersonalTariff extends Model
         // проверю, подключен ли индивидуальный тариф
         if ($cottageInfo->individualTariff) {
             $data = [];
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $years = $xpath->query('/tariffs/target/year');
@@ -905,7 +903,7 @@ class PersonalTariff extends Model
 
     public static function getLastMembershipRate($cottageInfo)
     {
-        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->loadXML($cottageInfo->individualTariffRates);
         $xpath = new \DOMXpath($dom);
         $quarters = $xpath->query('/tariffs/membership/quarter');
@@ -923,7 +921,7 @@ class PersonalTariff extends Model
         // проверю, подключен ли индивидуальный тариф
         if ($cottageInfo->individualTariff) {
             $data = [];
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $quarters = $xpath->query('/tariffs/membership/quarter');
@@ -964,11 +962,10 @@ class PersonalTariff extends Model
         // проверю, подключен ли индивидуальный тариф
         if ($cottageInfo->individualTariff) {
             $data = [];
-            $dom = new \DOMDocument('1.0', 'UTF-8');
-            try{
+            $dom = new DOMDocument('1.0', 'UTF-8');
+            try {
                 $dom->loadXML($cottageInfo->individualTariffRates);
-            }
-            catch (\Exception $e){
+            } catch (\Exception $e) {
                 echo $cottageInfo->cottageNumber;
                 die;
             }
@@ -989,12 +986,13 @@ class PersonalTariff extends Model
         }
         throw new InvalidArgumentException('У данного участка не активирован персональный тариф.');
     }
+
     public static function getTargetTariffs($cottageInfo): array
     {
         // проверю, подключен ли индивидуальный тариф
         if ($cottageInfo->individualTariff) {
             $data = [];
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $years = $xpath->query('/tariffs/target/year');
@@ -1023,7 +1021,7 @@ class PersonalTariff extends Model
     {
         // проверю, подключен ли индивидуальный тариф
         if ($cottageInfo->individualTariff === 1) {
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             if (!empty($targetQuarter)) {
@@ -1033,10 +1031,22 @@ class PersonalTariff extends Model
                 $quarter = $xpath->query('/tariffs/membership/quarter[last()]');
             }
             if ($quarter->length === 1) {
-                $q = $quarter->item(0)->getAttribute('date');
-                $fixed = CashHandler::toRubles($quarter->item(0)->getAttribute('fixed'));
-                $float = CashHandler::toRubles($quarter->item(0)->getAttribute('float'));
-                return ['quarter' => $q, 'fixed' => $fixed, 'float' => $float];
+                /** @var \DOMElement $quarterItem */
+                $quarterItem = $quarter->item(0);
+                if ($quarterItem !== null) {
+                    $q = $quarterItem->getAttribute('date');
+                    $fixed = CashHandler::toRubles($quarterItem->getAttribute('fixed'));
+                    $float = CashHandler::toRubles($quarterItem->getAttribute('float'));
+                    return ['quarter' => $q, 'fixed' => $fixed, 'float' => $float];
+                }
+            }
+
+            // найду тариф в сетке тарифов- значит, что на тот момент тарифы ещё были общими
+            if (!empty($targetQuarter)) {
+                $tariff = Table_tariffs_membership::findOne(['quarter' => $targetQuarter]);
+                if ($tariff !== null) {
+                    return ['quarter' => $targetQuarter, 'fixed' => $tariff->fixed_part, 'float' => $tariff->changed_part];
+                }
             }
             return false;
         }
@@ -1048,7 +1058,7 @@ class PersonalTariff extends Model
         $targetYear = TimeHandler::isYear($targetYear);
         // проверю, подключен ли индивидуальный тариф
         if ($cottageInfo->individualTariff === 1) {
-            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
             $year = $xpath->query("/tariffs/target/year[@date='{$targetYear}']");

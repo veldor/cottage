@@ -8,9 +8,12 @@
 
 namespace app\models;
 
+use app\models\selections\MembershipDebt;
+use app\models\selections\TargetDebt;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
 use yii\base\ErrorException;
+use yii\base\InvalidArgumentException;
 use yii\base\Model;
 
 class Report extends Model
@@ -390,6 +393,145 @@ class Report extends Model
 
             $date = TimeHandler::getFullFromShotMonth($item->powerData->month);
             $content .= "<tr><td>$date</td><td>{$item->powerData->newPowerData} кВт.ч</td><td>{$item->powerData->difference} кВт.ч</td><td>$inLimitPay</td><td>$overLimitPay</td><td>$totalPay</td></tr>";
+        }
+        $content .= '</tbody></table>';
+        return $content;
+    }
+
+
+    public static function power_additionalDebtReport($cottageNumber): string
+    {
+
+        $content = "<table class='table table-hover table-striped'><thead><tr><th>Месяц</th><th>Данные</th><th>Потрачено</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead>
+<tbody>";
+        $cottageInfo = AdditionalCottage::getCottage($cottageNumber);
+        $info = PowerHandler::getDebtReport($cottageInfo);
+        foreach ($info as $item) {
+            $inLimitPay = CashHandler::toShortSmoothRubles($item->powerData->inLimitPay);
+            $overLimitPay = CashHandler::toShortSmoothRubles($item->powerData->overLimitPay);
+            $totalPay = CashHandler::toShortSmoothRubles($item->powerData->totalPay);
+
+            $date = TimeHandler::getFullFromShotMonth($item->powerData->month);
+            $content .= "<tr><td>$date</td><td>{$item->powerData->newPowerData} кВт.ч</td><td>{$item->powerData->difference} кВт.ч</td><td>$inLimitPay</td><td>$overLimitPay</td><td>$totalPay</td></tr>";
+        }
+        $content .= '</tbody></table>';
+        return $content;
+    }
+
+    /**
+     * @param $cottageNumber
+     * @return bool|string
+     */
+    public static function membershipDebtReport($cottageNumber)
+    {
+        $cottageInfo = Table_cottages::findOne($cottageNumber);
+        if (!empty($cottageInfo)) {
+            $content = "<table class='table table-hover table-striped'><thead><tr><th>Квартал</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
+            $info = MembershipHandler::getDebt($cottageInfo);
+            foreach ($info as $item) {
+                $fixed = CashHandler::toShortSmoothRubles($item->tariffFixed);
+                $float = CashHandler::toShortSmoothRubles($item->tariffFloat);
+                $floatSumm = CashHandler::toShortSmoothRubles($item->amount - ($item->tariffFixed));
+                $totalSumm = CashHandler::toShortSmoothRubles($item->amount);
+                $content .= "<tr><td>$item->quarter</td><td>{$cottageInfo->cottageSquare}</td><td>$fixed</td><td>$float</td><td>$fixed</td><td>$floatSumm</td><td>$totalSumm</td></tr>";
+            }
+            $content .= '</tbody></table>';
+            return $content;
+        }
+        return false;
+    }
+
+    public static function membership_additionalDebtReport($cottageNumber)
+    {
+        $cottageInfo = Table_additional_cottages::findOne($cottageNumber);
+        if (!empty($cottageInfo)) {
+            $content = "<table class='table table-hover table-striped'><thead><tr><th>Квартал</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
+            /** @var MembershipDebt[] $info */
+            $info = MembershipHandler::getDebt($cottageInfo);
+            foreach ($info as $key => $item) {
+                $content .= "<tr><td>{$item->quarter}</td><td>{$cottageInfo->cottageSquare}</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->amount}  &#8381;</td></tr>";
+            }
+            $content .= '</tbody></table>';
+            return $content;
+        }
+        return false;
+    }
+
+    /**
+     * @param $cottageNumber int|string
+     * @return string
+     */
+    public static function targetDebtReport($cottageNumber): string
+    {
+        $cottageInfo = Table_cottages::findOne($cottageNumber);
+        $content = "<table class='table table-hover table-striped'><thead><tr><th>Год</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th><th>Уже оплачено</th></tr></thead><tbody>";
+        if (!empty($cottageInfo)) {
+            $years = TargetHandler::getDebt($cottageInfo);
+            foreach ($years as $item) {
+                $content .= "<tr><td>{$item->year}</td><td>{$cottageInfo->cottageSquare}</td><td>{$item->tariffFixed} &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->amount}&#8381;</td><td>{$item->partialPayed}&#8381;</td></tr>";
+
+            }
+            $content .= '</tbody></table>';
+            return $content;
+        }
+        throw new InvalidArgumentException('Неверный адрес участка');
+    }
+
+    /**
+     * @param $cottageNumber
+     * @return string
+     */
+    public static function target_additionalDebtReport($cottageNumber): string
+    {
+        $cottageInfo = Table_additional_cottages::findOne($cottageNumber);
+        $content = "<table class='table table-hover table-striped'><thead><tr><th>Год</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
+        if (!empty($cottageInfo)) {
+            /** @var TargetDebt[] $years */
+            $years = TargetHandler::getDebt($cottageInfo);
+            foreach ($years as $key => $year) {
+                $content .= "<tr><td>{$key}</td><td>{$cottageInfo->cottageSquare}</td><td>{$year->tariffFixed} &#8381;</td><td>{$year->tariffFloat}  &#8381;</td><td>{$year->tariffFixed}  &#8381;</td><td>{$year->tariffFloat}  &#8381;</td><td>{$year->amount}  &#8381;</td></tr>";
+
+            }
+            $content .= '</tbody></table>';
+            return $content;
+        }
+        throw new InvalidArgumentException('Неверный адрес участка');
+    }
+
+    /**
+     * @param $cottageNumber int|string
+     * @return string
+     */
+    public static function singleDebtReport($cottageNumber): string
+    {
+        $content = "<table class='table table-hover table-striped'><thead><tr><th>Дата</th><th>Цена</th><th>Цель</th></tr></thead><tbody>";
+        $duty = SingleHandler::getDebtReport($cottageNumber);
+
+        foreach ($duty as $value) {
+            $date = TimeHandler::getDateFromTimestamp($value->time);
+            $summ = $value->amount;
+            $payed = $value->partialPayed;
+            $description = urldecode($value->description);
+            $realSumm = CashHandler::rublesMath($summ - $payed);
+            $content .= "<tr class='single-item' data-id='{$value->time}'><td>$date</td><td>{$realSumm}  &#8381;</td><td>{$description}</td></tr>";
+
+        }
+        $content .= '</tbody></table>';
+        return $content;
+    }
+
+    public static function single_additionalDebtReport($cottageNumber): string
+    {
+        $content = "<table class='table table-hover table-striped'><thead><tr><th>Дата</th><th>Цена</th><th>Цель</th></tr></thead><tbody>";
+        $duty = SingleHandler::getDebtReport($cottageNumber, true);
+        foreach ($duty as $key => $value) {
+            $date = TimeHandler::getDateFromTimestamp($key);
+            $summ = $value['summ'];
+            $payed = $value['payed'];
+            $description = urldecode($value['description']);
+            $realSumm = CashHandler::rublesMath($summ - $payed);
+            $content .= "<tr class='single-item' data-id='$key'><td>$date</td><td>{$realSumm}  &#8381;</td><td>{$description}</td></tr>";
+
         }
         $content .= '</tbody></table>';
         return $content;
