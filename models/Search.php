@@ -220,21 +220,21 @@ class Search extends Model
             if(!empty($powerDetails)){
                 ksort($powerDetails);
                 foreach ($powerDetails as $key => $value) {
-                    $powerDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toSmoothRubles($value);
+                    $powerDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toShortSmoothRubles($value);
                 }
             }
             $membershipDetailsValue = '<br/>Детали:';
             if(!empty($membershipDetails)){
                 ksort($membershipDetails);
                 foreach ($membershipDetails as $key => $value) {
-                    $membershipDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toSmoothRubles($value);
+                    $membershipDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toShortSmoothRubles($value);
                 }
             }
             $targetDetailsValue = '<br/>Детали:';
             if(!empty($targetDetails)){
                 ksort($targetDetails);
                 foreach ($targetDetails as $key => $value) {
-                    $targetDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toSmoothRubles($value);
+                    $targetDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toShortSmoothRubles($value);
                 }
             }
             $content = "<table class='table table-striped'><thead><th>Электроэнергия</th><th>Членские</th><th>Целевые</th><th>Разовые</th><th>Пени</th><th>С депозита</th><th>На депозит</th></thead><tbody>";
