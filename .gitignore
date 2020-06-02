@@ -50,3 +50,4 @@ tests/_support/_generated
 /files/
 /settings/mail_settings
 /views/site/report.pdf
+/errors/errors.txt
