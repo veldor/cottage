@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\interfaces\CottageInterface;
 use app\models\selections\MembershipDebt;
 use app\models\selections\TargetDebt;
 use app\models\tables\Table_payed_fines;
@@ -22,19 +23,17 @@ class Report extends Model
     /**
      * @param $start
      * @param $end
-     * @param $cottageNumber
+     * @param CottageInterface $cottage
      * @return array
      */
-    public static function cottageReport($start, $end, $cottageNumber): array
+    public static function cottageReport($start, $end, $cottage): array
     {
-        // Получу информацию об участке
-        $cottageInfo = Table_cottages::find()->where(['cottageNumber' => $cottageNumber])->select(['cottageNumber', 'cottageSquare', 'cottageOwnerPersonals'])->one();
         $content = [];
         $singleDescriptions = [];
         $singleCounters = 1;
         // найду все транзакции данного участка за выбранный период
-        $trs = Table_transactions::find()->where(['cottageNumber' => $cottageNumber])->andWhere(['>=', 'transactionDate', $start])->andWhere(['<=', 'transactionDate', $end])->all();
-        if (!empty($trs)) {
+        $transactions = TransactionsHandler::getTransactionsByPeriod($cottage, $start, $end);
+        if ($transactions !== null) {
             // отчёты
             $wholePower = 0;
             $wholeTarget = 0;
@@ -43,7 +42,7 @@ class Report extends Model
             $wholeFines = 0;
             $wholeSumm = 0;
             $wholeDeposit = 0;
-            foreach ($trs as $transaction) {
+            foreach ($transactions as $transaction) {
                 // вычислю полную сумму заплаченного
                 $wholeSumm += CashHandler::toRubles($transaction->transactionSumm);
                 if ($transaction instanceof Table_transactions) {
@@ -372,7 +371,7 @@ class Report extends Model
                                 <td>$wholeSumm</td>
                             </tr>";
         }
-        return ['content' => $content, 'cottageInfo' => $cottageInfo, 'singleDescriptions' => $singleDescriptions];
+        return ['content' => $content, 'cottageInfo' => $cottage, 'singleDescriptions' => $singleDescriptions];
     }
 
     /**

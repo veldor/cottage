@@ -4,6 +4,7 @@
 namespace app\models;
 
 
+use app\models\interfaces\TransactionsInterface;
 use app\models\small_classes\TransactionComparison;
 use yii\base\Model;
 
@@ -15,6 +16,20 @@ class TransactionsHandler extends Model
     public $double;
     public $payDate;
     public $bankDate;
+
+    /**
+     * @param interfaces\CottageInterface $cottage участок
+     * @param string $start начало периода
+     * @param string $end конец периода
+     * @return TransactionsInterface
+     */
+    public static function getTransactionsByPeriod(interfaces\CottageInterface $cottage, $start, $end)
+    {
+        if($cottage->isMain()){
+            return Table_transactions::find()->where(['cottageNumber' => $cottage->getBaseCottageNumber()])->andWhere(['>=', 'transactionDate', $start])->andWhere(['<=', 'transactionDate', $end])->all();
+        }
+        return Table_transactions_double::find()->where(['cottageNumber' => $cottage->getBaseCottageNumber()])->andWhere(['>=', 'transactionDate', $start])->andWhere(['<=', 'transactionDate', $end])->all();
+    }
 
     public function scenarios(): array
     {

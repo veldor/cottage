@@ -51,3 +51,4 @@ tests/_support/_generated
 /settings/mail_settings
 /views/site/report.pdf
 /errors/errors.txt
+/errors/backup.sql

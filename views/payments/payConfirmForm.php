@@ -293,9 +293,9 @@ echo $form->field($model, 'toDeposit', ['template' =>
     ->label('Будет зачислено на депозит');
 echo "<div class='clearfix'></div>";
 if(empty($model->bankTransaction)){
-    echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="payCustomDate" name="Pay[customDate]"></div></div>';
+    echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата платежа</label></div><div class="col-sm-4"><input type="date" class="form-control " id="payCustomDate" name="Pay[customDate]"></div></div>';
     echo "<div class='margened'></div>";
-    echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата поступления на счёт</label></div><div class="col-sm-4"><input type="date" class="form-control distributed-summ-input" id="getCustomDate" name="Pay[getCustomDate]"></div></div>';
+    echo '<div class="form-group margened"><div class="col-sm-5"><label class="control-label" for="payCustomDate">Дата поступления на счёт</label></div><div class="col-sm-4"><input type="date" class="form-control" id="getCustomDate" name="Pay[getCustomDate]"></div></div>';
 }
 
 echo "<div class='margened'></div>";

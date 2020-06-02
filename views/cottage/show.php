@@ -9,6 +9,7 @@ use app\models\GrammarHandler;
 use app\models\Reminder;
 use app\models\Table_payed_power;
 use app\models\Table_power_months;
+use app\models\tables\Table_penalties;
 use app\models\TimeHandler;
 use nirvana\showloading\ShowLoadingAsset;
 use yii\helpers\Url;
@@ -83,7 +84,9 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             }
             ?>
             <tr>
-                <td><a class="activator" data-action="<?=Url::toRoute(['forms/power', 'cottageId' => $cottageInfo->globalInfo->cottageNumber])?>">Электроэнергия</a></td>
+                <td><a class="activator"
+                       data-action="<?= Url::toRoute(['forms/power', 'cottageId' => $cottageInfo->globalInfo->cottageNumber]) ?>">Электроэнергия</a>
+                </td>
                 <td><?= $cottageInfo->powerDebts > 0 ? "<a class='btn btn-default detail-debt' data-type='power' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->powerDebts) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
             </tr>
             <tr>
@@ -332,6 +335,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 if (!empty($cottageInfo->additionalCottageInfo['fines'])) {
                     // есть задолженности по пени
                     foreach ($cottageInfo->additionalCottageInfo['fines'] as $fine) {
+                        /** @var Table_penalties $fine */
                         if ($fine->is_enabled) {
                             $total += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
                         }
@@ -470,10 +474,9 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 echo '<div class=\'col-sm-12\'><table class="table table-condensed table-striped"><thead><tr><th>ФИО</th><th>Адрес</th><th>Действия</th></tr></thead><tbody>';
                 /** @var Mail $mail */
                 foreach ($mails as $mail) {
-                    if(!empty($mail->comment)){
+                    if (!empty($mail->comment)) {
                         $tooltip = "data-toggle=\"tooltip\" data-placement=\"top\" title=\"{$mail->comment}\"";
-                    }
-                    else{
+                    } else {
                         $tooltip = '';
                     }
                     echo "<tr class='tooltip-enabled' $tooltip><td>{$mail->fio}</td><td><a href='malito:{$mail->email}'>{$mail->email}</a></td><td><div class='btn-group'><button class='btn btn-default mail-delete' data-id='{$mail->id}'><span class='text-danger'>Удалить</span></button><button class='btn btn-default mail-change' data-id='{$mail->id}'><span class='text-info'>Изменить</span></button></div></td></tr>";
@@ -548,6 +551,8 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         }
                         ?>
                         <li><a id="addToDepositDoubleActivator" href="#">Зачислить на депозит</a></li>
+
+                        <li><a id="showReportsDouble" href="#">Отчёт о платежах</a></li>
                     </ul>
                 </div>
 
@@ -584,9 +589,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             <div class="col-lg-6">
                 <h2>Основные действия</h2>
                 <div class="btn-group-vertical">
-                    <?php
-                    echo "<button id='payForCottageButton' class='btn btn-success'>Оплатить</button>";
-                    ?>
+                    <button id='payForCottageButton' class='btn btn-success'>Оплатить</button>
                     <button id="buttonShowPaymentsStory" class="btn btn-default">История платежей</button>
                     <button id="changeInfoButton" class="btn btn-info">Изменить данные</button>
                 </div>

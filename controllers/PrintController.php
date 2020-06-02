@@ -37,15 +37,20 @@ class PrintController extends Controller
         ];
     }
 
-    public function actionCottageReport($start, $end, $cottageNumber): string
+    public function actionCottageReport($start, $end, $cottageNumber, $double = false): string
     {
-        $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
+        if($double){
+            $cottageInfo = Cottage::getCottageByLiteral($cottageNumber . '-a');
+        }
+        else{
+            $cottageInfo = Cottage::getCottageByLiteral($cottageNumber);
+        }
         $start /= 1000;
         $end /= 1000;
         // прибавлю 23 часа к значению конца периода
         $end += 60 * 60 * 20;
         // получу информацию по всем транзакциям участка
-        $info = Report::cottageReport($start, $end, $cottageNumber);
+        $info = Report::cottageReport($start, $end, $cottageInfo);
         // получу информацию о задолженностях участка
         // сохраню PDF
         $reportPdf =  $this->renderPartial('cottage-report-pdf', ['transactionsInfo' => $info,'start' => $start,'end' => $end, 'cottageInfo' => $cottageInfo]);

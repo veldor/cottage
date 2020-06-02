@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\interfaces\TransactionsInterface;
 use yii\db\ActiveRecord;
 
 /**
@@ -29,9 +30,9 @@ use yii\db\ActiveRecord;
  * @property int $bankDate [int(10) unsigned]  Дата поступления средств на счёт
  */
 
-class Table_transactions extends ActiveRecord
+class Table_transactions extends ActiveRecord implements TransactionsInterface
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'transactions';
     }

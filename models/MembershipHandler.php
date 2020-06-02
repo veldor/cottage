@@ -116,6 +116,22 @@ class MembershipHandler extends Model
         return 0;
     }
 
+    public static function getFirstPayedQuarter(interfaces\CottageInterface $cottage)
+    {
+        if($cottage->isMain()){
+            return Table_payed_membership::find()->where(['cottageId' => $cottage->getBaseCottageNumber()])->orderBy('quarter')->one();
+        }
+        return Table_additional_payed_membership::find()->where(['cottageId' => $cottage->getBaseCottageNumber()])->orderBy('quarter')->one();
+    }
+
+    public static function getPaysBefore(string $quarter, interfaces\CottageInterface $cottage, int $periodEnd)
+    {
+        if($cottage->isMain()){
+            return Table_payed_membership::find()->where(['quarter' => $quarter, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
+        }
+        return Table_additional_payed_membership::find()->where(['quarter' => $quarter, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
+    }
+
 
     public function scenarios(): array
     {

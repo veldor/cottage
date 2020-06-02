@@ -1358,33 +1358,13 @@ function additionalFunctions() {
     let showRepotrsBtn = $('#showReports');
     showRepotrsBtn.on('click.show', function (e) {
         e.preventDefault();
-        let modal = makeModal('Выберите период для отчёта', "<div class='row'><form>\n" +
-            "    <div class='form-group membership-group text-center'>\n" +
-            "        <div class='col-lg-6'>\n" +
-            "            <label class=\"control-label\">Начало периода\n" +
-            "                <input id='begin-period' type='date' class='form-control'/>\n" +
-            "            </label>\n" +
-            "        </div>\n" +
-            "        <div class='col-lg-6'>\n" +
-            "            <label class=\"control-label\">Завершение периода\n" +
-            "                <input id=\"end-period\" type='date' class='form-control'/>\n" +
-            "            </label>\n" +
-            "        </div>\n" +
-            "    </div>\n" +
-            "    <div class='col-lg-12 text-center'><button type='button' id='goBtn' class='btn btn-primary'>Показать</button></div>\n" +
-            "</form></div>");
-        let sendBtn = modal.find('button#goBtn');
-        let start = modal.find('input#begin-period');
-        let end = modal.find('input#end-period');
-        sendBtn.on('click.send', function () {
-            let startVal = start.val();
-            let endVal = end.val();
-            if (startVal && endVal) {
-                window.open('/print/cottage-report/' + new Date(startVal).getTime() + '/' + new Date(endVal).getTime() + '/' + cottageNumber, '_blank')
-            } else {
-                makeInformer('warning', 'Рано', 'Выберите дату начала и завершения периода');
-            }
-        });
+        handleReport();
+    });
+    // покажу отчёты по дополнительному участку за выбранный период
+    let showRepotrsDoubleBtn = $('#showReportsDouble');
+    showRepotrsDoubleBtn.on('click.show', function (e) {
+        e.preventDefault();
+        handleReport(true);
     });
     // отправляю оповещение о задолженности
     let sendDutiesBtn = $('#sendNotificationBtn');
@@ -1559,4 +1539,39 @@ $(function () {
         }
     });
 });
+
+function handleReport(double) {
+    let modal = makeModal('Выберите период для отчёта', "<div class='row'><form>\n" +
+        "    <div class='form-group membership-group text-center'>\n" +
+        "        <div class='col-lg-6'>\n" +
+        "            <label class=\"control-label\">Начало периода\n" +
+        "                <input id='begin-period' type='date' class='form-control'/>\n" +
+        "            </label>\n" +
+        "        </div>\n" +
+        "        <div class='col-lg-6'>\n" +
+        "            <label class=\"control-label\">Завершение периода\n" +
+        "                <input id=\"end-period\" type='date' class='form-control'/>\n" +
+        "            </label>\n" +
+        "        </div>\n" +
+        "    </div>\n" +
+        "    <div class='col-lg-12 text-center'><button type='button' id='goBtn' class='btn btn-primary'>Показать</button></div>\n" +
+        "</form></div>");
+    let sendBtn = modal.find('button#goBtn');
+    let start = modal.find('input#begin-period');
+    let end = modal.find('input#end-period');
+    sendBtn.on('click.send', function () {
+        let startVal = start.val();
+        let endVal = end.val();
+        if (startVal && endVal) {
+            if(double){
+                window.open('/print/cottage-report-double/' + new Date(startVal).getTime() + '/' + new Date(endVal).getTime() + '/' + cottageNumber, '_blank')
+            }
+            else{
+                window.open('/print/cottage-report/' + new Date(startVal).getTime() + '/' + new Date(endVal).getTime() + '/' + cottageNumber, '_blank')
+            }
+        } else {
+            makeInformer('warning', 'Рано', 'Выберите дату начала и завершения периода');
+        }
+    });
+}
 

@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\interfaces\CottageInterface;
 use app\models\selections\TargetDebt;
 use app\models\selections\TargetInfo;
 use app\validators\CashValidator;
@@ -128,6 +129,14 @@ class TargetHandler extends Model
             }
         }
         return 0;
+    }
+
+    public static function getPaysBefore($year, CottageInterface $cottage, int $periodEnd)
+    {
+        if($cottage->isMain()){
+            return Table_payed_target::find()->where(['year' => $year, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
+        }
+        return Table_additional_payed_target::find()->where(['year' => $year, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
     }
 
 
@@ -264,13 +273,12 @@ class TargetHandler extends Model
     }
 
     /**
-     * @param $cottageInfo Table_additional_cottages|Table_cottages
+     * @param $cottageInfo CottageInterface
      * @return TargetDebt[]
      */
     public static function getDebt($cottageInfo): array
     {
-        $isMain = Cottage::isMain($cottageInfo);
-        if (!$isMain && !$cottageInfo->isTarget) {
+        if (!$cottageInfo->isMain() && !$cottageInfo->isTarget) {
             return [];
         }
         $targetDom = new DOMHandler($cottageInfo->targetPaysDuty);

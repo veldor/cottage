@@ -76,15 +76,14 @@ class Pay extends Model
         } else {
             $bill = Table_payment_bills::findOne($payId);
         }
-        if (!empty($bill)) {
+        if ($bill !== null) {
             // проверю, счёт должен быть частично оплачен
             if ($bill->isPartialPayed) {
                 $bill->isPayed = 1;
                 $bill->save();
                 return ['status' => 1, 'message' => 'Счёт успешно закрыт.'];
-            } else {
-                throw new ExceptionWithStatus('Счёт должен быть частично оплачен', 2);
             }
+            throw new ExceptionWithStatus('Счёт должен быть частично оплачен', 2);
         }
         throw new ExceptionWithStatus('Счёт не найден', 3);
     }

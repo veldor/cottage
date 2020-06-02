@@ -106,6 +106,7 @@ return [
 	'power/cancel-previous/<additional:additional>/<cottageNumber:[0-9]+>' => 'filling/cancel-power',
 
 	'print/cottage-report/<start:[0-9]+>/<end:[0-9]+>/<cottageNumber:[0-9]+>' => 'print/cottage-report',
+	'print/cottage-report-<double:double>/<start:[0-9]+>/<end:[0-9]+>/<cottageNumber:[0-9]+>' => 'print/cottage-report',
 	'tariff/personal/enable/<cottageNumber:[0-9]+>' => 'tariffs/make-personal',
 	'tariff/personal/enable/additional/<cottageNumber:[0-9]+>' => 'tariffs/make-additional-personal',
 	'tariff/personal/disable/<cottageNumber:[0-9]+>' => 'tariffs/disable-personal',

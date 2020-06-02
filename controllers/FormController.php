@@ -47,7 +47,7 @@ class FormController extends Controller
             Yii::$app->response->format = Response::FORMAT_JSON;
             $cottage = Cottage::getCottageByLiteral($cottageNumber);
             $form = new Mail(['scenario' => Mail::SCENARIO_CREATE]);
-            $form->cottage = $cottage->cottageNumber;
+            $form->cottage = $cottage;
             $view = $this->renderAjax('add-mail', ['matrix' => $form]);
             return ['status' => 1,
                 'header' => 'Добавление адреса электронной почты',
