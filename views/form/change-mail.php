@@ -1,5 +1,6 @@
 <?php
 
+use app\models\Cottage;
 use app\models\database\Mail;
 use kartik\switchinput\SwitchInput;
 use yii\helpers\Html;
@@ -10,7 +11,8 @@ use yii\widgets\ActiveForm;
 /* @var $this View */
 /* @var $matrix Mail */
 
-$existentMails = Mail::getCottageMails($matrix->cottage);
+$cottageInfo = Cottage::getCottageByLiteral($matrix->cottage);
+$existentMails = Mail::getCottageMails($cottageInfo);
 
 if (!empty($existentMails)) {
     echo '<h4>Список существующих адресов электронной почты</h4><ul>';
