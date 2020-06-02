@@ -109,10 +109,10 @@ class Search extends Model
             $content .= $data['text'];
             $totalSumm += $data['summ'];
             $content .= '</tbody></table>';
-            return ['status' => 1, 'data' => $content, 'totalSumm' => $totalSumm];
+            return ['status' => 1, 'data' => $content, 'totalSumm' => $totalSumm, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
         }
 
-        return ['status' => 1, 'data' => '<h2>Транзакций за период не было</h2>', 'totalSumm' => 0];
+        return ['status' => 1, 'data' => '<h2>Транзакций за период не было</h2>', 'totalSumm' => 0, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
     }
 
     private function getSummary($interval): array
@@ -541,10 +541,10 @@ class Search extends Model
                 }
             }
             $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td>$wholeSingle</td><td></td><td>$wholeFines</td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";
-            return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm];
+            return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
         }
         else{
-            return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0];
+            return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
         }
     }
 }

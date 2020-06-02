@@ -89,30 +89,32 @@ class Pay extends Model
         throw new ExceptionWithStatus('Счёт не найден', 3);
     }
 
-    public static function reopenBill($billId, $double)
+    /**
+     * Заново открываю счёт
+     * @param $billId
+     * @param $double
+     * @return array
+     */
+    public static function reopenBill($billId, $double): array
     {
-            $billInfo = ComplexPayment::getBill($billId, $double);
-            if (!empty($billInfo)) {
-                // если используется сумма с депозита и счёт не оплачивался- спишу её
-                // заморожу средства на депозите
-                if($billInfo->depositUsed > 0 && $billInfo->payedSumm == 0){
-                    $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . ($double ? '-a' : ''));
-                    $cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->deposit) - $billInfo->depositUsed);
-                    $cottageInfo->save();
-                }
-                // если счёт открыт- пишу, что он открыт
-                if ($billInfo->isPayed === 0) {
-                    return ['status' => 2, 'message' => 'Счёт ещё открыт!'];
-                }
-                // проверю, не открыт ли счёт у данного участка
-                if (!empty(Pay::getUnpayedBill(Cottage::getCottageByLiteral($billInfo->cottageNumber)))) {
-                    return ['status' => 4, 'message' => 'Сначала нужно закрыть все открытые счета участка!'];
-                }
-                $billInfo->isPayed = 0;
-                $billInfo->save();
-                return ['status' => 1, 'message' => 'Счёт успешно открыт заново!'];
+        $billInfo = ComplexPayment::getBill($billId, $double);
+        if ($billInfo !== null) {
+            // если используется сумма с депозита и счёт не оплачивался- спишу её
+            // заморожу средства на депозите
+            if ($billInfo->depositUsed > 0 && $billInfo->payedSumm == 0) {
+                $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . ($double ? '-a' : ''));
+                $cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->deposit) - $billInfo->depositUsed);
+                $cottageInfo->save();
             }
-            return ['status' => 3, 'message' => 'Счёт не найден!'];
+            // если счёт открыт- пишу, что он открыт
+            if ($billInfo->isPayed === 0) {
+                return ['status' => 2, 'message' => 'Счёт ещё открыт!'];
+            }
+            $billInfo->isPayed = 0;
+            $billInfo->save();
+            return ['status' => 1, 'message' => 'Счёт успешно открыт заново!'];
+        }
+        return ['status' => 3, 'message' => 'Счёт не найден!'];
     }
 
     /**
@@ -190,10 +192,10 @@ class Pay extends Model
                 $this->additionalCottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
             }
         }
-        if(!empty($bankTransaction)){
+        if (!empty($bankTransaction)) {
             // найду транзакцию
             $this->bankTransaction = Table_bank_invoices::findOne($bankTransaction);
-            if(empty($this->bankTransaction)){
+            if (empty($this->bankTransaction)) {
                 throw new ExceptionWithStatus('Транзакция #' . $bankTransaction . ' не найдена.');
             }
         }
@@ -297,7 +299,7 @@ class Pay extends Model
                     } else {
                         $billTransaction->usedDeposit = 0;
                     }
-                    if($billInfo->discount > 0){
+                    if ($billInfo->discount > 0) {
                         DiscountHandler::registerDiscount($billInfo, $billTransaction);
                     }
                 }
@@ -347,7 +349,7 @@ class Pay extends Model
                 $billTransaction->partial = 1;
                 $billTransaction->usedDeposit = 0;
                 $billTransaction->gainedDeposit = $this->toDeposit;
-                if($this->toDeposit > 0){
+                if ($this->toDeposit > 0) {
                     $billInfo->toDeposit = CashHandler::toRubles($this->toDeposit);
                     DepositHandler::registerDeposit($billInfo, $cottageInfo, 'in', $billTransaction);
                 }
@@ -365,14 +367,14 @@ class Pay extends Model
                 }
 
                 // обработаю депозит и скидки
-                if($billInfo->depositUsed > 0){
+                if ($billInfo->depositUsed > 0) {
                     DepositHandler::registerDeposit($billInfo, $cottageInfo, 'out', $billTransaction);
                 }
-                if($this->toDeposit > 0){
+                if ($this->toDeposit > 0) {
                     $billInfo->toDeposit = CashHandler::toRubles($this->toDeposit);
                     DepositHandler::registerDeposit($billInfo, $cottageInfo, 'in', $billTransaction);
                 }
-                if($billInfo->discount > 0){
+                if ($billInfo->discount > 0) {
                     DiscountHandler::registerDiscount($billInfo, $billTransaction);
                 }
             }
@@ -380,10 +382,9 @@ class Pay extends Model
                 PowerHandler::handlePartialPayment($billInfo, $this->power, $cottageInfo, $billTransaction);
             }
             if ($this->additionalPower > 0) {
-                if($this->double){
+                if ($this->double) {
                     PowerHandler::handlePartialPayment($billInfo, $this->additionalPower, $cottageInfo, $billTransaction);
-                }
-                else{
+                } else {
                     PowerHandler::handlePartialPayment($billInfo, $this->additionalPower, $additionalCottageInfo, $billTransaction);
                 }
 
@@ -392,10 +393,9 @@ class Pay extends Model
                 MembershipHandler::handlePartialPayment($billInfo, $this->membership, $cottageInfo, $billTransaction);
             }
             if ($this->additionalMembership > 0) {
-                if($this->double){
+                if ($this->double) {
                     MembershipHandler::handlePartialPayment($billInfo, $this->additionalMembership, $cottageInfo, $billTransaction);
-                }
-                else{
+                } else {
                     MembershipHandler::handlePartialPayment($billInfo, $this->additionalMembership, $additionalCottageInfo, $billTransaction);
                 }
 
@@ -404,10 +404,9 @@ class Pay extends Model
                 TargetHandler::handlePartialPayment($billInfo, $this->target, $cottageInfo, $billTransaction);
             }
             if (!empty($this->additionalTarget)) {
-                if($this->double){
+                if ($this->double) {
                     TargetHandler::handlePartialPayment($billInfo, $this->additionalTarget, $cottageInfo, $billTransaction);
-                }
-                else {
+                } else {
                     TargetHandler::handlePartialPayment($billInfo, $this->additionalTarget, $additionalCottageInfo, $billTransaction);
                 }
             }
@@ -422,25 +421,24 @@ class Pay extends Model
             // если используются средства с депозита и это первый платёж по данному счёту- списываю средства
             $billTransaction->transactionReason = 'Частичная оплата по счёту № ' . $billInfo->id;
             $billTransaction->save();
-            if($billInfo->payedSumm == $billInfo->totalSumm){
+            if ($billInfo->payedSumm == $billInfo->totalSumm) {
                 $billInfo->isPartialPayed = 0;
                 $billInfo->isPayed = 1;
             }
             $billInfo->save();
             $cottageInfo->save();
-            if(!empty($this->bankTransactionId)){
+            if (!empty($this->bankTransactionId)) {
                 $bankTransaction = Table_bank_invoices::findOne($this->bankTransactionId);
                 $billTransaction->bankDate = TimeHandler::getTimestampFromBank($bankTransaction->pay_date, $bankTransaction->pay_time);
-                if(!empty($bankTransaction->real_pay_date)){
+                if (!empty($bankTransaction->real_pay_date)) {
                     $billTransaction->payDate = TimeHandler::getTimestampFromBank($bankTransaction->real_pay_date, $bankTransaction->pay_time);
-                }
-                else{
+                } else {
                     $billTransaction->payDate = $billTransaction->bankDate;
                 }
                 $bankTransaction->bounded_bill_id = $billInfo->id;
                 $bankTransaction->save();
             }
-            if($additionalCottageInfo !== null){
+            if ($additionalCottageInfo !== null) {
                 $additionalCottageInfo->save();
             }
             if ($this->sendConfirmation) {

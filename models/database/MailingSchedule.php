@@ -6,6 +6,7 @@ namespace app\models\database;
 
 use app\models\GrammarHandler;
 use app\models\handlers\BillsHandler;
+use app\models\interfaces\CottageInterface;
 use app\models\MailSettings;
 use app\models\PDFHandler;
 use app\models\Report;
@@ -75,7 +76,7 @@ class MailingSchedule extends ActiveRecord
         $billInfo = BillsHandler::getBill($identificator);
         $cottageInfo = \app\models\Cottage::getCottageByLiteral($billInfo->cottageNumber);
         // получу почтовые ящики для данного участка
-        $mails = Mail::getCottageMails($billInfo->cottageNumber);
+        $mails = Mail::getCottageMails($cottageInfo);
         if (!empty($mails)) {
             $inQueue = [];
             foreach ($mails as $mail) {
@@ -115,10 +116,10 @@ class MailingSchedule extends ActiveRecord
      * @param string $body
      * @return array
      */
-    public static function addSingleMailing(Table_cottages $cottageInfo, string $subject, string $body): array
+    public static function addSingleMailing(CottageInterface $cottageInfo, string $subject, string $body): array
     {
         // получу адреса почты
-        $mails = Mail::getCottageMails($cottageInfo->cottageNumber);
+        $mails = Mail::getCottageMails($cottageInfo);
         if (!empty($mails)) {
             $newMail = new SingleMail(['subject' => $subject, 'body' => $body]);
             $newMail->save();
@@ -153,7 +154,7 @@ class MailingSchedule extends ActiveRecord
             }
             // попробую отправить письмо, если не получится- добавлю его в очередь рассылки
         }
-        return ['status' => 2, 'message' => 'Не найдено адресов электронной почты'];
+        return ['status' => 1, 'message' => 'Платёж зарегистрирован, почта не указана.'];
     }
 
     /**
@@ -165,7 +166,7 @@ class MailingSchedule extends ActiveRecord
     public static function scheduleReport(string $id, string $start, string $finish): array
     {
         $cottageInfo = \app\models\Cottage::getCottageByLiteral($id);
-        $mails = Mail::getCottageMails($cottageInfo->cottageNumber);
+        $mails = Mail::getCottageMails($cottageInfo);
         if (!empty($mails)) {
             $report = new CottageReport(['cottage_number' => $id, 'start' => $start, 'finish' => $finish]);
             $report->save();

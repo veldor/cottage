@@ -51,4 +51,20 @@ class Table_additional_cottages extends ActiveRecord implements CottageInterface
     {
         return $this->masterId . '-a';
     }
+    /**
+     * @return int
+     */
+    public function getBaseCottageNumber():int
+    {
+        return $this->masterId;
+    }
+
+    /**
+     * Проверка, основной ли участок
+     * @return bool
+     */
+    public function isMain():bool
+    {
+        return false;
+    }
 }

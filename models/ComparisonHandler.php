@@ -17,7 +17,7 @@ class ComparisonHandler extends Model
     public const SCENARIO_MANUAL_COMPARISON = 'manual comparison';
     public string $billId;
     public int $transactionId;
-    public bool $sendConfirmation = false;
+    public string $sendConfirmation = 'false';
 
     public const SCENARIO_COMPARISON = 'comparison';
 
@@ -200,7 +200,7 @@ class ComparisonHandler extends Model
                 $billInfo->save();
                 $cottageInfo->save();
                 $transaction->commitTransaction();
-                if ((bool)$this->sendConfirmation) {
+                if ($this->sendConfirmation === 'true'){
                     return MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($t->transactionSumm) . '. Благодарим за оплату.');
                 }
                 return ['status' => 1];
@@ -383,8 +383,8 @@ class ComparisonHandler extends Model
             }
             $cottageInfo->save();
             $transaction->commitTransaction();
-            if ((bool)$this->sendConfirmation) {
-                MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($t->transactionSumm) . '. Благодарим за оплату.');
+            if ($this->sendConfirmation === 'true') {
+                return MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($t->transactionSumm) . '. Благодарим за оплату.');
             }
             return ['status' => 1];
 

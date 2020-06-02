@@ -62,4 +62,20 @@ class Table_cottages extends ActiveRecord implements CottageInterface
     {
         return (string) $this->cottageNumber;
     }
+    /**
+     * @return int
+     */
+    public function getBaseCottageNumber():int
+    {
+        return $this->cottageNumber;
+    }
+
+    /**
+     * Проверка, основной ли участок
+     * @return bool
+     */
+    public function isMain():bool
+    {
+        return true;
+    }
 }

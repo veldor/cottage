@@ -4,6 +4,7 @@
 namespace app\models\database;
 
 
+use app\models\interfaces\CottageInterface;
 use Throwable;
 use Yii;
 use yii\db\ActiveRecord;
@@ -87,12 +88,15 @@ class Mail extends ActiveRecord
     }
 
     /**
-     * @param int $cottageNumber
+     * @param CottageInterface $cottage
      * @return Mail[]
      */
-    public static function getCottageMails(int $cottageNumber): array
+    public static function getCottageMails(CottageInterface $cottage): array
     {
-        return self::findAll(['cottage' => $cottageNumber]);
+        if($cottage->isMain()){
+            return self::findAll(['cottage' => $cottage->getCottageNumber()]);
+        }
+        return self::findAll(['cottage' => $cottage->getBaseCottageNumber(), 'cottage_is_double' => true]);
     }
 
 

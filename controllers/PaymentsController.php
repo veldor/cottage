@@ -418,6 +418,7 @@ class PaymentsController extends Controller
 
     /**
      * @param $billId
+     * @param bool $double
      * @return array
      * @throws NotFoundHttpException
      */
