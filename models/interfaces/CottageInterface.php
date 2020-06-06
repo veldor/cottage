@@ -8,4 +8,5 @@ interface CottageInterface
     public function getBaseCottageNumber();
     public function isMain();
     public function isIndividualTariff();
+    public function save();
 }

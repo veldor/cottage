@@ -9,6 +9,8 @@
 namespace app\models;
 
 
+use app\models\interfaces\CottageInterface;
+use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use app\validators\CheckCottageNoRegistred;
 use yii\base\Model;
@@ -18,9 +20,9 @@ class DepositHandler extends Model {
     public $summ;
     public $cottageNumber;
     public $additional;
-    public $currentCondition;
+    public CottageInterface $currentCondition;
 
-    const SCENARIO_DIRECT_ADD = 'direct_add';
+    public const SCENARIO_DIRECT_ADD = 'direct_add';
 
     public function scenarios(): array
     {
@@ -46,9 +48,9 @@ class DepositHandler extends Model {
      * @param $way 'in'|'out'
      * @param null|Table_transactions $transaction
      */
-
-	public static function registerDeposit($billInfo, $cottageInfo, $way, $transaction = null){
-	    if(!empty($transaction)){
+	public static function registerDeposit($billInfo, $cottageInfo, $way, $transaction = null): void
+    {
+	    if($transaction !== null){
             $depositIo = new Table_deposit_io();
             $depositIo->cottageNumber = $billInfo->cottageNumber;
             $depositIo->transactionId = $transaction->id;
@@ -70,14 +72,29 @@ class DepositHandler extends Model {
         }
 	}
 
-    public function save()
+    /**
+     * @return array
+     * @throws ExceptionWithStatus
+     */
+    public function save(): array
     {
+        $transaction = new DbTransaction();
+
+        if($this->currentCondition->isMain()){
+            $tr = new Table_transactions(['cottageNumber' => $this->currentCondition->getBaseCottageNumber(), 'transactionDate' => time(), 'transactionType' => 'no-cash', 'transactionSumm' => $this->summ, 'transactionWay' => 'in', 'transactionReason' => 'Пополнение депозита', 'usedDeposit' => 0, 'gainedDeposit' => $this->summ, 'partial' => 0, 'payDate' => time(), 'bankDate' => time()]);
+            $tr->save();
+        }
+        else{
+            $tr = new Table_transactions_double(['cottageNumber' => $this->currentCondition->getBaseCottageNumber(), 'transactionDate' => time(), 'transactionType' => 'no-cash', 'transactionSumm' => $this->summ, 'transactionWay' => 'in', 'transactionReason' => 'Пополнение депозита', 'usedDeposit' => 0, 'gainedDeposit' => $this->summ, 'partial' => 0, 'payDate' => time(), 'bankDate' => time()]);
+            $tr->save();
+        }
         if($this->additional && !$this->currentCondition->hasDifferentOwner){
             throw new ExceptionWithStatus('У участка не найден дополнительный владелец', 2);
         }
         $depositIo = new Table_deposit_io();
         $depositIo->cottageNumber = $this->cottageNumber;
         $depositIo->destination = 'in';
+        $depositIo->transactionId = $tr->id;
         $depositIo->summBefore = $this->currentCondition->deposit;
         $depositIo->summ = $this->summ;
         $this->currentCondition->deposit = CashHandler::rublesMath($this->currentCondition->deposit + $this->summ);
@@ -85,6 +102,8 @@ class DepositHandler extends Model {
         $depositIo->actionDate = time();
         $depositIo->save();
         $this->currentCondition->save();
+        // добавлю транзакцию
+        $transaction->commitTransaction();
         return['status' => 1, 'message' => 'Депозит пополнен'];
     }
 }
