@@ -139,6 +139,16 @@ class TargetHandler extends Model
         return Table_additional_payed_target::find()->where(['year' => $year, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
     }
 
+    public static function getAccrued(CottageInterface $cottage, string $year)
+    {
+        if($cottage->isIndividualTariff()){
+            $tariff = PersonalTariff::getTargetRate($cottage, $year);
+            return $tariff['fixed'];
+        }
+        $tariff = Table_tariffs_target::findOne(['year' => $year]);
+        return $tariff->fixed_part;
+    }
+
 
     public function scenarios(): array
     {

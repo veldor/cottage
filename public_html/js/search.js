@@ -241,7 +241,47 @@ function baseFunctional() {
             e.preventDefault();
             makeInformer('info', 'Недостаточно данных', 'Введите условия поиска');
         }
-    })
+    });
+
+    // при переходе на вкладку начислений- найду данные по начислениям
+    let accrualsActivator = $('a#accrualsSearchTab');
+    let accrualsContainer = $('div#accrualsContainer');
+    accrualsActivator.on('click.searchAccruals', function () {
+        sendAjax(
+          'get',
+          '/search/accruals',
+          function (data) {
+              accrualsContainer.html(data);
+          }
+        );
+    });
+
+    let accrualsBackward = $('button#accrualsBackward');
+    let currentYearContainer = $('span#accrualsYearContainer');
+    accrualsBackward.on('click.backward', function () {
+        let year = parseInt(currentYearContainer.text());
+        sendAjax(
+            'get',
+            '/search/accruals/' + (year - 1),
+            function (data) {
+                accrualsContainer.html(data);
+            }
+        );
+        currentYearContainer.text(year - 1);
+    });
+
+    let accrualsForward = $('button#accrualsForward');
+    accrualsForward.on('click.forward', function () {
+        let year = parseInt(currentYearContainer.text());
+        sendAjax(
+            'get',
+            '/search/accruals/' + (year + 1),
+            function (data) {
+                accrualsContainer.html(data);
+            }
+        );
+        currentYearContainer.text(year + 1);
+    });
 
 }
 

@@ -22,7 +22,7 @@ use yii\db\ActiveRecord;
  * @property int $searchTimestamp [int(20) unsigned]
  * @property string $payed [enum('yes', 'no')]
  * @property int $difference [int(10) unsigned]
- * @property string $totalPay [float unsigned]
+ * @property float $totalPay [float unsigned]
  * @property int $inLimitSumm [int(10) unsigned]
  * @property int $overLimitSumm [int(10) unsigned]
  * @property string $inLimitPay [float unsigned]

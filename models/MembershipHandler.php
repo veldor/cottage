@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\database\CottageSquareChanges;
 use app\models\selections\FixedFloatTariff;
 use app\models\selections\MembershipDebt;
 use DOMElement;
@@ -65,6 +66,8 @@ class MembershipHandler extends Model
      */
     public static function getCottageTariff($cottage, $quarter): FixedFloatTariff
     {
+        $fixed = 0;
+        $float = 0;
         if ($cottage->individualTariff) {
             $tariff = PersonalTariff::getMembershipRate($cottage, $quarter);
             if (!empty($tariff)) {
@@ -72,13 +75,17 @@ class MembershipHandler extends Model
                 $float = $tariff['float'];
             } else {
                 $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
-                $fixed = $tariff->fixed_part;
-                $float = $tariff->changed_part;
+                if($tariff !== null){
+                    $fixed = $tariff->fixed_part;
+                    $float = $tariff->changed_part;
+                }
             }
         } else {
             $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
-            $fixed = $tariff->fixed_part;
-            $float = $tariff->changed_part;
+            if($tariff !== null){
+                $fixed = $tariff->fixed_part;
+                $float = $tariff->changed_part;
+            }
         }
         return new FixedFloatTariff(['fixed' => $fixed, 'float' => $float]);
     }
@@ -130,6 +137,20 @@ class MembershipHandler extends Model
             return Table_payed_membership::find()->where(['quarter' => $quarter, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
         }
         return Table_additional_payed_membership::find()->where(['quarter' => $quarter, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
+    }
+
+    /**
+     * @param interfaces\CottageInterface $cottage
+     * @param string $month
+     * @return float
+     * @throws Exception
+     */
+    public static function getAccrued(interfaces\CottageInterface $cottage, string $month): float
+    {
+        // так, нужно получить общую стоимость членских взносов за месяц
+        $tariff = self::getCottageTariff($cottage, TimeHandler::getQuarterFromTimestamp(TimeHandler::getMonthTimestamp($month)));
+        $square = CottageSquareChanges::getQuarterSquare($cottage, TimeHandler::getQuarterFromTimestamp(TimeHandler::getMonthTimestamp($month)));
+        return Calculator::countFixedFloat($tariff->fixed, $tariff->float, $square);
     }
 
 

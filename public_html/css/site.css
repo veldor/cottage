@@ -549,3 +549,7 @@ div#goToCottageContainer{
 div.switch-container{
     padding-left: 30px;
 }
+
+.cursor-pointer{
+    cursor: pointer;
+}

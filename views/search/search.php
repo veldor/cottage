@@ -10,6 +10,7 @@
 use app\assets\SearchAsset;
 use app\models\CashHandler;
 use app\models\SearchCottages;
+use app\models\TimeHandler;
 use app\widgets\MembershipStatisticWidget;
 use app\widgets\PowerStatisticWidget;
 use app\widgets\TargetStatisticWidget;
@@ -28,7 +29,7 @@ $this->title = 'Выборки';
 SearchAsset::register($this);
 ShowLoadingAsset::register($this);
 
-$tabs = ['cashSearch' => 'active in', 'tariffsSearch' => '', 'cottagesSearch' => ''];
+$tabs = ['cashSearch' => 'active in', 'tariffsSearch' => '', 'cottagesSearch' => '', 'accrualsSearch' => ''];
 
 if (!empty($activeSearch)) {
 	foreach ($tabs as $key => $tab) {
@@ -47,6 +48,7 @@ if (!empty($activeSearch)) {
     <li class="<?= $tabs['cashSearch'] ?>"><a href="#cashSearch" data-toggle="tab">Денежные средства</a></li>
     <li class="<?= $tabs['tariffsSearch'] ?>"><a href="#tariffsSearch" data-toggle="tab">Тарифы</a></li>
     <li class="<?= $tabs['cottagesSearch'] ?>"><a href="#cottagesSearch" data-toggle="tab">Участки</a></li>
+    <li class="<?= $tabs['accrualsSearch'] ?>"><a href="#accrualsSearch" data-toggle="tab" id="accrualsSearchTab">Начисления</a></li>
 </ul>
 
 <div class="tab-content">
@@ -225,6 +227,11 @@ if (!empty($activeSearch)) {
 				}
 
 				?>
+            </div>
+            <div class="tab-pane margened fade <?= $tabs['accrualsSearch'] ?>" id="accrualsSearch">
+                <h2 class="text-center">Начисления</h2>
+                <h3 class="text-center"><button class="btn btn-default" id="accrualsBackward"><span class="glyphicon glyphicon-backward"></span></button><span id="accrualsYearContainer"> <?= TimeHandler::getThisYear()?> </span><button class="btn btn-default" id="accrualsForward"><span class="glyphicon glyphicon-forward"></span></button></h3>
+                <div id="accrualsContainer"></div>
             </div>
         </div>
     </div>

@@ -78,4 +78,9 @@ class Table_cottages extends ActiveRecord implements CottageInterface
     {
         return true;
     }
+
+    public function isIndividualTariff():bool
+    {
+        return (bool) $this->individualTariff;
+    }
 }

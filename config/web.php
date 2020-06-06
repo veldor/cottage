@@ -13,6 +13,7 @@ $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 $urlRules = require __DIR__ . '/rules.php';
 
+
 $config = [
     'id' => 'cottage',
     'basePath' => dirname(__DIR__),

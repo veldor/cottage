@@ -9,9 +9,11 @@
 namespace app\models;
 
 
+use app\models\interfaces\CottageInterface;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
 use DateTime;
+use Exception;
 use InvalidArgumentException;
 use yii\base\Model;
 
@@ -25,6 +27,102 @@ class Search extends Model
     const SCENARIO_BILLS_SEARCH = 'bills-search';
 
     /**
+     * @param $year
+     * @return array
+     * @throws Exception
+     */
+    public static function getAccruals($year): array
+    {
+        if ($year === null) {
+            $year = TimeHandler::getThisYear();
+        }
+        $targetMonth = null;
+        // получу тариф по целевым за этот год
+        $targetTariff = Table_tariffs_target::findOne(['year' => $year]);
+        if($targetTariff !== null){
+            $payUpTime = $targetTariff->payUpTime- 5184000;
+           $targetMonth = TimeHandler::getShortMonthFromTimestamp($payUpTime);
+        }
+        $yearPower = 0;
+        $yearMembership = 0;
+        $yearTarget = 0;
+        $yearAccruals = [];
+        $cottages = Cottage::getRegistred();
+        $additionalCottages = Cottage::getRegistred(true);
+        $cottages = array_merge($cottages, $additionalCottages);
+        // пройдусь по месяцам в году
+        $months = TimeHandler::$monthNames;
+        foreach ($months as $key => $month) {
+            $key = ++$key;
+            if ($key < 10) {
+                $m = "$year-0$key";
+            } else {
+                $m = "$year-$key";
+            }
+            // получу начисления за месяц.
+            $monthAccruals = [];
+            $monthPowerAccrual = 0;
+            $monthMembershipAccrual = 0;
+            $montTargetAccrual = 0;
+            // электроэнергия
+            /** @var CottageInterface $cottage */
+            foreach ($cottages as $cottage) {
+                $cottageAccruals = [];
+                $totalPowerAccrual = 0;
+                if ($cottage->isMain()) {
+                    $powerAccrual = Table_power_months::findAll(['cottageNumber' => $cottage->getCottageNumber(), 'month' => $m]);
+                    if (!empty($powerAccrual)) {
+                        foreach ($powerAccrual as $item) {
+                            $totalPowerAccrual += $item->totalPay;
+                        }
+                    }
+                } else {
+                    $powerAccrual = Table_additional_power_months::findAll(['cottageNumber' => $cottage->getBaseCottageNumber(), 'month' => $m]);
+                    if (!empty($powerAccrual)) {
+                        foreach ($powerAccrual as $item) {
+                            $totalPowerAccrual += $item->totalPay;
+                        }
+                    }
+                }
+                $cottageAccruals['power'] = $totalPowerAccrual;
+                $monthPowerAccrual += $totalPowerAccrual;
+
+                $membershipAccrual = 0;
+                // начисление членских считаем только каждый третий месяц
+                if (($key + 3) % 3 === 1) {
+                    if ($cottage->getCottageNumber() !== '0') {
+                        // буду расчитывать членские взносы
+                        $membershipAccrual = MembershipHandler::getAccrued($cottage, $m);
+                        $monthMembershipAccrual += $membershipAccrual;
+                    }
+                }
+                $cottageAccruals['membership'] = $membershipAccrual;
+
+                $targetAccrual = 0;
+                if(substr($targetMonth, 5) === substr($m, 5)){
+                    // посчитаю начисления
+                    $targetAccrual = TargetHandler::getAccrued($cottage, $year);
+                    $yearTarget += $targetAccrual;
+                }
+                $cottageAccruals['target'] = $targetAccrual;
+                $monthAccruals[$cottage->getCottageNumber()] = $cottageAccruals;
+            }
+            $yearAccruals['months'][$month]['totalPower'] = $monthPowerAccrual;
+            $yearAccruals['months'][$month]['totalMembership'] = $monthMembershipAccrual;
+            $yearAccruals['months'][$month]['totalTarget'] = $yearTarget;
+            $yearAccruals['months'][$month]['cottages'] = $monthAccruals;
+
+            $yearPower += $monthPowerAccrual;
+            $yearMembership += $monthMembershipAccrual;
+        }
+        $yearAccruals['power'] = $yearPower;
+        $yearAccruals['membership'] = $yearMembership;
+        $yearAccruals['target'] = $yearTarget;
+        $yearAccruals['wholeAccrual'] = $yearPower + $yearMembership + $yearTarget;
+        return $yearAccruals;
+    }
+
+    /**
      * @param Table_transactions[]|Table_transactions_double[] $results
      * @return array
      */
@@ -35,10 +133,9 @@ class Search extends Model
         if (!empty($results)) {
             foreach ($results as $result) {
                 $totalSumm += CashHandler::toRubles($result->transactionSumm);
-                if(!empty($result->bankDate)){
+                if (!empty($result->bankDate)) {
                     $date = TimeHandler::getDateFromTimestamp($result->bankDate);
-                }
-                else{
+                } else {
                     $date = TimeHandler::getDateFromTimestamp($result->transactionDate);
                 }
                 $summ = CashHandler::toShortSmoothRubles($result->transactionSumm);
@@ -133,10 +230,10 @@ class Search extends Model
         $results = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
         $doubleResults = Table_transactions_double::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
         $results = array_merge($results, $doubleResults);
-        if(!empty($results)){
+        if (!empty($results)) {
             foreach ($results as $result) {
                 // найду все сущности, привязанные к транзакции
-                if($result instanceof Table_transactions){
+                if ($result instanceof Table_transactions) {
                     $powers = array_merge(Table_payed_power::find()->where(['transactionId' => $result->id])->all(), Table_additional_payed_power::find()->where(['transactionId' => $result->id])->all());
                     $memberships = array_merge(Table_payed_membership::find()->where(['transactionId' => $result->id])->all(), Table_additional_payed_membership::find()->where(['transactionId' => $result->id])->all());
                     $targets = array_merge(Table_payed_target::find()->where(['transactionId' => $result->id])->all(), Table_additional_payed_target::find()->where(['transactionId' => $result->id])->all());
@@ -145,8 +242,7 @@ class Search extends Model
                     $discounts = Table_discounts::find()->where(['transactionId' => $result->id])->all();
                     $toDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id, 'destination' => 'in'])->all();
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id, 'destination' => 'out'])->all();
-                }
-                else{
+                } else {
                     $powers = Table_additional_payed_power::find()->where(['transactionId' => $result->id])->all();
                     $memberships = Table_additional_payed_membership::find()->where(['transactionId' => $result->id])->all();
                     $targets = Table_additional_payed_target::find()->where(['transactionId' => $result->id])->all();
@@ -156,82 +252,79 @@ class Search extends Model
                     $toDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id . '-a', 'destination' => 'in'])->all();
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id . '-a', 'destination' => 'out'])->all();
                 }
-                if(!empty($powers)){
-                    foreach ($powers as $p){
-                        if(!empty($powerDetails[$p->month])){
+                if (!empty($powers)) {
+                    foreach ($powers as $p) {
+                        if (!empty($powerDetails[$p->month])) {
                             $powerDetails[$p->month] += $p->summ;
-                        }
-                        else{
+                        } else {
                             $powerDetails[$p->month] = $p->summ;
                         }
                         // посчитаю детали
                         $totalPowerSumm += CashHandler::toRubles($p->summ);
                     }
                 }
-                if(!empty($memberships)){
-                    foreach ($memberships as $p){
-                        if(!empty($membershipDetails[$p->quarter])){
+                if (!empty($memberships)) {
+                    foreach ($memberships as $p) {
+                        if (!empty($membershipDetails[$p->quarter])) {
                             $membershipDetails[$p->quarter] += $p->summ;
-                        }
-                        else{
+                        } else {
                             $membershipDetails[$p->quarter] = $p->summ;
                         }
                         $totalMemSumm += CashHandler::toRubles($p->summ);
                     }
                 }
-                if(!empty($targets)){
-                    foreach ($targets as $p){
-                        if(!empty($targetDetails[$p->year])){
+                if (!empty($targets)) {
+                    foreach ($targets as $p) {
+                        if (!empty($targetDetails[$p->year])) {
                             $targetDetails[$p->year] += $p->summ;
-                        }
-                        else{
+                        } else {
                             $targetDetails[$p->year] = $p->summ;
                         }
                         $totalTargetSumm += CashHandler::toRubles($p->summ);
                     }
                 }
-                if(!empty($singles)){
-                    foreach ($singles as $p){
+                if (!empty($singles)) {
+                    foreach ($singles as $p) {
                         $totalSingleSumm += CashHandler::toRubles($p->summ);
                     }
                 }
-                if(!empty($fines)){
-                    foreach ($fines as $p){
+                if (!empty($fines)) {
+                    foreach ($fines as $p) {
                         $totalFinesSumm += CashHandler::toRubles($p->summ);
                     }
                 }
-                if(!empty($discounts)){
-                    foreach ($discounts as $p){
+                if (!empty($discounts)) {
+                    foreach ($discounts as $p) {
                         $discountsSumm += CashHandler::toRubles($p->summ);
                     }
                 }
-                if(!empty($toDeposit)){
-                    foreach ($toDeposit as $p){
+                if (!empty($toDeposit)) {
+                    foreach ($toDeposit as $p) {
                         $toDepositSumm += CashHandler::toRubles($p->summ);
                     }
                 }
-                if(!empty($fromDeposit)){
-                    foreach ($fromDeposit as $p){
+                if (!empty($fromDeposit)) {
+                    foreach ($fromDeposit as $p) {
                         $fromDepositSumm += CashHandler::toRubles($p->summ);
                     }
                 }
             }
             $powerDetailsValue = '<br/>Детали:';
-            if(!empty($powerDetails)){
+            if (!empty($powerDetails)) {
                 ksort($powerDetails);
                 foreach ($powerDetails as $key => $value) {
                     $powerDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toShortSmoothRubles($value);
                 }
             }
             $membershipDetailsValue = '<br/>Детали:';
-            if(!empty($membershipDetails)){
+            if (!empty($membershipDetails)) {
                 ksort($membershipDetails);
                 foreach ($membershipDetails as $key => $value) {
                     $membershipDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toShortSmoothRubles($value);
                 }
             }
             $targetDetailsValue = '<br/>Детали:';
-            if(!empty($targetDetails)){
+            if (!empty($targetDetails)) {
                 ksort($targetDetails);
                 foreach ($targetDetails as $key => $value) {
                     $targetDetailsValue .= "<br/><b class='text-info'>{$key}:</b> " . CashHandler::toShortSmoothRubles($value);
@@ -265,12 +358,12 @@ class Search extends Model
         $trs = Table_transactions_double::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
         $transactions = array_merge($transactions, $trs);
 
-        if(!empty($transactions)){
+        if (!empty($transactions)) {
             $content = [];
             foreach ($transactions as $transaction) {
                 $wholeSumm += CashHandler::toRubles($transaction->transactionSumm);
                 $fullSumm += CashHandler::toRubles($transaction->transactionSumm);
-                if($transaction instanceof Table_transactions){
+                if ($transaction instanceof Table_transactions) {
                     $date = TimeHandler::getDateFromTimestamp($transaction->bankDate);
 
                     // получу оплаченные сущности
@@ -282,77 +375,71 @@ class Search extends Model
                     $discount = Table_discounts::find()->where(['transactionId' => $transaction->id])->one();
                     $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->one();
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'out'])->one();
-                    if(!empty($memberships)){
+                    if (!empty($memberships)) {
                         $memSumm = 0;
                         $memList = '';
                         foreach ($memberships as $membership) {
-                            if($membership instanceof Table_payed_membership){
+                            if ($membership instanceof Table_payed_membership) {
                                 $memList .= $membership->quarter . ': <b>' . CashHandler::toRubles($membership->summ) . '</b><br/>';
-                            }
-                            else{
-                                $memList .= '(Д) ' . $membership->quarter . ':  <b>'  . CashHandler::toRubles($membership->summ) . '</b><br/>';
+                            } else {
+                                $memList .= '(Д) ' . $membership->quarter . ':  <b>' . CashHandler::toRubles($membership->summ) . '</b><br/>';
                             }
                             $memSumm += $membership->summ;
                             $wholeMembership += CashHandler::toRubles($membership->summ);
                         }
                         $memSumm = CashHandler::toRubles($memSumm);
-                    }
-                    else{
+                    } else {
                         $memList = '--';
                         $memSumm = '--';
                     }
-                    if(!empty($powers)){
+                    if (!empty($powers)) {
                         $powCounterValue = '';
                         $powUsed = '';
                         $powSumm = 0;
                         foreach ($powers as $power) {
-                            if($power instanceof Table_payed_power){
+                            if ($power instanceof Table_payed_power) {
                                 // найду данные о показаниях
                                 $powData = Table_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
-                                if($powData === null){
+                                if ($powData === null) {
                                     echo 'p' . $transaction->id . ' ' . ' ' . $transaction->cottageNumber . ' ' . $power->month;
                                     die;
                                 }
                                 $powCounterValue .= $power->month . ': ' . $powData->newPowerData . '<br/>';
                                 $powUsed .= $powData->difference . '<br/>';
                                 $powSumm += $power->summ;
-                            }
-                            else{
+                            } else {
                                 // найду данные о показаниях
                                 $powData = Table_additional_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
-                                $powCounterValue .='(Д) ' . $power->month . ': ' . $powData->newPowerData . '<br/>';
+                                $powCounterValue .= '(Д) ' . $power->month . ': ' . $powData->newPowerData . '<br/>';
                                 $powUsed .= $powData->difference . '<br/>';
                                 $powSumm += $power->summ;
                             }
                             $powSumm = CashHandler::toRubles($powSumm);
                             $wholePower += CashHandler::toRubles($power->summ);
                         }
-                    }
-                    else{
+                    } else {
                         $powCounterValue = '--';
                         $powUsed = '--';
                         $powSumm = '--';
                     }
-                    if(!empty($targets)){
+                    if (!empty($targets)) {
                         $tarSumm = 0;
                         $tarList = '';
                         foreach ($targets as $target) {
-                            if($target instanceof Table_payed_target){
+                            if ($target instanceof Table_payed_target) {
                                 $tarList .= $target->year . ': <b>' . CashHandler::toRubles($target->summ) . '</b><br/>';
-                            }
-                            else{
-                                $tarList .= '(Д) ' . $target->year . ': <b>'  . CashHandler::toRubles($target->summ) . '</b><br/>';
+                            } else {
+                                $tarList .= '(Д) ' . $target->year . ': <b>' . CashHandler::toRubles($target->summ) . '</b><br/>';
                             }
                             $tarSumm += $target->summ;
                             $wholeTarget += CashHandler::toRubles($target->summ);
                         }
                         $tarSumm = CashHandler::toRubles($tarSumm);
-                    }
-                    else{
+                    } else {
                         $tarList = '--';
                         $tarSumm = '--';
                     }
-                    if(!empty($singles)){
+                    if (!empty($singles)) {
                         $singleSumm = 0;
                         $singleList = '';
                         foreach ($singles as $single) {
@@ -361,12 +448,11 @@ class Search extends Model
                             $wholeSingle += $singleSumm;
                         }
                         $singleSumm = CashHandler::toRubles($singleSumm);
-                    }
-                    else{
+                    } else {
                         $singleSumm = '--';
                         $singleList = '--';
                     }
-                    if(!empty($fines)){
+                    if (!empty($fines)) {
                         $finesSumm = 0;
                         $finesList = '';
                         foreach ($fines as $fine) {
@@ -377,35 +463,30 @@ class Search extends Model
                             $wholeFines += CashHandler::toRubles($fine->summ);
                         }
                         $finesSumm = CashHandler::toRubles($finesSumm);
-                    }
-                    else{
+                    } else {
                         $finesSumm = '--';
                         $finesList = '--';
                     }
-                    if(!empty($discount)){
+                    if (!empty($discount)) {
                         $discountSumm = CashHandler::toRubles($discount->summ);
-                    }
-                    else{
+                    } else {
                         $discountSumm = '--';
                     }
-                    if(!empty($fromDeposit)){
+                    if (!empty($fromDeposit)) {
                         $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
                         $wholeDeposit -= CashHandler::toRubles($fromDeposit->summ, true);
-                    }
-                    else{
+                    } else {
                         $fromDepositSumm = 0;
                     }
-                    if(!empty($toDeposit)){
+                    if (!empty($toDeposit)) {
                         $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
                         $wholeDeposit += CashHandler::toRubles($toDeposit->summ, true);
-                    }
-                    else{
+                    } else {
                         $toDepositSumm = 0;
                     }
                     $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
                     $content[] = "<tr><td class='date-cell'>$date</td><td class='bill-id-cell'>{$transaction->billId}</td><td class='cottage-number-cell'>{$transaction->cottageNumber}</td><td class='quarter-cell'>$memList</td><td class='mem-summ-cell'>$memSumm</td><td class='pow-values'>$powCounterValue</td><td class='pow-total'>$powUsed</td><td class='pow-summ'>$powSumm</td><td class='target-by-years-cell'>$tarList</td><td class='target-total'>$tarSumm</td><td>$singleList</td><td>$singleSumm</td><td>$finesList</td><td>$finesSumm</td><td>$totalDeposit</td><td>" . CashHandler::toRubles($transaction->transactionSumm) . '</td></tr>';
-                }
-                else{
+                } else {
                     $date = TimeHandler::getDateFromTimestamp($transaction->bankDate);
                     // получу оплаченные сущности
                     $powers = Table_additional_payed_power::find()->where(['transactionId' => $transaction->id])->all();
@@ -416,77 +497,71 @@ class Search extends Model
                     $discount = Table_discounts::find()->where(['transactionId' => $transaction->id])->one();
                     $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->one();
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'out'])->one();
-                    if(!empty($memberships)){
+                    if (!empty($memberships)) {
                         $memSumm = 0;
                         $memList = '';
                         foreach ($memberships as $membership) {
-                            if($membership instanceof Table_payed_membership){
+                            if ($membership instanceof Table_payed_membership) {
                                 $memList .= $membership->quarter . ': <b>' . CashHandler::toRubles($membership->summ) . '</b><br/>';
-                            }
-                            else{
-                                $memList .= '(Д) ' . $membership->quarter . ':  <b>'  . CashHandler::toRubles($membership->summ) . '</b><br/>';
+                            } else {
+                                $memList .= '(Д) ' . $membership->quarter . ':  <b>' . CashHandler::toRubles($membership->summ) . '</b><br/>';
                             }
                             $wholeMembership += CashHandler::toRubles($membership->summ);
                             $memSumm += $membership->summ;
                         }
                         $memSumm = CashHandler::toRubles($memSumm);
-                    }
-                    else{
+                    } else {
                         $memList = '--';
                         $memSumm = '--';
                     }
-                    if(!empty($powers)){
+                    if (!empty($powers)) {
                         $powCounterValue = '';
                         $powUsed = '';
                         $powSumm = 0;
                         foreach ($powers as $power) {
-                            if($power instanceof Table_payed_power){
+                            if ($power instanceof Table_payed_power) {
                                 // найду данные о показаниях
                                 $powData = Table_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
-                                if(empty($powData)){
+                                if (empty($powData)) {
                                     echo $transaction->id . ' ' . ' ' . $transaction->cottageNumber . ' ' . $power->month;
                                     die;
                                 }
                                 $powCounterValue .= $power->month . ': ' . $powData->newPowerData . '<br/>';
                                 $powUsed .= $powData->difference . '<br/>';
                                 $powSumm += $power->summ;
-                            }
-                            else{
+                            } else {
                                 // найду данные о показаниях
                                 $powData = Table_additional_power_months::findOne(['cottageNumber' => $transaction->cottageNumber, 'month' => $power->month]);
-                                $powCounterValue .='(Д) ' . $power->month . ': ' . $powData->newPowerData . '<br/>';
+                                $powCounterValue .= '(Д) ' . $power->month . ': ' . $powData->newPowerData . '<br/>';
                                 $powUsed .= $powData->difference . '<br/>';
                                 $powSumm += $power->summ;
                             }
                             $wholePower += CashHandler::toRubles($power->summ);
                         }
                         $powSumm = CashHandler::toRubles($powSumm);
-                    }
-                    else{
+                    } else {
                         $powCounterValue = '--';
                         $powUsed = '--';
                         $powSumm = '--';
                     }
-                    if(!empty($targets)){
+                    if (!empty($targets)) {
                         $tarSumm = 0;
                         $tarList = '';
                         foreach ($targets as $target) {
-                            if($target instanceof Table_payed_target){
+                            if ($target instanceof Table_payed_target) {
                                 $tarList .= $target->year . ': <b>' . CashHandler::toRubles($target->summ) . '</b><br/>';
-                            }
-                            else{
-                                $tarList .= '(Д) ' . $target->year . ': <b>'  . CashHandler::toRubles($target->summ) . '</b><br/>';
+                            } else {
+                                $tarList .= '(Д) ' . $target->year . ': <b>' . CashHandler::toRubles($target->summ) . '</b><br/>';
                             }
                             $tarSumm += $target->summ;
                             $wholeTarget += CashHandler::toRubles($target->summ);
                         }
                         $tarSumm = CashHandler::toRubles($tarSumm);
-                    }
-                    else{
+                    } else {
                         $tarList = '--';
                         $tarSumm = '--';
                     }
-                    if(!empty($singles)){
+                    if (!empty($singles)) {
                         $singleSumm = 0;
                         $singleList = '';
                         foreach ($singles as $single) {
@@ -495,12 +570,11 @@ class Search extends Model
                             $wholeSingle += $singleSumm;
                         }
                         $singleSumm = CashHandler::toRubles($singleSumm);
-                    }
-                    else{
+                    } else {
                         $singleSumm = '--';
                         $singleList = '--';
                     }
-                    if(!empty($fines)){
+                    if (!empty($fines)) {
                         $finesSumm = 0;
                         $finesList = '';
                         foreach ($fines as $fine) {
@@ -511,29 +585,25 @@ class Search extends Model
                             $wholeFines += CashHandler::toRubles($fine->summ);
                         }
                         $finesSumm = CashHandler::toRubles($finesSumm);
-                    }
-                    else{
+                    } else {
                         $finesSumm = '--';
                         $finesList = '--';
                     }
-                    if(!empty($discount)){
+                    if (!empty($discount)) {
                         $discountSumm = CashHandler::toRubles($discount->summ);
-                    }
-                    else{
+                    } else {
                         $discountSumm = '--';
                     }
-                    if(!empty($fromDeposit)){
+                    if (!empty($fromDeposit)) {
                         $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
                         $wholeDeposit -= CashHandler::toRubles($fromDeposit->summ, true);
-                    }
-                    else{
+                    } else {
                         $fromDepositSumm = 0;
                     }
-                    if(!empty($toDeposit)){
+                    if (!empty($toDeposit)) {
                         $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
                         $wholeDeposit += CashHandler::toRubles($toDeposit->summ, true);
-                    }
-                    else{
+                    } else {
                         $toDepositSumm = 0;
                     }
                     $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
@@ -542,8 +612,7 @@ class Search extends Model
             }
             $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td>$wholeSingle</td><td></td><td>$wholeFines</td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";
             return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
-        }
-        else{
+        } else {
             return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
         }
     }

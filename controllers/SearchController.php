@@ -34,7 +34,10 @@ class SearchController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['search'],
+                        'actions' => [
+                            'search',
+                            'accruals'
+                        ],
                         'roles' => ['reader'],
                     ],
                 ],
@@ -85,5 +88,18 @@ class SearchController extends Controller
             return $this->render('search', ['settings' => $search, 'searchTariffs' => $tariffsSearch, 'searchCottages' => $cottagesSearch, 'result' => null, 'activeSearch' => null]);
         }
         return false;
+    }
+
+    /**
+     * @param null $year
+     * @return string
+     * @throws Exception
+     */
+    public function actionAccruals($year = null): string
+    {
+        // верну таблицу с начислениями
+        // получу данные за год
+        $data = Search::getAccruals($year);
+        return $this->renderAjax('accruals', ['data' => $data]);
     }
 }

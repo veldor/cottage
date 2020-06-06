@@ -34,8 +34,22 @@ use yii\db\ActiveRecord;
  * @property string $cottageOwnerEmail [varchar(200)]  Адрес электронной почты владельца участка
  * @property bool $hasDifferentOwner [tinyint(1)]
  * @property string $cottageOwnerAddress
- * @property float $deposit [float]
  * @property float $singleDebt [float]
+ * @property float $deposit [float]
+ * @property string $cottageRegistrationInformation Данные кадастрового учёта
+ * @property string $partialPayedPower Частично оплаченное электричество
+ * @property string $partialPayedMembership Частично оплаченный членский взнос
+ * @property string $singlePaysDuty Разовые платежи
+ * @property string $cottageOwnerDescription Дополнительная информация о владельце
+ * @property string $cottageContacterPersonals [varchar(200)]
+ * @property string $cottageContacterPhone [char(18)]
+ * @property string $cottageContacterEmail [varchar(200)]
+ * @property string $passportData
+ * @property string $cottageRightsData
+ * @property string $bill_payers
+ * @property bool $cottageHaveRights [tinyint(1)]
+ * @property string $cottageRegisterData
+ * @property bool $is_mail [tinyint(1)]  Наличие электронной почты
  */
 class Table_additional_cottages extends ActiveRecord implements CottageInterface
 {
@@ -66,5 +80,10 @@ class Table_additional_cottages extends ActiveRecord implements CottageInterface
     public function isMain():bool
     {
         return false;
+    }
+
+    public function isIndividualTariff():bool
+    {
+        return (bool) $this->individualTariff;
     }
 }
