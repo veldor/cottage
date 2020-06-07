@@ -232,6 +232,7 @@ if (!empty($activeSearch)) {
                 <h2 class="text-center">Начисления</h2>
                 <h3 class="text-center"><button class="btn btn-default" id="accrualsBackward"><span class="glyphicon glyphicon-backward"></span></button><span id="accrualsYearContainer"> <?= TimeHandler::getThisYear()?> </span><button class="btn btn-default" id="accrualsForward"><span class="glyphicon glyphicon-forward"></span></button></h3>
                 <div id="accrualsContainer"></div>
+                <div class="col-sm-12 text-center"><a href="<?=Url::toRoute('download/accruals')?>" target="_blank" class="btn btn-default"><span class="text-warning">Скачать файл начислений</span></a></div>
             </div>
         </div>
     </div>

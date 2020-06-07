@@ -42,6 +42,8 @@ class DownloadController extends Controller
             case 'total-target-report':
                 Yii::$app->response->sendFile(TotalDutyReport::getTargetFileName(), 'target_report.xml');
                 break;
+            case 'accruals':
+                Yii::$app->response->sendFile(Yii::$app->basePath . '\\files\\accruals.xml', 'Начисления.xml');
         }
     }
 }

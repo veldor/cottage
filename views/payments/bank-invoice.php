@@ -79,9 +79,9 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         }
         $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
         foreach ($usedPower as $item) {
-            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' . ($payUp < time() ? " (платёж просрочен)" : '');
+            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . ($payUp < time() ? ' (платёж просрочен)' : '');
         }
-        $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
+        $values .= ', на сумму: ' . CashHandler::toSmoothRubles($summ). ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' ;
     }
     if(!empty($paymentContent['additionalPower'])){
         $values .= 'Дополнительный участок: ';
@@ -113,9 +113,9 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
         }
         $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
         foreach ($usedPower as $item) {
-            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' . ($payUp < time() ? " (платёж просрочен)" : '');
+            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' . ($payUp < time() ? ' (платёж просрочен)' : '');
         }
-        $values .= "На сумму: " . CashHandler::toSmoothRubles($summ);
+        $values .= 'На сумму: ' . CashHandler::toSmoothRubles($summ);
     }
     $powerText = 'Электроэнергия: ' . $values . ' <br/>';
 }
@@ -172,7 +172,7 @@ if(!empty($paymentContent['target']) || !empty($paymentContent['additionalTarget
             }
         }
     }
-    $tarText = "Целевые взносы: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, -2) . '<br/>';
+    $tarText = 'Целевые взносы: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, -2) . '<br/>';
 }
 if(!empty($paymentContent['single'])){
     $summ = 0;
@@ -181,7 +181,7 @@ if(!empty($paymentContent['single'])){
     foreach ($paymentContent['single']['values'] as $value) {
         $values .= '<b>' . urldecode($value['description']) . ' : </b>' . CashHandler::toSmoothRubles($value['summ']). ', ';
     }
-    $singleText = "Дополнительно: всего " . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, -2) . '<br/>';
+    $singleText = 'Дополнительно: всего ' . CashHandler::toSmoothRubles($summ) . ' , в том числе ' . substr($values, 0, -2) . '<br/>';
 }
 
 $fines = Table_view_fines_info::find()->where(['bill_id' => $payInfo->id])->all();

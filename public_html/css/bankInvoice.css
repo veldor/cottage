@@ -28,6 +28,7 @@ img.qr-img{
     display: inline-block;
 }
 img.logo-img{
+    margin-top: 30px;
     width: 30%;
     float: right;
 }

@@ -314,7 +314,12 @@ class PaymentsController extends Controller
         throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionDirectToDeposit(){
+    /**
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionDirectToDeposit(): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             // добавлю данные

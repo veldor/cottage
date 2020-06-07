@@ -15,6 +15,7 @@ use app\models\tables\Table_penalties;
 use DateTime;
 use Exception;
 use InvalidArgumentException;
+use Yii;
 use yii\base\Model;
 
 class Search extends Model
@@ -36,6 +37,9 @@ class Search extends Model
         if ($year === null) {
             $year = TimeHandler::getThisYear();
         }
+        $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+        $xml .= '<accruals>';
+
         $targetMonth = null;
         // получу тариф по целевым за этот год
         $targetTariff = Table_tariffs_target::findOne(['year' => $year]);
@@ -67,6 +71,9 @@ class Search extends Model
             // электроэнергия
             /** @var CottageInterface $cottage */
             foreach ($cottages as $cottage) {
+                if($cottage->getCottageNumber() === '0'){
+                    continue;
+                }
                 $cottageAccruals = [];
                 $totalPowerAccrual = 0;
                 if ($cottage->isMain()) {
@@ -106,6 +113,7 @@ class Search extends Model
                 }
                 $cottageAccruals['target'] = $targetAccrual;
                 $monthAccruals[$cottage->getCottageNumber()] = $cottageAccruals;
+                $xml.= "<accrual><month>{$m}</month><cottage>{$cottage->getCottageNumber()}</cottage><power>{$monthPowerAccrual}</power><membership>$monthMembershipAccrual</membership><target>$targetAccrual</target></accrual>";
             }
             $yearAccruals['months'][$month]['totalPower'] = $monthPowerAccrual;
             $yearAccruals['months'][$month]['totalMembership'] = $monthMembershipAccrual;
@@ -119,6 +127,8 @@ class Search extends Model
         $yearAccruals['membership'] = $yearMembership;
         $yearAccruals['target'] = $yearTarget;
         $yearAccruals['wholeAccrual'] = $yearPower + $yearMembership + $yearTarget;
+        $xml .= '</accruals>';
+        file_put_contents(Yii::$app->basePath . '\\files\\accruals.xml', $xml);
         return $yearAccruals;
     }
 
