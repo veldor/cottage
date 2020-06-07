@@ -96,12 +96,10 @@ class Search extends Model
 
                 $membershipAccrual = 0;
                 // начисление членских считаем только каждый третий месяц
-                if (($key + 3) % 3 === 1) {
-                    if ($cottage->getCottageNumber() !== '0') {
-                        // буду расчитывать членские взносы
-                        $membershipAccrual = MembershipHandler::getAccrued($cottage, $m);
-                        $monthMembershipAccrual += $membershipAccrual;
-                    }
+                if ((($key + 3) % 3 === 1) && $cottage->getCottageNumber() !== '0') {
+                    // буду расчитывать членские взносы
+                    $membershipAccrual = MembershipHandler::getAccrued($cottage, $m);
+                    $monthMembershipAccrual += $membershipAccrual;
                 }
                 $cottageAccruals['membership'] = $membershipAccrual;
 
@@ -113,7 +111,7 @@ class Search extends Model
                 }
                 $cottageAccruals['target'] = $targetAccrual;
                 $monthAccruals[$cottage->getCottageNumber()] = $cottageAccruals;
-                $xml.= "<accrual><month>{$m}</month><cottage>{$cottage->getCottageNumber()}</cottage><power>{$monthPowerAccrual}</power><membership>$monthMembershipAccrual</membership><target>$targetAccrual</target></accrual>";
+                $xml.= "<accrual><month>{$m}</month><cottage>{$cottage->getCottageNumber()}</cottage><power>{$totalPowerAccrual}</power><membership>$membershipAccrual</membership><target>$targetAccrual</target></accrual>";
             }
             $yearAccruals['months'][$month]['totalPower'] = $monthPowerAccrual;
             $yearAccruals['months'][$month]['totalMembership'] = $monthMembershipAccrual;
