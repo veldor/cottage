@@ -9,6 +9,7 @@ use app\models\tables\Table_bill_fines;
 use app\models\tables\Table_payed_fines;
 use app\models\utils\DbTransaction;
 use Exception;
+use Yii;
 use yii\base\Model;
 
 class ComparisonHandler extends Model
@@ -20,6 +21,55 @@ class ComparisonHandler extends Model
     public string $sendConfirmation = 'false';
 
     public const SCENARIO_COMPARISON = 'comparison';
+
+    /**
+     * @return array
+     * @throws ExceptionWithStatus
+     */
+    public static function insertToDeposit(): array
+    {
+        $bankId = Yii::$app->request->post('operationId');
+        $cottageNumber = Yii::$app->request->post('cottageNumber');
+        $bankTransaction = Table_bank_invoices::findOne($bankId);
+        if ($bankTransaction !== null) {
+            $cottage = Cottage::getCottageByLiteral($cottageNumber);
+            if ($cottage !== null) {
+                $transaction = new DbTransaction();
+                // закрою банковскую транзакцию
+                $bankTransaction->bounded_bill_id = 0;
+                $bankTransaction->save();
+                // создам платёжную транзакцию
+                $payTransaction = new Table_transactions([
+                        'cottageNumber' => $cottage->getCottageNumber(),
+                        'bankDate' => time(),
+                        'payDate' => time(),
+                        'transactionDate' => time(),
+                        'transactionSumm' => $bankTransaction->payment_summ,
+                        'gainedDeposit' => $bankTransaction->payment_summ,
+                        'transactionType' => 'cash',
+                        'transactionWay' => 'in',
+                        'usedDeposit' => 0
+                    ]);
+                $payTransaction->save();
+                // зачислю на депозит
+                $depositIo = new Table_deposit_io([
+                    'cottageNumber' => $cottage->getCottageNumber(),
+                    'summBefore' => $cottage->deposit,
+                    'summ' => $bankTransaction->payment_summ,
+                    'summAfter' => CashHandler::toRubles($cottage->deposit + (float)$bankTransaction->payment_summ),
+                    'transactionId' => $payTransaction->id,
+                    'actionDate' => time()
+                ]);
+                $depositIo->save();
+                $cottage->deposit += (float)$bankTransaction->payment_summ;
+                $cottage->save();
+                $transaction->commitTransaction();
+                return ['status' => 1, 'message' => 'Средства успешно зачислены на депозит!'];
+            }
+            return ['status' => 2, 'message' => 'Неверный номер участка!'];
+        }
+        return ['status' => 2, 'message' => 'Транзакция не найдена!'];
+    }
 
     public function scenarios(): array
     {
@@ -200,7 +250,7 @@ class ComparisonHandler extends Model
                 $billInfo->save();
                 $cottageInfo->save();
                 $transaction->commitTransaction();
-                if ($this->sendConfirmation === 'true'){
+                if ($this->sendConfirmation === 'true') {
                     return MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($t->transactionSumm) . '. Благодарим за оплату.');
                 }
                 return ['status' => 1];

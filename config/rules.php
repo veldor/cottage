@@ -167,5 +167,6 @@ return [
     'send-message' => 'mail/send-message',
     'mail-settings-edit' => 'mail/edit-mail-settings',
     'get-unsended-messages-count' => 'mail/get-unsended-messages-count',
-    'search/accruals/<year:\d{4}>' => 'search/accruals'
+    'search/accruals/<year:\d{4}>' => 'search/accruals',
+    'bank-to-deposit' => 'payments/bank-to-deposit'
 ];

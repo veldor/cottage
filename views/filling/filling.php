@@ -100,7 +100,7 @@ if (!empty($tab)) {
                     echo "<tr>
                                 <td>{$item->pay_date}</td>
                                 <td>{$item->pay_time}</td>
-                                <td>{$item->account_number}</td>
+                                <td class='cottage-number'>{$item->account_number}</td>
                                 <td>{$item->transaction_summ}</td>
                                 <td>{$item->fio}</td>
                                 <td>" . Registry::getBillId($item->address) . "</td>
@@ -113,6 +113,7 @@ if (!empty($tab)) {
                                              </button>
                                               <ul class=\"dropdown-menu\" role=\"menu\">
                                                 <li><a class='bill-manual-inserted' data-bank-operation='{$item->bank_operation_id}' href='#'>Внесён вручную</a></li>
+                                                <li><a class='pay-to-deposit' data-bank-operation='{$item->bank_operation_id}' href='#'>Зачислить на депозит</a></li>
                                               </ul>
                                     </div>
                                 </td>

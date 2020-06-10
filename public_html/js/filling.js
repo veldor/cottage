@@ -129,6 +129,30 @@ function selectBillId(bankTransactionId, manualChain) {
     });
 }
 
+let payToDepositActivators = $('a.pay-to-deposit');
+payToDepositActivators.on('click.activate', function () {
+    // номер счёта
+        let operationNumber = $(this).attr('data-bank-operation');
+        // получу номер участка
+        let cottageNumber = $(this).parents('tr').eq(0).find('td.cottage-number').text();
+        makeInformerModal(
+            'Зачисление на депозит',
+            'Зачислить средства на депозит участка №' + cottageNumber + ' без связывания со счётом?',
+            function () {
+                sendAjax(
+                    'post',
+                    '/bank-to-deposit',
+                    simpleAnswerHandler,
+                    {
+                        'operationId' : operationNumber,
+                        'cottageNumber' : cottageNumber
+                    }
+                )
+            },
+            function () {}
+        );
+});
+
 function confirmChainedBillId(supposedBillId, bankTransactionId) {
     makeInformerModal("Связка платежа", "Связать платёж со счётом №" + supposedBillId + "?", function () {
         chainBill(supposedBillId, bankTransactionId);

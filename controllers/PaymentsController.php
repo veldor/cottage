@@ -45,7 +45,7 @@ class PaymentsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain', 'chain-confirm', 'change-transaction-date', 'chain-confirm-manual', 'count-fines', 'bill-reopen', 'change-transaction-date', 'confirm-payment'],
+                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain', 'chain-confirm', 'change-transaction-date', 'chain-confirm-manual', 'count-fines', 'bill-reopen', 'change-transaction-date', 'confirm-payment', 'bank-to-deposit'],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -443,5 +443,15 @@ class PaymentsController extends Controller
             return $model->confirm();
         }
         throw new NotFoundHttpException('Страница не найдена');
+    }
+
+    /**
+     * @return array
+     * @throws ExceptionWithStatus
+     */
+    public function actionBankToDeposit(): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        return ComparisonHandler::insertToDeposit();
     }
 }
