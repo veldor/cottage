@@ -124,6 +124,8 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     )
                     <?= $cottageInfo->powerDataCancellable !== null ? "<button class='btn btn-danger disabled tooltip-enabled' data-toggle='tooltip' data-placement='top' title='{$cottageInfo->powerDataCancellable}'>Удалить</button>" : "<button id='cancelFillPower' class='btn btn-danger'>Удалить</button>" ?>
                     <?= !$cottageInfo->filledPower ? "<button id='fillPower' class='btn btn-info'>Заполнить " . TimeHandler::getFullFromShotMonth(TimeHandler::getPreviousShortMonth()) . '</button>' : '' ?>
+
+                    <a class="btn btn-info" id="fillCurrentPowerMonth" href="#">Электроэнергия досрочно</a>
                 </td>
             </tr>
             <tr>
@@ -505,7 +507,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 }
                 ?>
                 <li><a id="createSinglePayButton" href="#">Создать разовый платёж</a></li>
-                <li><a id="fillCurrentPowerMonth" href="#">Электроэнергия досрочно</a></li>
                 <!-- <li><a id="changePowerCounter" href="#">Замена счётчика</a></li>-->
                 <li><a id="sendNotificationBtn" href="#">Отправить напоминание о долгах</a></li>
                 <li><a id="sendRegInfoNotificationBtn" href="#">Отправить регистрационные данные</a></li>
