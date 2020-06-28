@@ -21,9 +21,10 @@ use yii\base\Model;
 class TargetHandler extends Model
 {
     public $year;
-    public float $fixed;
-    public float $float;
-    public string $description;
+    public float $fixed = 0;
+    public float $float = 0;
+    public string $description = '';
+    public string $payUpLimit = '';
 
     public const SCENARIO_NEW_TARIFF = 'new_tariff';
 
@@ -153,14 +154,14 @@ class TargetHandler extends Model
     public function scenarios(): array
     {
         return [
-            self::SCENARIO_NEW_TARIFF => ['year', 'fixed', 'float', 'description'],
+            self::SCENARIO_NEW_TARIFF => ['year', 'fixed', 'float', 'description', 'payUpLimit'],
         ];
     }
 
     public function rules(): array
     {
         return [
-            [['year', 'fixed', 'float', 'description'], 'required', 'on' => self::SCENARIO_NEW_TARIFF],
+            [['year', 'fixed', 'float', 'description', 'payUpLimit'], 'required', 'on' => self::SCENARIO_NEW_TARIFF],
             ['description', 'string', 'max' => 500],
             ['year', 'integer', 'min' => 1980, 'max' => 3000],
             [['fixed', 'float'], CashValidator::class],
@@ -568,6 +569,7 @@ class TargetHandler extends Model
             $newTariff = new Table_tariffs_target();
             $newTariff->year = $this->year;
             $newTariff->fixed_part = $this->fixed;
+            $newTariff->payUpTime = TimeHandler::getCustomTimestamp($this->payUpLimit);
             $newTariff->float_part = $this->float;
             $newTariff->description = $this->description;
             $newTariff->fullSumm = 0;
