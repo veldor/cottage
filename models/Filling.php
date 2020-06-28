@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\selections\PowerDebt;
 use app\models\tables\Table_penalties;
 use app\models\tables\Table_view_fines_info;
 use Exception;
@@ -505,33 +506,34 @@ class Filling extends Model
     private static function generatePowerDebtReport($cottageInfo, $powerCost, string $power, string $content, float $totalCost): array
     {
         $debt = PowerHandler::getDebtReport($cottageInfo);
-        foreach ($debt as $key => $value) {
-            if (!empty($value['totalPay'])) {
-                $totalPay = CashHandler::toRubles($value['totalPay']);
+        /** @var PowerDebt $value */
+        foreach ($debt as $value) {
+            if (!empty($value->powerData->totalPay)) {
+                $totalPay = CashHandler::toRubles($value->powerData->totalPay);
             } else {
                 $totalPay = 0;
             }
             if ($totalPay > 0) {
                 $powerCost += $totalPay;
-                $month = TimeHandler::getFullFromShotMonth($key);
+                $month = TimeHandler::getFullFromShotMonth($value->tariff->targetMonth);
                 $power .= self::getRow('Месяц', $month);
-                $power .= self::getRow('Показания начальные', $value['oldPowerData'], Colors::COLOR_INFO, CashHandler::KW);
-                $power .= self::getRow('Показания конечные', $value['newPowerData'], Colors::COLOR_INFO, CashHandler::KW);
-                $power .= self::getRow('Расход за месяц', $value['difference'], Colors::COLOR_DATA, CashHandler::KW);
-                $power .= self::getRow('Соц. норма', $value['powerLimit'], Colors::COLOR_INFO, CashHandler::KW);
+                $power .= self::getRow('Показания начальные', $value->powerData->oldPowerData, Colors::COLOR_INFO, CashHandler::KW);
+                $power .= self::getRow('Показания конечные', $value->powerData->newPowerData, Colors::COLOR_INFO, CashHandler::KW);
+                $power .= self::getRow('Расход за месяц', $value->powerData->difference, Colors::COLOR_DATA, CashHandler::KW);
+                $power .= self::getRow('Соц. норма', $value->tariff->powerLimit, Colors::COLOR_INFO, CashHandler::KW);
 
-                $socialNorm = CashHandler::toSmoothRubles($value['powerCost']);
+                $socialNorm = CashHandler::toSmoothRubles($value->powerData->inLimitSumm);
 
                 $power .= self::getRow('Тариф соц. нормы', $socialNorm, Colors::COLOR_DATA);
-                $socialSumm = CashHandler::toSmoothRubles($value['inLimitPay']);
+                $socialSumm = CashHandler::toSmoothRubles($value->powerData->inLimitPay);
 
-                $power .= self::getRow('Начислено по соц. норме', "{$socialNorm} * {$value['inLimitSumm']} = <b style='color:#d43f3a;'>{$socialSumm}</b>", '');
-                if ($value['difference'] > $value['powerLimit']) {
-                    $power .= self::getRow('Потрачено сверх соц. нормы', $value['overLimitSumm'], Colors::COLOR_INFO, CashHandler::KW);
-                    $overSocialNorm = CashHandler::toSmoothRubles($value['powerOvercost']);
+                $power .= self::getRow('Начислено по соц. норме', "{$socialNorm} * {$value->powerData->inLimitSumm} = <b style='color:#d43f3a;'>{$socialSumm}</b>", '');
+                if ($value->powerData->difference > $value->tariff->powerLimit) {
+                    $power .= self::getRow('Потрачено сверх соц. нормы', $value->powerData->overLimitSumm, Colors::COLOR_INFO, CashHandler::KW);
+                    $overSocialNorm = CashHandler::toSmoothRubles($value->powerData->overLimitPay);
                     $power .= self::getRow('Тариф сверх соц. нормы', $overSocialNorm, Colors::COLOR_DATA);
-                    $overSocialSumm = CashHandler::toSmoothRubles($value['overLimitPay']);
-                    $power .= self::getRow('Начислено сверх соц. нормы', "{$overSocialNorm} * {$value['overLimitSumm']} = <b style='color:#d43f3a;'>{$overSocialSumm}</b>", '', CashHandler::RUB);
+                    $overSocialSumm = CashHandler::toSmoothRubles($value->powerData->overLimitPay);
+                    $power .= self::getRow('Начислено сверх соц. нормы', "{$overSocialNorm} * {$value->powerData->overLimitSumm} = <b style='color:#d43f3a;'>{$overSocialSumm}</b>", '', CashHandler::RUB);
                     $power .= self::getRow('Итого за месяц', CashHandler::toSmoothRubles($totalPay), Colors::COLOR_WARNING);
                     $power .= '<tr><td colspan="2">&nbsp;</td></tr>';
                 }

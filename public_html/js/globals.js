@@ -205,7 +205,7 @@ function showAlert(alertDiv) {
         // запускаю таймер самоуничтожения через 5 секунд
         setTimeout(function () {
             closeAlert(alertDiv)
-        }, 5000);
+        }, 30000);
     });
 
 }
