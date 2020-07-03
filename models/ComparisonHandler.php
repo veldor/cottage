@@ -44,8 +44,8 @@ class ComparisonHandler extends Model
                         'bankDate' => time(),
                         'payDate' => time(),
                         'transactionDate' => time(),
-                        'transactionSumm' => $bankTransaction->payment_summ,
-                        'gainedDeposit' => $bankTransaction->payment_summ,
+                        'transactionSumm' => CashHandler::toRubles($bankTransaction->payment_summ),
+                        'gainedDeposit' => CashHandler::toRubles($bankTransaction->payment_summ),
                         'transactionType' => 'cash',
                         'transactionWay' => 'in',
                         'usedDeposit' => 0
@@ -55,13 +55,13 @@ class ComparisonHandler extends Model
                 $depositIo = new Table_deposit_io([
                     'cottageNumber' => $cottage->getCottageNumber(),
                     'summBefore' => $cottage->deposit,
-                    'summ' => $bankTransaction->payment_summ,
-                    'summAfter' => CashHandler::toRubles($cottage->deposit + (float)$bankTransaction->payment_summ),
+                    'summ' => CashHandler::toRubles($bankTransaction->payment_summ),
+                    'summAfter' => CashHandler::toRubles($cottage->deposit + CashHandler::toRubles($bankTransaction->payment_summ)),
                     'transactionId' => $payTransaction->id,
                     'actionDate' => time()
                 ]);
                 $depositIo->save();
-                $cottage->deposit += (float)$bankTransaction->payment_summ;
+                $cottage->deposit += CashHandler::toRubles($bankTransaction->payment_summ);
                 $cottage->save();
                 $transaction->commitTransaction();
                 return ['status' => 1, 'message' => 'Средства успешно зачислены на депозит!'];
