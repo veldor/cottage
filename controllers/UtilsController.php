@@ -5,9 +5,11 @@ namespace app\controllers;
 
 
 use app\models\database\Mail;
+use app\models\ExceptionWithStatus;
 use app\models\Fix;
 use app\models\PenaltiesHandler;
 use app\models\Utils;
+use Exception;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -30,7 +32,9 @@ class UtilsController extends Controller
                             'addresses',
                             'count-penalties',
                             'fix',
-                            'mail-delete'
+                            'mail-delete',
+                            'delete-target',
+                            'fill-membership-accruals'
                         ],
                         'roles' => ['writer'],
                     ],
@@ -64,4 +68,27 @@ class UtilsController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
         return Mail::deleteMail();
     }
+
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public function actionFillMembershipAccruals(): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        Utils::fillMembershipAccruals();
+        return ['status' => 1,'header' => 'Успешно', 'data' => 'Сделано'];
+    }
+
+    /**
+     * @return array
+     * @throws ExceptionWithStatus
+     */
+    public function actionDeleteTarget(): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        Utils::deleteTarget();
+        return ['status' => 1,'header' => 'Успешно', 'data' => 'Сделано'];
+    }
+
 }

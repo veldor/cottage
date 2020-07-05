@@ -204,10 +204,9 @@ class Mailing
     {
         $billInfo = BillsHandler::getBill($waitingMail->billId);
         $payDetails = Filling::getPaymentDetails($billInfo);
+        $info = ComplexPayment::getBankInvoice($waitingMail->billId);
         $text = Yii::$app->controller->renderPartial('/site/mail', ['billInfo' => $payDetails]);
         $text = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
-
-        $info = ComplexPayment::getBankInvoice($waitingMail->billId);
         $invoice = Yii::$app->controller->renderPartial('/payments/bank-invoice-pdf', ['info' => $info]);
         PDFHandler::renderPDF($invoice, 'invoice.pdf', 'portrait');
         // создам и отправлю новое письмо

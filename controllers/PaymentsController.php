@@ -15,13 +15,10 @@ use app\models\ComplexPayment;
 use app\models\database\MailingSchedule;
 use app\models\DepositHandler;
 use app\models\ExceptionWithStatus;
-use app\models\Filling;
 use app\models\FinesHandler;
 use app\models\GlobalActions;
-use app\models\Mailing;
 use app\models\Pay;
 use app\models\Payments;
-use app\models\PDFHandler;
 use app\models\SingleHandler;
 use app\models\TransactionsHandler;
 use Yii;
@@ -174,7 +171,7 @@ class PaymentsController extends Controller
         return $this->renderPartial('bank-invoice', ['info' => $info]);
     }
 
-    public function actionSendBankInvoice($identificator, $double = false): array
+    public function actionSendBankInvoice($identificator): array
     {
         // поставлю в очередь отправки
         Yii::$app->response->format = Response::FORMAT_JSON;

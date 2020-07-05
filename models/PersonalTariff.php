@@ -1019,8 +1019,7 @@ class PersonalTariff extends Model
      */
     public static function getMembershipRate($cottageInfo, $targetQuarter = false)
     {
-        // проверю, подключен ли индивидуальный тариф
-        if ($cottageInfo->individualTariff === 1) {
+        if($cottageInfo->individualTariffRates != null){
             $dom = new DOMDocument('1.0', 'UTF-8');
             $dom->loadXML($cottageInfo->individualTariffRates);
             $xpath = new \DOMXpath($dom);
@@ -1050,7 +1049,13 @@ class PersonalTariff extends Model
             }
             return false;
         }
-        throw new InvalidArgumentException('У данного участка не активирован персональный тариф.');
+
+        if (!empty($targetQuarter)) {
+            $tariff = Table_tariffs_membership::findOne(['quarter' => $targetQuarter]);
+            if ($tariff !== null) {
+                return ['quarter' => $targetQuarter, 'fixed' => $tariff->fixed_part, 'float' => $tariff->changed_part];
+            }
+        }
     }
 
     public static function getTargetRate($cottageInfo, $targetYear): array

@@ -29,6 +29,10 @@ $this->title = 'Всякие разные настройки';
                 </button>
                 <button class="btn btn-default activator" id="createReportBtn" data-action="/report/choose-date"><span
                             class="text-info">Сформировать отчёт</span></button>
+                <button class="btn btn-default activator" data-action="/utils/fill-membership-accruals"><span
+                            class="text-info">Заполнить данные по членским взносам</span></button>
+                <button class="btn btn-default activator" data-action="/utils/delete-target"><span
+                            class="text-info">Удалить целевые за 2020</span></button>
             </div>
         </div>
     </div>

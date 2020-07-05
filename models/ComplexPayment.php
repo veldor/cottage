@@ -39,7 +39,7 @@ class ComplexPayment extends Model
     public $cottageInfo;
     public $additionalCottageInfo;
 
-    const SCENARIO_CREATE = 'create';
+    public const SCENARIO_CREATE = 'create';
 
     private $innerFines;
 
@@ -67,7 +67,7 @@ class ComplexPayment extends Model
             $purposeText .= ' пени,';
         }
 
-        $purposeText = substr($purposeText, 0, strlen($purposeText) - 1) . ' по сч. № ' . $info['billInfo']->id . ($double ? '-a' : '');
+        $purposeText = substr($purposeText, 0, -1) . ' по сч. № ' . $info['billInfo']->id . ($double ? '-a' : '');
 
         $bankDetails = new BankDetails();
         $realSumm = CashHandler::rublesMath(CashHandler::toRubles($info['billInfo']->totalSumm) - CashHandler::toRubles($info['billInfo']->depositUsed) - CashHandler::toRubles($info['billInfo']->discount));
@@ -255,7 +255,7 @@ class ComplexPayment extends Model
                 foreach ($this->fines as $key => $value) {
                     $fine = Table_penalties::findOne($key);
                     if (empty($fine)) {
-                        throw new ExceptionWithStatus("Пени не найдены");
+                        throw new ExceptionWithStatus('Пени не найдены');
                     }
                     $this->innerFines[] = $fine;
                     $totalCost += CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));

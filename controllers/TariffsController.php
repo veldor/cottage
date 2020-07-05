@@ -32,7 +32,7 @@ class TariffsController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'denyCallback' => function ($rule, $action) {
+                'denyCallback' => function () {
                     return $this->redirect('/login', 301);
                 },
                 'rules' => [

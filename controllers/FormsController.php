@@ -11,10 +11,13 @@ namespace app\controllers;
 
 use app\models\Cottage;
 use app\models\Cottages;
+use app\models\database\Accruals_membership;
+use app\models\MembershipHandler;
 use app\models\PDFHandler;
 use app\models\PowerHandler;
 use app\models\Report;
 use app\models\Table_power_months;
+use app\models\utils\IndividualMembership;
 use app\models\utils\IndividualPower;
 use Yii;
 use yii\web\Controller;
@@ -37,7 +40,9 @@ class FormsController extends Controller
                         'allow' => true,
                         'actions' => [
                             'power',
-                            'power-individual'
+                            'membership',
+                            'power-individual',
+                            'membership-individual'
                         ],
                         'roles' => ['writer'],
                     ],
@@ -55,6 +60,18 @@ class FormsController extends Controller
         $view = $this->renderAjax('power', ['powerData' => $powerData]);
         return ['status' => 1,
             'header' => 'Электроэнергия по участку',
+            'data' => $view,
+        ];
+    }
+    public function actionMembership($cottageId): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        // верну форму с данными по электроэнергии для выбранного участка
+        $cottage = Cottage::getCottageByLiteral($cottageId);
+        $data = MembershipHandler::getCottageAccruals($cottage);
+        $view = $this->renderAjax('membership', ['data' => $data]);
+        return ['status' => 1,
+            'header' => 'Членские взносы по участку',
             'data' => $view,
         ];
     }
@@ -80,6 +97,35 @@ class FormsController extends Controller
             $model = new IndividualPower();
             if($month !== null){
                 $view = $this->renderAjax('power-individual', ['powerData' => $month, 'model' => $model]);
+                return ['status' => 1,
+                    'header' => 'Назначить индивидуальный тариф',
+                    'data' => $view,
+                ];
+            }
+        }
+        throw new NotFoundHttpException();
+    }
+    /**
+     * @param $monthId
+     * @return array
+     * @throws NotFoundHttpException
+     */
+    public function actionMembershipIndividual($accrualId): array
+    {
+        $accrual = Accruals_membership::findOne($accrualId);
+        if($accrual !== null){
+            // получу данные
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            if (Yii::$app->request->isPost) {
+                $form = new IndividualMembership();
+                $form->load(Yii::$app->request->post());
+                $form->submit($accrual);
+                return ['status' => 1];
+            }
+
+            $model = new IndividualMembership();
+            if($accrual !== null){
+                $view = $this->renderAjax('membership-individual', ['data' => $accrual, 'model' => $model]);
                 return ['status' => 1,
                     'header' => 'Назначить индивидуальный тариф',
                     'data' => $view,

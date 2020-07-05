@@ -77,7 +77,7 @@ class Bill extends ActiveRecord
         $billId = trim(Yii::$app->request->post('id'));
         if(!empty($billId)){
             $bill = self::findOne(['id' => $billId]);
-            if(!empty($bill)){
+            if($bill !== null){
                 $bill->delete();
                 Yii::$app->session->addFlash('success', "Счёт удалён.");
                 return ['status' => 1];
