@@ -1,7 +1,7 @@
 /*exported handleAjaxActivators */
 let navbar;
 
-function individualIntegrityCheckResults(result) {
+/*function individualIntegrityCheckResults(result) {
     if (result['hasErrors'] === 1) {
         // перенаправлю на страницу заполнения индивидуальных тарифов
         makeInformer('info', 'Не заполнены тарифы', 'Необходимо заполнить индивидуальные тарифы <br/> <a href="/individual/fill" target="_blank" class="btn btn-info">Заполнить</a>');
@@ -12,7 +12,7 @@ function individualIntegrityCheckResults(result) {
 function integrityChecks() {
     // проверю целостность системы индивидуальных тарифов
     sendSilentAjax('get', '/check/individual', individualIntegrityCheckResults);
-}
+}*/
 
 function runObservers() {
     let unsendedMessagesBadge = $('span#unsendedMessagesBadge');
@@ -47,7 +47,7 @@ function runObservers() {
 $(function () {
     navbar = $('ul#w1');
     checkUnsendedMessages();
-    integrityChecks();
+    //integrityChecks();
     runObservers();
 
     // активирую переход к участку по ссылке
