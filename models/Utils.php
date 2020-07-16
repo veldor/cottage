@@ -56,13 +56,16 @@ class Utils extends Model
      */
     public static function fillMembershipAccruals(): void
     {
-        if (Accruals_membership::find()->count() === '0') {
             $transaction = new DbTransaction();
             $cottages = Cottage::getRegistred();
-            $additionalCottages = Cottage::getRegistred(true);
+            $additionalCottages = Table_additional_cottages::find()->orderBy('masterId')->all();
             $cottages = array_merge($cottages, $additionalCottages);
             if (!empty($cottages)) {
                 foreach ($cottages as $cottage) {
+                    // если в таблице уже есть информация по этому участку- пропускаю
+                    if(Accruals_membership::find()->where(['cottage_number' => $cottage->getCottageNumber()])->count() > 0){
+                        continue;
+                    }
                     $firstFilledQuarter = MembershipHandler::getFirstFilledQuarter($cottage);
                     // внесу в таблицу данные по участку
                     $quartersList = TimeHandler::getQuarterList(['start' => $firstFilledQuarter, 'finish' => Table_tariffs_membership::find()->orderBy('quarter DESC')->one()->quarter]);
@@ -75,7 +78,6 @@ class Utils extends Model
                 }
             }
             $transaction->commitTransaction();
-        }
     }
 
     /**

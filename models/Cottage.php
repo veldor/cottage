@@ -44,7 +44,7 @@ class Cottage extends Model
         if ($this->globalInfo->cottageNumber === null) {
             throw new NotFoundHttpException('Участка с таким номером не существует');
         }
-        if($this->globalInfo->cottageNumber !== 0){
+        if ($this->globalInfo->cottageNumber !== 0) {
             // проверю, не менялся ли в прошлом месяце счётчик
             $this->counterChanged = CounterChangeHandler::checkChange($this->globalInfo);
             // проверю созданные и неоплаченные счета
@@ -56,15 +56,17 @@ class Cottage extends Model
             // определю, можно ли удалить данные по потреблению электроэнергии. Можно, если ещё не поступала оплата
             $this->powerDataCancellable = PowerHandler::isDataCancellable($this->globalInfo);
             $this->powerDebts = PowerHandler::getDebt($this->globalInfo);
-            if($this->powerDebts !== $this->globalInfo->powerDebt){
+            if ($this->powerDebts !== $this->globalInfo->powerDebt) {
                 $this->globalInfo->powerDebt = $this->powerDebts;
                 $this->globalInfo->save();
             }
             // Посчитаю задолженности
-            if ($this->globalInfo->individualTariff) {
-                $this->membershipDebts = PersonalTariff::countMembershipDebt($this->globalInfo)['summ'];
-            } else {
-                $this->membershipDebts = MembershipHandler::getCottageStatus($this->globalInfo);
+            $duty = MembershipHandler::getDebt($this->globalInfo);
+            $this->membershipDebts = 0;
+            if(!empty($duty)){
+                foreach ($duty as $item) {
+                    $this->membershipDebts += CashHandler::toRubles($item->amount - $item->partialPayed);
+                }
             }
             $this->targetDebts = $this->globalInfo->targetDebt;
             $this->totalDebt = CashHandler::toRubles($this->membershipDebts) + CashHandler::toRubles($this->targetDebts) + CashHandler::toRubles($this->powerDebts) + CashHandler::toRubles($this->globalInfo->singleDebt);
@@ -77,8 +79,7 @@ class Cottage extends Model
                 }
             }
             $this->fines = Table_penalties::find()->where(['cottage_number' => $cottageId])->all();
-        }
-        else{
+        } else {
             $this->lastPowerFillDate = TimeHandler::getCurrentShortMonth();
         }
     }
@@ -306,15 +307,14 @@ class Cottage extends Model
         $link = $_SERVER['HTTP_REFERER'];
         if (preg_match('/https\:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
             while ($next = --$matches[1]) {
-                try{
+                try {
                     if (Cottage::getCottageByLiteral($next) !== null) {
                         return 'https://dev.com/show-cottage/' . $next;
                     }
                     if ($next < 1) {
                         break;
                     }
-                }
-                catch (\Exception $e){
+                } catch (\Exception $e) {
 
                 }
             }
@@ -350,7 +350,7 @@ class Cottage extends Model
      */
     public static function getCottage($cottageNumber, bool $additional)
     {
-        if($additional){
+        if ($additional) {
             return Table_additional_cottages::findOne(['masterId' => $cottageNumber]);
         }
         return Table_cottages::findOne(['cottageNumber' => $cottageNumber]);

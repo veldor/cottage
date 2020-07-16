@@ -158,7 +158,7 @@ class MembershipHandler extends Model
         return Calculator::countFixedFloat($tariff->fixed, $tariff->float, $square);
     }
 
-    public static function getCottageAccruals(Table_cottages $cottage): array
+    public static function getCottageAccruals(CottageInterface $cottage): array
     {
         return Accruals_membership::findAll(['cottage_number' => $cottage->getCottageNumber()]);
     }

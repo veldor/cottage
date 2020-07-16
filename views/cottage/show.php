@@ -261,7 +261,8 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 if ($cottageInfo->additionalCottageInfo['cottageInfo']->isMembership) {
                     ?>
                     <tr class="info">
-                        <td>Членские взносы</td>
+                        <td><a class="activator"
+                               data-action="<?= Url::toRoute(['forms/membership', 'cottageId' => $cottageInfo->additionalCottageInfo['cottageInfo']->getCottageNumber()]) ?>">Членские взносы</a></td>
                         <td><?= $cottageInfo->additionalCottageInfo['membershipDebt'] > 0 ? "<a class='btn btn-default detail-debt' data-type='membership_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['membershipDebt']) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
                     </tr>
                     <tr class="info">
