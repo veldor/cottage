@@ -68,25 +68,39 @@ class PersonalTariffFilling extends Model
         try {
             if (!empty($this->membership)) {
                 foreach ($this->membership as $key => $item) {
-                    $cottageInfo = Cottage::getCottageByLiteral($key);
-                    $pt = new PersonalTariff(['scenario' => PersonalTariff::SCENARIO_FILL]);
-                    $pt->cottageNumber = (int)Cottage::getCottageNumber($cottageInfo);
-                    $pt->additional = !Cottage::isMain($cottageInfo);
-                    $pt->membership = $item;
-                    if (!(($pt->validate() && $pt->saveTariffs()))) {
-                        throw new ExceptionWithStatus('Ошибка сохранения информации о членских взносах');
+                    if (!empty($item)) {
+                        try{
+                            $cottageInfo = Cottage::getCottageByLiteral($key);
+                            $pt = new PersonalTariff(['scenario' => PersonalTariff::SCENARIO_FILL]);
+                            $pt->cottageNumber = (int)Cottage::getCottageNumber($cottageInfo);
+                            $pt->additional = !Cottage::isMain($cottageInfo);
+                            $pt->membership = $item;
+                            if (!(($pt->validate() && $pt->saveTariffs()))) {
+                                continue;
+                            }
+                        }
+                        catch (Exception $e){
+                            continue;
+                        }
                     }
                 }
             }
             if (!empty($this->target)) {
                 foreach ($this->target as $key => $item) {
-                    $cottageInfo = Cottage::getCottageByLiteral($key);
-                    $pt = new PersonalTariff(['scenario' => PersonalTariff::SCENARIO_FILL]);
-                    $pt->cottageNumber = (int)Cottage::getCottageNumber($cottageInfo);
-                    $pt->additional = !Cottage::isMain($cottageInfo);
-                    $pt->target = $item;
-                    if (!(($pt->validate() && $pt->saveTariffs()))) {
-                        throw new ExceptionWithStatus('Ошибка сохранения информации о членских взносах');
+                    if (!empty($item)) {
+                        try{
+                            $cottageInfo = Cottage::getCottageByLiteral($key);
+                            $pt = new PersonalTariff(['scenario' => PersonalTariff::SCENARIO_FILL]);
+                            $pt->cottageNumber = (int)Cottage::getCottageNumber($cottageInfo);
+                            $pt->additional = !Cottage::isMain($cottageInfo);
+                            $pt->target = $item;
+                            if (!(($pt->validate() && $pt->saveTariffs()))) {
+                                continue;
+                            }
+                        }
+                        catch (Exception $e){
+                            continue;
+                        }
                     }
                 }
             }

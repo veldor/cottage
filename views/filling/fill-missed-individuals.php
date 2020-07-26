@@ -50,7 +50,7 @@ foreach ($items as $item) {
                 <div class='col-sm-4'>
                     <div class='input-group'>
                         <span class='input-group-addon'>Оплачено</span>
-                        <input type='number' step='0.01' name='PersonalTariffFilling[target][<?=$cottageNumber?>][<?=$duty?>][payed-before]' class='required form-control float mem-float ready' value='0'/>
+                        <input type='number' step='0.01' name='PersonalTariffFilling[target][<?=$cottageNumber?>][<?=$duty?>][payed-before]' class='required form-control float mem-float ready'/>
                         <span class='input-group-addon'>&#8381;</span>
                     </div>
                 </div>
