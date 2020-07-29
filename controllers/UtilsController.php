@@ -34,7 +34,8 @@ class UtilsController extends Controller
                             'fix',
                             'mail-delete',
                             'delete-target',
-                            'fill-membership-accruals'
+                            'fill-membership-accruals',
+                            'fill-target-accruals'
                         ],
                         'roles' => ['writer'],
                     ],
@@ -77,6 +78,16 @@ class UtilsController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
         Utils::fillMembershipAccruals();
+        return ['status' => 1,'header' => 'Успешно', 'data' => 'Сделано'];
+    }
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public function actionFillTargetAccruals(): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        Utils::fillTargetAccruals();
         return ['status' => 1,'header' => 'Успешно', 'data' => 'Сделано'];
     }
 

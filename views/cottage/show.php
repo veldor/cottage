@@ -10,6 +10,7 @@ use app\models\Reminder;
 use app\models\Table_payed_power;
 use app\models\Table_power_months;
 use app\models\tables\Table_penalties;
+use app\models\TargetHandler;
 use app\models\TimeHandler;
 use nirvana\showloading\ShowLoadingAsset;
 use yii\helpers\Url;
@@ -149,8 +150,9 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 </td>
             </tr>
             <tr>
-                <td>Целевые платежи</td>
-                <td><?= $cottageInfo->globalInfo->targetDebt > 0 ? "<a class='btn btn-default detail-debt' data-type='target' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->globalInfo->targetDebt) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
+                <td><a class="activator"
+                       data-action="<?= Url::toRoute(['forms/target', 'cottageId' => $cottageInfo->globalInfo->cottageNumber]) ?>">Целевые взносы</a></td>
+                <td><?= TargetHandler::getCottageDebtText($cottageInfo->globalInfo)?></td>
             </tr>
             <tr>
                 <td>Разовые платежи</td>
@@ -291,8 +293,9 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 if ($cottageInfo->additionalCottageInfo['cottageInfo']->isTarget) {
                     ?>
                     <tr class="info">
-                        <td>Целевые платежи</td>
-                        <td><?= $cottageInfo->additionalCottageInfo['targetDebt'] > 0 ? "<a class='btn btn-default detail-debt' data-type='target_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['targetDebt']) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
+                        <td><a class="activator"
+                               data-action="<?= Url::toRoute(['forms/target', 'cottageId' => $cottageInfo->additionalCottageInfo['cottageInfo']->getCottageNumber()]) ?>">Целевые взносы</a></td>
+                        <td><?= TargetHandler::getCottageDebtText($cottageInfo->additionalCottageInfo['cottageInfo']) ?></td>
                     </tr>
                     <?php
                 } else {

@@ -1058,7 +1058,7 @@ class PersonalTariff extends Model
         }
     }
 
-    public static function getTargetRate($cottageInfo, $targetYear): array
+    public static function getTargetRate($cottageInfo, $targetYear): ?array
     {
         $targetYear = TimeHandler::isYear($targetYear);
         // проверю, подключен ли индивидуальный тариф
@@ -1074,6 +1074,13 @@ class PersonalTariff extends Model
             }
             return ['fixed' => 0, 'float' => 0];
         }
-        throw new InvalidArgumentException('У данного участка не активирован персональный тариф.');
+        // найду тариф в сетке тарифов- значит, что на тот момент тарифы ещё были общими
+        if (!empty($targetYear)) {
+            $tariff = Table_tariffs_target::findOne(['year' => $targetYear]);
+            if ($tariff !== null) {
+                return ['year' => $targetYear, 'fixed' => $tariff->fixed_part, 'float' => $tariff->float_part];
+            }
+        }
+        return null;
     }
 }

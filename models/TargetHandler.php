@@ -9,6 +9,8 @@
 namespace app\models;
 
 
+use app\models\database\Accruals_target;
+use app\models\database\CottageSquareChanges;
 use app\models\interfaces\CottageInterface;
 use app\models\selections\TargetDebt;
 use app\models\selections\TargetInfo;
@@ -37,7 +39,7 @@ class TargetHandler extends Model
     {
         // найду все платежи данного счёта
         $pays = Table_payed_target::find()->where(['billId' => $id])->all();
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
                 /** @var Table_payed_power $pay */
                 $pay->paymentDate = $timestamp;
@@ -58,30 +60,30 @@ class TargetHandler extends Model
         $result = [];
         // получу информацию о долгах на данный момент
         $duties = self::getDebt($cottage);
-        if(!empty($duties)){
+        if (!empty($duties)) {
             foreach ($duties as $duty) {
                 $info[$duty->year] = CashHandler::toRubles($duty->amount - $duty->partialPayed);
             }
         }
         // теперь найду все прошедшие оплаты и прибавлю их к выборке
         $pays = Table_payed_target::findAll(['cottageId' => $cottage->cottageNumber]);
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
-                if(!empty($info[$pay->year])){
+                if (!empty($info[$pay->year])) {
                     $info[$pay->year] = CashHandler::toRubles($info[$pay->year] + $pay->summ);
-                }
-                else{
+                } else {
                     $info[$pay->year] = $pay->summ;
                 }
             }
         }
-        if(!empty($info)){
+        if (!empty($info)) {
             foreach ($info as $key => $item) {
                 $result [] = new TargetInfo(['year' => $key, 'amount' => $item]);
             }
         }
         return $result;
     }
+
     /**
      * Получение платежей за данный период
      * @param $cottage Table_cottages|Table_additional_cottages
@@ -90,7 +92,7 @@ class TargetHandler extends Model
      */
     public static function getPaysForPeriod($cottage, string $period): array
     {
-        if(Cottage::isMain($cottage)){
+        if (Cottage::isMain($cottage)) {
             return Table_payed_target::findAll(['cottageId' => $cottage->cottageNumber, 'year' => $period]);
         }
         return Table_additional_payed_target::findAll(['cottageId' => $cottage->masterId, 'year' => $period]);
@@ -107,7 +109,7 @@ class TargetHandler extends Model
         // получу текущую задолженность по периоду
         $data = self::getYearDuty($cottage, $year);
         $pays = self::getPaysForPeriod($cottage, $year);
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
                 $data = CashHandler::toRubles(CashHandler::toRubles($data) + CashHandler::toRubles($pay->summ));
             }
@@ -125,7 +127,7 @@ class TargetHandler extends Model
     {
         $duties = self::getDebt($cottage);
         foreach ($duties as $duty) {
-            if($duty->year === $year){
+            if ($duty->year === $year) {
                 return CashHandler::toRubles(CashHandler::toRubles($duty->amount) - CashHandler::toRubles($duty->partialPayed));
             }
         }
@@ -134,7 +136,7 @@ class TargetHandler extends Model
 
     public static function getPaysBefore($year, CottageInterface $cottage, int $periodEnd)
     {
-        if($cottage->isMain()){
+        if ($cottage->isMain()) {
             return Table_payed_target::find()->where(['year' => $year, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
         }
         return Table_additional_payed_target::find()->where(['year' => $year, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
@@ -142,12 +144,58 @@ class TargetHandler extends Model
 
     public static function getAccrued(CottageInterface $cottage, string $year)
     {
-        if($cottage->isIndividualTariff()){
+        if ($cottage->isIndividualTariff()) {
             $tariff = PersonalTariff::getTargetRate($cottage, $year);
             return $tariff['fixed'];
         }
         $tariff = Table_tariffs_target::findOne(['year' => $year]);
         return $tariff->fixed_part;
+    }
+
+    public static function getCottageAccruals(CottageInterface $cottage)
+    {
+        return Accruals_target::findAll(['cottage_number' => $cottage->getCottageNumber()]);
+    }
+
+    /**
+     * @return Table_tariffs_target
+     */
+    public static function getFirstFilledYear()
+    {
+        return Table_tariffs_target::find()->orderBy('year')->one();
+    }
+
+    public static function getPartialPayed(CottageInterface $cottage, $item)
+    {
+        $payed = 0;
+        if ($cottage->isMain()) {
+            $pays = Table_payed_target::find()->where(['year' => $item, 'cottageId' => $cottage->getCottageNumber()])->all();
+        }
+        if (!empty($pays)) {
+            foreach ($pays as $pay) {
+                $payed += CashHandler::toRubles($pay->summ);
+            }
+        }
+        return $payed;
+    }
+
+    public static function getCottageDebtText(CottageInterface $cottageInfo)
+    {
+        $duty = 0;
+        $accruals = self::getDebt($cottageInfo);
+        if(!empty($accruals)){
+            foreach ($accruals as $accrual) {
+                $duty += CashHandler::toRubles($accrual->amount - $accrual->partialPayed);
+            }
+        }
+        if($duty === 0){
+            return '<b class=\'text-success\'>Оплачено</b>';
+        }
+        if($cottageInfo->isMain()){
+            return "<a class='btn btn-default detail-debt' data-type='target' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($duty) . '</b></a>';
+        }
+        return "<a class='btn btn-default detail-debt' data-type='target_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($duty) . '</b></a>';
+
     }
 
 
@@ -289,25 +337,28 @@ class TargetHandler extends Model
      */
     public static function getDebt($cottageInfo): array
     {
+        $answer = [];
         if (!$cottageInfo->isMain() && !$cottageInfo->isTarget) {
             return [];
         }
-        $targetDom = new DOMHandler($cottageInfo->targetPaysDuty);
-        $answer = [];
-        $years = $targetDom->query('/targets/target');
-        if ($years !== null) {
-            /**
-             * @var $year DOMElement
-             */
-            foreach ($years as $year) {
+
+        $firstFilledYear = TargetHandler::getFirstFilledYear();
+        // внесу в таблицу данные по участку
+        $yearsList = TimeHandler::getYearsList($firstFilledYear->year, TimeHandler::getThisYear());
+        foreach ($yearsList as $item) {
+            $accrual = Accruals_target::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'year' => $item]);
+            if (!empty($accrual)) {
+                $tariff = Table_tariffs_target::findOne(['year' => $item]);
                 $answerItem = new TargetDebt();
-                $answerItem->description = $year->getAttribute('description');
-                $answerItem->year = $year->getAttribute('year');
-                $answerItem->tariffFixed = CashHandler::toRubles($year->getAttribute('fixed'));
-                $answerItem->tariffFloat = CashHandler::toRubles($year->getAttribute('float'));
-                $answerItem->amount = Calculator::countFixedFloat($answerItem->tariffFixed, $answerItem->tariffFloat, $cottageInfo->cottageSquare);
-                $answerItem->partialPayed = CashHandler::toRubles($year->getAttribute('payed'));
-                $answer[$answerItem->year] = $answerItem;
+                $answerItem->description = $tariff->description;
+                $answerItem->year = $tariff->year;
+                $answerItem->tariffFixed = CashHandler::toRubles($accrual->fixed_part);
+                $answerItem->tariffFloat = CashHandler::toRubles($accrual->square_part);
+                $answerItem->amount = Calculator::countFixedFloat($answerItem->tariffFixed, $answerItem->tariffFloat, $accrual->counted_square);
+                $answerItem->partialPayed = TargetHandler::getPartialPayed($cottageInfo, $item) + $accrual->payed_outside;
+                if ($answerItem->partialPayed < $answerItem->amount) {
+                    $answer[$answerItem->year] = $answerItem;
+                }
             }
         }
         return $answer;
@@ -323,8 +374,8 @@ class TargetHandler extends Model
                 $toPay = CashHandler::toRubles($value['value']);
                 $s = Calculator::countFixedFloatPlus($debt[$key]->tariffFixed, $debt[$key]->tariffFloat, $cottageInfo->cottageSquare);
                 $leftPay = CashHandler::rublesMath($s['total'] - $debt[$key]->partialPayed);
-                    $summ += $toPay;
-                    $answer .= "<pay year='$key' summ='{$toPay}' total-summ='{$s['total']}' float-cost='{$s['float']}' fixed='{$debt[$key]->tariffFixed}' float='{$debt[$key]->tariffFloat}' square='{$cottageInfo->cottageSquare}' payed-before='{$debt[$key]->partialPayed}' left-pay='$leftPay'/>";
+                $summ += $toPay;
+                $answer .= "<pay year='$key' summ='{$toPay}' total-summ='{$s['total']}' float-cost='{$s['float']}' fixed='{$debt[$key]->tariffFixed}' float='{$debt[$key]->tariffFloat}' square='{$cottageInfo->cottageSquare}' payed-before='{$debt[$key]->partialPayed}' left-pay='$leftPay'/>";
             }
         }
 
@@ -620,8 +671,8 @@ class TargetHandler extends Model
      */
     public static function handlePartialPayment($bill, $paymentInfo, $cottageInfo, $transaction)
     {
-        foreach($paymentInfo as $key=>$value){
-            if($value > 0){
+        foreach ($paymentInfo as $key => $value) {
+            if ($value > 0) {
                 self::insertSinglePayment($cottageInfo, $bill, $key, $value, $transaction);
             }
         }
@@ -638,19 +689,17 @@ class TargetHandler extends Model
         // добавлю оплаченную сумму в xml
         /** @var DOMElement $targetContainer */
         $main = Cottage::isMain($cottageInfo);
-        if($main){
+        if ($main) {
             $targetContainer = $billDom->query('//target')->item(0);
-        }
-        else{
+        } else {
             $targetContainer = $billDom->query('//additional_target')->item(0);
         }
         // проверю, не оплачивалась ли часть платежа ранее
         $payedBefore = CashHandler::toRubles(0 . $targetContainer->getAttribute('payed'));
         // получу данные о полном счёте за электричество
-        if($main){
+        if ($main) {
             $pays = $billDom->query('//target/pay');
-        }
-        else{
+        } else {
             $pays = $billDom->query('//additional_target/pay');
         }
         /** @var DOMElement $pay */

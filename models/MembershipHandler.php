@@ -225,26 +225,6 @@ class MembershipHandler extends Model
             return $result;
         }
         foreach ($list as $key => $value) {
-            /*            // получу раскладку по тарифу
-                        $tariff = self::getCottageTariff($cottage, $key);
-                        $cost = Calculator::countFixedFloat(
-                            $tariff->fixed,
-                            $tariff->float,
-                            $cottage->cottageSquare
-                        );
-                        $payedYet = 0;
-                        // если квартал частично оплачен- вычту сумму частичной оплаты из цены
-                        if ($isMain) {
-                            $pays = Table_payed_membership::findAll(['cottageId' => $cottage->cottageNumber, 'quarter' => $key]);
-                        } else {
-                            $pays = Table_additional_payed_membership::findAll(['cottageId' => $cottage->masterId, 'quarter' => $key]);
-                        }
-                        if (!empty($pays)) {
-                            foreach ($pays as $pay) {
-                                $payedYet = CashHandler::toRubles($payedYet + $pay->summ);
-                            }
-                        }
-                        $existentTariff = Table_tariffs_membership::findOne(['quarter' => $key]);*/
             $accrual = Accruals_membership::findOne(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $key]);
             if ($accrual !== null) {
                 $existentTariff = Table_tariffs_membership::findOne(['quarter' => $key]);

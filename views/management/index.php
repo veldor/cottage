@@ -31,8 +31,8 @@ $this->title = 'Всякие разные настройки';
                             class="text-info">Сформировать отчёт</span></button>
                 <button class="btn btn-default activator" data-action="/utils/fill-membership-accruals"><span
                             class="text-info">Заполнить данные по членским взносам</span></button>
-                <button class="btn btn-default activator" data-action="/utils/delete-target"><span
-                            class="text-info">Удалить целевые за 2020</span></button>
+                <button class="btn btn-default activator" data-action="/utils/fill-target-accruals"><span
+                            class="text-info">Заполнить данные по целевым взносам</span></button>
             </div>
         </div>
     </div>
