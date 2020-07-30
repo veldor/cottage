@@ -3,6 +3,8 @@
 namespace app\models;
 
 
+use app\models\database\Accruals_membership;
+use app\models\database\Accruals_target;
 use app\models\selections\MembershipDebt;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
@@ -431,25 +433,14 @@ class FinesHandler extends Model
         $isMain = Cottage::isMain($cottageInfo);
 
         // получу стоимость квартала
-        if ($cottageInfo->individualTariff) {
-            $tariff = PersonalTariff::getMembershipRate($cottageInfo, $item->period);
-            if (!empty($tariff)) {
-                $fixed = $tariff['fixed'];
-                $float = $tariff['float'];
-            } else {
-                $tariff = Table_tariffs_membership::findOne(['quarter' => $item->period]);
-                $fixed = $tariff->fixed_part;
-                $float = $tariff->changed_part;
-            }
-        } else {
-            $tariff = Table_tariffs_membership::findOne(['quarter' => $item->period]);
-            $fixed = $tariff->fixed_part;
-            $float = $tariff->changed_part;
-        }
+        $tariff = Accruals_membership::findOne(['quarter' => $item->period, 'cottage_number' => $cottageInfo->getCottageNumber()]);
+        $fixed = $tariff->fixed_part;
+        $float = $tariff->square_part;
+
         $startAmount = Calculator::countFixedFloat(
             $fixed,
             $float,
-            $cottageInfo->cottageSquare);
+            $tariff->counted_square);
         $answer .= 'Сумма взноса: <b class="text-info">' . CashHandler::toSmoothRubles($startAmount) . '</b><br/>';
         // получу оплаты по кварталу
         if ($isMain) {
@@ -478,19 +469,8 @@ class FinesHandler extends Model
         $yearTariff = Table_tariffs_target::findOne(['year' => $item->period]);
         if ($yearTariff !== null) {
             // получу стоимость квартала
-            if ($cottageInfo->individualTariff) {
-                $tariff = PersonalTariff::getTargetRate($cottageInfo, $item->period);
-                if (!empty($tariff)) {
-                    $fixed = $tariff['fixed'];
-                    $float = $tariff['float'];
-                } else {
-                    $fixed = $yearTariff->fixed_part;
-                    $float = $yearTariff->float_part;
-                }
-            } else {
-                $fixed = $yearTariff->fixed_part;
-                $float = $yearTariff->float_part;
-            }
+            $fixed = $yearTariff->fixed_part;
+            $float = $yearTariff->float_part;
             $startAmount = Calculator::countFixedFloat(
                 $fixed,
                 $float,
@@ -523,7 +503,7 @@ class FinesHandler extends Model
         if (empty($pays)) {
             // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
             $difference = TimeHandler::checkDayDifference($payUp);
-            if($difference === 0){
+            if ($difference === 0) {
                 $difference = 1;
             }
             $answer .= 'Просрочено дней: <b class="text-danger">' . $difference . '</b><br/>';
@@ -538,7 +518,7 @@ class FinesHandler extends Model
             foreach ($pays as $pay) {
                 $answer .= 'Платёж <b class="text-success">' . TimeHandler::getDatetimeFromTimestamp($pay->paymentDate) . '</b><br/>';
                 $answer .= 'Сумма: <b class="text-success">' . CashHandler::toSmoothRubles($pay->summ) . '</b><br/>';
-                $answer .= 'Осталось заплатить: <b class="text-info">' . CashHandler::toSmoothRubles(CashHandler::toRubles($amount - ($payed + $pay->summ))) . '</b><br/>';
+                $answer .= 'Осталось заплатить: <b class="text-info">' . CashHandler::toSmoothRubles(CashHandler::toRubles($amount - CashHandler::toRubles($payed + $pay->summ))) . '</b><br/>';
                 // если платёж просрочен
                 if ($pay->paymentDate > $payUp) {
                     $answer .= '<b class="text-danger">Платёж просрочен!</b><br/>';
@@ -547,7 +527,7 @@ class FinesHandler extends Model
                         $lastPayDate = $payUp;
                     }
                     $difference = TimeHandler::checkDayDifference($lastPayDate, $pay->paymentDate);
-                    if($difference === 0){
+                    if ($difference === 0) {
                         $difference = 1;
                     }
                     $answer .= "Просрочено дней: <b class=\"text-danger\">$difference</b><br/>";
@@ -568,7 +548,7 @@ class FinesHandler extends Model
             if ($payed < $amount) {
                 // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
                 $difference = TimeHandler::checkDayDifference($lastPayDate);
-                if($difference === 0){
+                if ($difference === 0) {
                     $difference = 1;
                 }
                 $nowAmount = CashHandler::toRubles($amount - $payed);
