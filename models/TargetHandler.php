@@ -198,6 +198,32 @@ class TargetHandler extends Model
 
     }
 
+    public static function getPayments()
+    {
+        $accrual = [];
+        $pays = [];
+        // получу список всех лет, за которые идёт оплата
+        $years = Table_tariffs_target::find()->all();
+        if(!empty($years)){
+            foreach ($years as $year) {
+                $accruals = Accruals_target::findAll(['year' => $year->year]);
+                $totalAccrual = 0;
+                if(!empty($accruals)){
+                    foreach ($accruals as $accrualItem) {
+                        $totalAccrual += CashHandler::toRubles(Calculator::countFixedFloat(
+                            $accrualItem->fixed_part,
+                            $accrualItem->square_part,
+                            $accrualItem->counted_square
+                        ));
+                    }
+                }
+                $accrual[] = [$year->year . '-01-01', CashHandler::toRubles($totalAccrual)];
+            }
+        }
+        return [['name' => 'Начислено к оплате, руб.', 'data' => $accrual]];
+
+    }
+
 
     public function scenarios(): array
     {

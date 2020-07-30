@@ -5,6 +5,7 @@
 use app\assets\TariffsAsset;
 use app\models\MembershipHandler;
 use app\models\PowerHandler;
+use app\models\TargetHandler;
 use app\models\TimeHandler;
 use app\widgets\MembershipStatisticWidget;
 use app\widgets\PowerStatisticWidget;
@@ -205,6 +206,68 @@ echo ApexchartsWidget::widget([
         ],
     ],
     'series' => $membershipPayments
+]);
+
+$targetPayments = TargetHandler::getPayments();
+
+echo '<h2 class="text-center">Оплата целевых взносов</h2>';
+
+echo ApexchartsWidget::widget([
+    'type' => 'line', // default area
+    'height' => '350', // default 350
+    'chartOptions' => [
+        'chart' => [
+            'locales' => [
+                [
+                    "name" => "ru",
+                    "options" => [
+                        "months" => ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"],
+                        "shortMonths" => ["Янв", "Февр", "Март", "Апр", "Май", "Июнь", "Июль", "Авг", "Сент", "Окт", "Ноя", "Дек"],
+                        "days" => ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"],
+                        "shortDays" => ["Вс", "Пон", "Вт", "Ср", "Чт", "Пт", "Сб"],
+                        "toolbar" => [
+                            "exportToSVG" => "Скачать SVG",
+                            "exportToPNG" => "Скачать PNG",
+                            "menu" => "Меню",
+                            "selection" => "Выборка",
+                            "selectionZoom" => "Увеличение выборки",
+                            "zoomIn" => "Увеличить",
+                            "zoomOut" => "Уменьшить",
+                            "pan" => "Panning",
+                            "reset" => "Сброс увеличения"
+                        ]
+                    ]
+                ]
+            ],
+            'defaultLocale' => "ru",
+            'toolbar' => [
+                'show' => true,
+                'autoSelected' => 'zoom'
+            ],
+        ],
+        'xaxis' => [
+            'type' => 'datetime',
+             'categories' => ['2016', '2017', '2018', '2019', '2020'],
+        ],
+        'plotOptions' => [
+            'bar' => [
+                'horizontal' => false,
+                'endingShape' => 'rounded'
+            ],
+        ],
+        'dataLabels' => [
+            'enabled' => true
+        ],
+        'stroke' => [
+            'show' => true,
+            'colors' => ['transparent']
+        ],
+        'legend' => [
+            'verticalAlign' => 'bottom',
+            'horizontalAlign' => 'left',
+        ],
+    ],
+    'series' => $targetPayments
 ]);
 
 echo '<h2>Электроэнергия</h2>';

@@ -73,24 +73,10 @@ class MembershipHandler extends Model
     {
         $fixed = 0;
         $float = 0;
-        if ($cottage->individualTariff) {
-            $tariff = PersonalTariff::getMembershipRate($cottage, $quarter);
-            if (!empty($tariff)) {
-                $fixed = $tariff['fixed'];
-                $float = $tariff['float'];
-            } else {
-                $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
-                if ($tariff !== null) {
-                    $fixed = $tariff->fixed_part;
-                    $float = $tariff->changed_part;
-                }
-            }
-        } else {
-            $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
-            if ($tariff !== null) {
-                $fixed = $tariff->fixed_part;
-                $float = $tariff->changed_part;
-            }
+        $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
+        if ($tariff !== null) {
+            $fixed = $tariff->fixed_part;
+            $float = $tariff->changed_part;
         }
         return new FixedFloatTariff(['fixed' => $fixed, 'float' => $float]);
     }
@@ -168,11 +154,11 @@ class MembershipHandler extends Model
         $accrual = [];
         $pays = [];
         $quarterCounter = 1;
-        while ($quarterCounter < 5){
+        while ($quarterCounter < 5) {
             $quarter = "$year-$quarterCounter";
             $accruals = Accruals_membership::findAll(['quarter' => $quarter]);
             $totalAccrued = 0;
-            if(!empty($accruals)){
+            if (!empty($accruals)) {
                 foreach ($accruals as $accrualItem) {
                     $totalAccrued += CashHandler::toRubles(
                         Calculator::countFixedFloat(
@@ -183,21 +169,62 @@ class MembershipHandler extends Model
                     );
                 }
             }
-            if($quarterCounter == 1){
+            if ($quarterCounter == 1) {
                 $accrual[] = ["$year-01", CashHandler::toRubles($totalAccrued)];
-            }
-            else{
-                $month = $quarterCounter * 3 -2;
-                if($month < 10){
+                $accrual[] = ["$year-02", 0];
+                $accrual[] = ["$year-03", 0];
+            } else {
+                $month = $quarterCounter * 3 - 2;
+                if ($month < 10) {
                     $accrual[] = ["$year-0$month", CashHandler::toRubles($totalAccrued)];
-                }
-                else{
+                    $additionalCounter = 0;
+                    while ($additionalCounter < 3) {
+                        $accrual[] = ["$year-" . ($month + $additionalCounter), 0];
+                        ++$additionalCounter;
+                    }
+                } else {
                     $accrual[] = ["$year-$month", CashHandler::toRubles($totalAccrued)];
+                    $additionalCounter = 0;
+                    while ($additionalCounter < 3) {
+                        $accrual[] = ["$year-" . ($month + $additionalCounter), 0];
+                        ++$additionalCounter;
+                    }
+                }
+            }
+            $payed = Table_payed_membership::findAll(['quarter' => $quarter]);
+            $addPayed = Table_additional_payed_membership::findAll(['quarter' => $quarter]);
+            $result = array_merge($payed, $addPayed);
+            $totalPayed = 0;
+            if (!empty($result)) {
+                foreach ($result as $item) {
+                    $totalPayed += CashHandler::toRubles($item->summ);
+                }
+            }
+            if ($quarterCounter == 1) {
+                $pays[] = ["$year-01", CashHandler::toRubles($totalPayed)];
+                $pays[] = ["$year-02", 0];
+                $pays[] = ["$year-03", 0];
+            } else {
+                $month = $quarterCounter * 3 - 2;
+                if ($month < 10) {
+                    $pays[] = ["$year-0$month", CashHandler::toRubles($totalPayed)];
+                    $additionalCounter = 0;
+                    while ($additionalCounter < 3) {
+                        $pays[] = ["$year-" . ($month + $additionalCounter), 0];
+                        ++$additionalCounter;
+                    }
+                } else {
+                    $pays[] = ["$year-$month", CashHandler::toRubles($totalPayed)];
+                    $additionalCounter = 0;
+                    while ($additionalCounter < 3) {
+                        $pays[] = ["$year-" . ($month + $additionalCounter), 0];
+                        ++$additionalCounter;
+                    }
                 }
             }
             $quarterCounter++;
         }
-        return [['name' => 'Начислено к оплате, руб.', 'data' => $accrual]];
+        return [['name' => 'Начислено к оплате, руб.', 'data' => $accrual], ['name' => 'Оплачено, руб.', 'data' => $pays]];
 
     }
 
@@ -330,21 +357,21 @@ class MembershipHandler extends Model
                 if ($summToPay > 0) {
                     $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
                 }
-            /*$summToPay = Calculator::countFixedFloatPlus($value['fixed'], $value['float'], $cottage->cottageSquare);
-            if ($additional) {
-                $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottage->masterId, 'quarter' => $key])->all();
-            } else {
-                $payed = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber, 'quarter' => $key])->all();
-            }
-            $payedBefore = 0;
-            if (!empty($payed)) {
-                foreach ($payed as $item) {
-                    $payedBefore += $item->summ;
+                /*$summToPay = Calculator::countFixedFloatPlus($value['fixed'], $value['float'], $cottage->cottageSquare);
+                if ($additional) {
+                    $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottage->masterId, 'quarter' => $key])->all();
+                } else {
+                    $payed = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber, 'quarter' => $key])->all();
                 }
-            }
-            $summToPay = $summToPay['total'] - $payedBefore;
-            if ($summToPay > 0) {
-                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";*/
+                $payedBefore = 0;
+                if (!empty($payed)) {
+                    foreach ($payed as $item) {
+                        $payedBefore += $item->summ;
+                    }
+                }
+                $summToPay = $summToPay['total'] - $payedBefore;
+                if ($summToPay > 0) {
+                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";*/
             }
         }
         $content .= '</table>';
@@ -419,7 +446,7 @@ class MembershipHandler extends Model
         foreach ($membershipPeriods as $key => $value) {
             $toPay = CashHandler::toRubles($value['value']);
             $accrual = Accruals_membership::getItem($cottageInfo, $key);
-            if($accrual !== null){
+            if ($accrual !== null) {
                 if ($additional) {
                     $payedBefore = Table_additional_payed_membership::find()->where(['quarter' => $key, 'cottageId' => $cottageInfo->masterId])->all();
                 } else {
