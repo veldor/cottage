@@ -29,7 +29,6 @@ use yii\base\Model;
  * @property int $hasDifferentOwner [int(1) unsigned]
  * @property float $singleDebt [float unsigned]
  */
-
 class AdditionalCottage extends Model
 {
     public $cottageNumber;
@@ -63,7 +62,7 @@ class AdditionalCottage extends Model
     /**
      * @return Table_additional_cottages[]|array
      */
-    public static function getRegistred():array
+    public static function getRegistred(): array
     {
         return Table_additional_cottages::find()->orderBy('masterId')->all();
     }
@@ -190,7 +189,7 @@ class AdditionalCottage extends Model
                 $newCottage->targetPaysDuty = $dutyInfo['dutyDetails'];
             }
 
-            if($this->differentOwner){
+            if ($this->differentOwner) {
                 $newCottage->hasDifferentOwner = true;
                 $newCottage->cottageOwnerPersonals = GrammarHandler::clearWhitespaces($this->cottageOwnerPersonals);
                 $newCottage->cottageOwnerPhone = $this->cottageOwnerPhone;
@@ -210,22 +209,22 @@ class AdditionalCottage extends Model
                 $insertPower = new PowerHandler(['scenario' => PowerHandler::SCENARIO_NEW_RECORD, 'attributes' => $attributes]);
                 $powerInfo = $insertPower->insert();
                 $powerInfo['data']->payed = 'yes';
-	            /** @var Table_power_months|Table_additional_power_months $powerInfo */
-	            $powerInfo['data']->save();
+                /** @var Table_power_months|Table_additional_power_months $powerInfo */
+                $powerInfo['data']->save();
             }
-            if($this->isMembership){
-	            $membershipDifference = MembershipHandler::getTariffs(['start' => $newCottage->membershipPayFor]);
-	            if(!empty($membershipDifference)){
-		            foreach ($membershipDifference as $key => $item){
-			            MembershipHandler::recalculateMembership($key);
-		            }
-	            }
+            if ($this->isMembership) {
+                $membershipDifference = MembershipHandler::getTariffs(['start' => $newCottage->membershipPayFor]);
+                if (!empty($membershipDifference)) {
+                    foreach ($membershipDifference as $key => $item) {
+                        MembershipHandler::recalculateMembership($key);
+                    }
+                }
             }
-            if($this->isTarget){
-	            $targets = TargetHandler::getCurrentRates();
-	            foreach ($targets as $key => $value){
-		            TargetHandler::recalculateTarget($key);
-	            }
+            if ($this->isTarget) {
+                $targets = TargetHandler::getCurrentRates();
+                foreach ($targets as $key => $value) {
+                    TargetHandler::recalculateTarget($key);
+                }
             }
             $session = Yii::$app->session;
             $session->addFlash('success', 'Дополнительный участок добавлен');
@@ -252,11 +251,7 @@ class AdditionalCottage extends Model
                 }
                 $membershipDebt = 0;
                 if ($cottageInfo->isMembership) {
-                    if ($cottageInfo->individualTariff) {
-                        $membershipDebt = PersonalTariff::countMembershipDebt($cottageInfo)['summ'];
-                    } else {
-                        $membershipDebt = MembershipHandler::getCottageStatus($cottageInfo);
-                    }
+                    $membershipDebt = MembershipHandler::getCottageStatus($cottageInfo);
                     $totalDebt += $membershipDebt;
                 }
                 $targetDebt = 0;
@@ -265,17 +260,17 @@ class AdditionalCottage extends Model
                     $totalDebt += $targetDebt;
                 }
 
-                if($cottageInfo->hasDifferentOwner){
+                if ($cottageInfo->hasDifferentOwner) {
                     $singleDebt = $cottageInfo->singleDebt;
                     $totalDebt += $singleDebt;
                 }
 
                 $unpayedBills = false;
                 // проверю, есть ли дополнительный владелец
-                if($cottageInfo->hasDifferentOwner){
+                if ($cottageInfo->hasDifferentOwner) {
                     $unpayedBills = Table_payment_bills_double::findOne(['cottageNumber' => $cottageInfo->masterId, 'isPayed' => 0]);
                 }
-                $fines = Table_penalties::find()->where(['cottage_number' => $cottageId . '-a' ])->all();
+                $fines = Table_penalties::find()->where(['cottage_number' => $cottageId . '-a'])->all();
                 return ['cottageInfo' => $cottageInfo, 'powerStatus' => $powerStatus, 'totalDebt' => $totalDebt, 'membershipDebt' => $membershipDebt, 'targetDebt' => $targetDebt, 'unpayedBills' => $unpayedBills, 'fines' => $fines];
             }
         }

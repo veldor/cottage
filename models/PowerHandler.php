@@ -372,6 +372,65 @@ class PowerHandler extends Model
         return Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('month DESC')->all();
     }
 
+    public static function getYearConsumption(int $year)
+    {
+        // верну потребление электроэнергии по месяцам
+        $monthCounter = 1;
+        $consumption = [];
+        while ($monthCounter <= 12){
+            if($monthCounter > 9){
+                $month = "$year-$monthCounter";
+            }
+            else{
+                $month = "$year-0$monthCounter";
+            }
+            // получу все потребление за месяц
+            $consumptionItems = Table_power_months::findAll(['month' => $month]);
+            $spend = 0;
+            if(!empty($consumptionItems)){
+                foreach ($consumptionItems as $consumptionItem) {
+                    $spend += CashHandler::toRubles($consumptionItem->difference);
+                }
+            }
+            $consumption[] = [$month, $spend];
+            ++$monthCounter;
+        }
+        return $consumption;
+    }
+
+    public static function getYearPayments(string $year)
+    {
+        $accrual = [];
+        $pays = [];
+        $monthCounter = 1;
+        while ($monthCounter <= 12) {
+            if ($monthCounter > 9) {
+                $month = "$year-$monthCounter";
+            } else {
+                $month = "$year-0$monthCounter";
+            }
+            // начисления за месяц
+            $accruals = Table_power_months::findAll(['month' => $month]);
+            $amount = 0;
+            if(!empty($accruals)){
+                foreach ($accruals as $accrualItem) {
+                    $amount += CashHandler::toRubles($accrualItem->totalPay);
+                }
+            }
+            $accrual[] = [$month, CashHandler::toRubles($amount)];
+            $payed = Table_payed_power::findAll(['month' => $month]);
+            $totalPayed = 0;
+            if(!empty($payed)){
+                foreach ($payed as $payedItem) {
+                    $totalPayed += CashHandler::toRubles($payedItem->summ);
+                }
+            }
+            $pays[] = [$month, CashHandler::toRubles($totalPayed)];
+            $monthCounter++;
+        }
+        return [['name' => 'Начислено к оплате, руб.', 'data' => $accrual], ['name' => 'Оплачено, руб.', 'data' => $pays]];
+    }
+
     public function scenarios(): array
     {
         return [

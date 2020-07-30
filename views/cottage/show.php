@@ -66,24 +66,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
         <table class="table table-hover">
             <caption><?= $firstName ?></caption>
             <tbody>
-            <?php
-            if ($cottageInfo['globalInfo']->individualTariff) {
-                echo '
-                <tr>
-                <td><b class="text-primary">Участку подключён индивидуальный тариф</b></td>
-                <td><div class="btn-group">
-                      <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown">Действия с индивидуальным тарифом <span class="caret"></span></button>
-                      <ul class="dropdown-menu" role="menu">
-                        <li><a id="showPersonalTariff" href="#">Просмотреть данные тарифа</a></li>
-                        <li><a id="editPersonalTariff" href="#">Редактировать данные тарифа</a></li>
-                        <li><a id="indivTariffOffBtn" href="#">Отключить индивидуальный тариф</a></li>
-                      </ul>
-                    </div>
-                </td>
-                </tr>
-                ';
-            }
-            ?>
             <tr>
                 <td><a class="activator"
                        data-action="<?= Url::toRoute(['forms/power', 'cottageId' => $cottageInfo->globalInfo->cottageNumber]) ?>">Электроэнергия</a>
@@ -200,24 +182,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <tbody>
 
                 <?php
-
-                if ($cottageInfo->additionalCottageInfo['cottageInfo']->individualTariff) {
-                    echo '
-                <tr>
-                <td><b class="text-primary">Дополнительному участку подключён индивидуальный тариф</b></td>
-                <td><div class="btn-group">
-                      <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown">Действия с индивидуальным тарифом <span class="caret"></span></button>
-                      <ul class="dropdown-menu" role="menu">
-                        <li><a id="showAdditionalPersonalTariff" href="#">Просмотреть данные тарифа</a></li>
-                        <li><a id="editAdditionalPersonalTariff" href="#">Редактировать данные тарифа</a></li>
-                        <li><a id="additionalIndivTariffOffBtn" href="#">Отключить индивидуальный тариф</a></li>
-                      </ul>
-                    </div>
-                </td>
-                </tr>
-                ';
-                }
-
                 if ($cottageInfo->additionalCottageInfo['cottageInfo']->isPower) {
                     ?>
 
@@ -521,11 +485,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 if ($hasSingleDebt) {
                     echo '<li><a id="editSinglesActivator" href="#">Редактировать разовые платежи</a></li>';
                 }
-
-                if (!$cottageInfo->globalInfo->individualTariff) {
-                    echo '<br/>
-                <li class="text-info"><a id="indivTariffBtn" href="#">Активировать индивидуальный тарифный план</a></li>';
-                }
                 ?>
                 <li><a id="addToDepositActivator" href="#">Зачислить на депозит</a></li>
             </ul>
@@ -544,12 +503,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
 
                         <li><a id="changeAddInfoButton" href="#">Изменить данные</a></li>
                         <li><a id="showDoublePaymentsStory" href="#">История платежей</a></li>
-                        <?php
-                        if (!$cottageInfo->additionalCottageInfo['cottageInfo']->individualTariff) {
-                            echo "
-                <li class='text-info'><a id='additionalIndivTariffBtn' href='#'>Активировать индивидуальный тарифный план</a></li>";
-                        }
-                        ?>
                         <li><a id="createSinglePayDoubleButton" href="#">Создать разовый платёж</a></li>
                         <?php
                         if ($hasDoubleSingleDebt) {
@@ -569,13 +522,6 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <div class="btn-group">
                     <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">Дополнительный
                         участок <span class="caret"></span></button>
-                    <ul class="dropdown-menu">
-                        <?php
-                        if (!$cottageInfo->additionalCottageInfo['cottageInfo']->individualTariff) {
-                            echo "<li><a id='additionalIndivTariffBtn' href='#'>Активировать индивидуальный тариф</a></li>";
-                        }
-                        ?>
-                    </ul>
                 </div>
                 <?php
             }

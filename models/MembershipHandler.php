@@ -163,6 +163,44 @@ class MembershipHandler extends Model
         return Accruals_membership::findAll(['cottage_number' => $cottage->getCottageNumber()]);
     }
 
+    public static function getYearPayments(string $year)
+    {
+        $accrual = [];
+        $pays = [];
+        $quarterCounter = 1;
+        while ($quarterCounter < 5){
+            $quarter = "$year-$quarterCounter";
+            $accruals = Accruals_membership::findAll(['quarter' => $quarter]);
+            $totalAccrued = 0;
+            if(!empty($accruals)){
+                foreach ($accruals as $accrualItem) {
+                    $totalAccrued += CashHandler::toRubles(
+                        Calculator::countFixedFloat(
+                            $accrualItem->fixed_part,
+                            $accrualItem->square_part,
+                            $accrualItem->counted_square
+                        )
+                    );
+                }
+            }
+            if($quarterCounter == 1){
+                $accrual[] = ["$year-01", CashHandler::toRubles($totalAccrued)];
+            }
+            else{
+                $month = $quarterCounter * 3 -2;
+                if($month < 10){
+                    $accrual[] = ["$year-0$month", CashHandler::toRubles($totalAccrued)];
+                }
+                else{
+                    $accrual[] = ["$year-$month", CashHandler::toRubles($totalAccrued)];
+                }
+            }
+            $quarterCounter++;
+        }
+        return [['name' => 'Начислено к оплате, руб.', 'data' => $accrual]];
+
+    }
+
 
     public function scenarios(): array
     {

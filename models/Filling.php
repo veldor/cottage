@@ -410,7 +410,8 @@ class Filling extends Model
     private static function insertTargetContent($value, string $content): string
     {
         $content .= self::getRow($value['year'] . ' год', $value['summ']);
-        $content .= self::getSingleRow('Назначение платежа: ', true);
+        $description = Table_tariffs_target::findOne(['year' => $value['year']])->description;
+        $content .= self::getRow('Назначение платежа: ', $description);
         $conditions = 0;
         if ($value['fixed'] > 0) {
             ++$conditions;

@@ -164,17 +164,6 @@ class CottageController extends Controller {
             FinesHandler::check($cottageNumber);
 			$info = new Cottage($cottageNumber);
 			$mails = Mail::findAll(['cottage' => $cottageNumber]);
-			// посчитаю пени
-			if (PersonalTariff::checkTariffsFilling($info['globalInfo'])) {
-				$unfliiedInfo = PersonalTariff::getUnfilledInfo($info['globalInfo']);
-				return $this->render('fill-individual-tariff', ['info' => $unfliiedInfo]);
-			}
-			if ($info['globalInfo']->haveAdditional && $info->additionalCottageInfo['cottageInfo']->isMembership) {
-				if (PersonalTariff::checkTariffsFilling($info->additionalCottageInfo['cottageInfo'])) {
-					$unfliiedInfo = PersonalTariff::getUnfilledInfo($info->additionalCottageInfo['cottageInfo']);
-					return $this->render('fill-individual-additional-tariff', ['info' => $unfliiedInfo]);
-				}
-			}
 			return $this->render('show', ['cottageInfo' => $info, 'mails' => $mails]);
 		}
 		return $this->render('fill-tariff');
