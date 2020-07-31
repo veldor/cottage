@@ -240,7 +240,10 @@ if ($matrix->double) {
                 if ($fine->is_enabled && !$fine->is_full_payed) {
                     $hasFine = true;
                     $dayDifference = FinesHandler::getFineDaysLeft($fine);
-                    $daySumm = $fine->summ / (int)$dayDifference;
+                    if($dayDifference === 0){
+                        $dayDifference = 1;
+                    }
+                    $daySumm = $fine->summ / $dayDifference;
                     $summ = CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));
                     $fineText .= "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][{$fine->id}]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td><td>$dayDifference</td><td>" . CashHandler::toSmoothRubles($daySumm) . '</td></tr>';
                     $totalDutySumm += $summ;
