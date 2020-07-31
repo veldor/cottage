@@ -591,18 +591,8 @@ class MembershipHandler extends Model
             $payedOutside = 0;
 
             foreach ($cottages as $cottage) {
-                $summ = 0;
-                if ($cottage->individualTariff) {
-                    // получу тариф за данный месяц
-                    $rates = PersonalTariff::getMembershipRate($cottage, $quarter['full']);
-                    if (!empty($rates)) {
-                        $summ = Calculator::countFixedFloat($rates['fixed'], $rates['float'], $cottage->cottageSquare);
-                        $neededSumm += $summ;
-                    }
-                } else {
-                    $summ = Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottage->cottageSquare);
-                    $neededSumm += $summ;
-                }
+                $summ = Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottage->cottageSquare);
+                $neededSumm += $summ;
                 // дополнительный блок- буду считать оплату в теории- если у участка нет долгов- считаю, что он заплатил раньше по стандартному тарифу
                 $fullSquare += $cottage->cottageSquare;
                 if ($cottage->membershipPayFor >= $quarter['full'] && empty($insidePayed[$cottage->cottageNumber])) {
@@ -614,16 +604,7 @@ class MembershipHandler extends Model
             }
             foreach ($additionalCottages as $cottage) {
                 if ($cottage->isMembership) {
-                    if ($cottage->individualTariff) {
-                        if ($cottage->isMembership) {
-                            $rates = PersonalTariff::getMembershipRate($cottage, $quarter['full']);
-                            if (!empty($rates)) {
-                                $neededSumm += Calculator::countFixedFloat($rates['fixed'], $rates['float'], $cottage->cottageSquare);
-                            }
-                        }
-                    } else {
-                        $neededSumm += Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottage->cottageSquare);
-                    }
+                    $neededSumm += Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottage->cottageSquare);
                 }
                 $fullSquare += $cottage->cottageSquare;
             }

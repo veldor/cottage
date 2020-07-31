@@ -377,6 +377,7 @@ class PowerHandler extends Model
         // верну потребление электроэнергии по месяцам
         $monthCounter = 1;
         $consumption = [];
+        $consumption[] = [($year - 1) . '-12', 0];
         while ($monthCounter <= 12){
             if($monthCounter > 9){
                 $month = "$year-$monthCounter";
@@ -395,6 +396,7 @@ class PowerHandler extends Model
             $consumption[] = [$month, $spend];
             ++$monthCounter;
         }
+        $consumption[] = [($year + 1) . '-01', 0];
         return $consumption;
     }
 
