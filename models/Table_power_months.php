@@ -25,8 +25,8 @@ use yii\db\ActiveRecord;
  * @property float $totalPay [float unsigned]
  * @property int $inLimitSumm [int(10) unsigned]
  * @property int $overLimitSumm [int(10) unsigned]
- * @property string $inLimitPay [float unsigned]
- * @property string $overLimitPay [float unsigned]
+ * @property float $inLimitPay [float unsigned]
+ * @property float $overLimitPay [float unsigned]
  */
 
 class Table_power_months extends ActiveRecord

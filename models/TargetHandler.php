@@ -459,22 +459,6 @@ class TargetHandler extends Model
     public static function insertSinglePayment($cottageInfo, $bill, $date, $summ, $transaction)
     {
         $main = Cottage::isMain($cottageInfo);
-        // получу информацию о задолженностях
-        $dom = new DOMHandler($cottageInfo->targetPaysDuty);
-        // найду информацию о платеже
-        /** @var DOMElement $pay */
-        $pay = $dom->query("//targets/target[@year='{$date}']")->item(0);
-        $attrs = DOMHandler::getElemAttributes($pay);
-        $payed = CashHandler::toRubles($attrs['payed']);
-        $fullSumm = CashHandler::toRubles($attrs['summ']);
-        if ($fullSumm === $summ + $payed) {
-            // год оплачен полностью, удаляю его из списка долгов
-            $pay->parentNode->removeChild($pay);
-        } else {
-            $pay->setAttribute('payed', $summ + $payed);
-        }
-        $cottageInfo->targetDebt = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->targetDebt) - CashHandler::toRubles($summ));
-        $cottageInfo->targetPaysDuty = $dom->save();
         // зарегистрирую платёж
         if ($main) {
             $write = new Table_payed_target();

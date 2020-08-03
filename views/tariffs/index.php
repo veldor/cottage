@@ -271,12 +271,17 @@ echo ApexchartsWidget::widget([
 ]);
 
 echo '<h2>Электроэнергия</h2>';
-echo PowerStatisticWidget::widget(['monthInfo' => $lastTariffs->power]);
-echo '<h2>Членские взносы</h2>';
-echo MembershipStatisticWidget::widget(['quarterInfo' => $lastTariffs->membership]);
-echo '<h2>Целевые взносы</h2>';
-if (!empty($lastTariffs->target)) {
-    echo TargetStatisticWidget::widget(['yearInfo' => $lastTariffs->target]);
-} else {
-    echo "<button id='createTargetPayment' class='btn btn-success'>Создать целевой платёж</button>";
+try{
+    echo PowerStatisticWidget::widget(['monthInfo' => $lastTariffs->power]);
+    echo '<h2>Членские взносы</h2>';
+    echo MembershipStatisticWidget::widget(['quarterInfo' => $lastTariffs->membership]);
+    echo '<h2>Целевые взносы</h2>';
+    if (!empty($lastTariffs->target)) {
+        echo TargetStatisticWidget::widget(['yearInfo' => $lastTariffs->target]);
+    } else {
+        echo "<button id='createTargetPayment' class='btn btn-success'>Создать целевой платёж</button>";
+    }
+}
+catch (Exception $e){
+    echo "<h2 class='text-center'>Не удалось отобразить данные: ошибка {$e->getMessage()}</h2>";
 }

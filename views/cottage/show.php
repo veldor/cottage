@@ -6,6 +6,7 @@ use app\models\Cottage;
 use app\models\database\Mail;
 use app\models\DOMHandler;
 use app\models\GrammarHandler;
+use app\models\MembershipHandler;
 use app\models\Reminder;
 use app\models\Table_payed_power;
 use app\models\Table_power_months;
@@ -97,6 +98,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                             }
                         }
                     }
+                    $cottageDebt = MembershipHandler::getDebtAmount($cottageInfo->globalInfo);
                     ?>
                 </td>
             </tr>
@@ -113,13 +115,14 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             </tr>
             <tr>
                 <td><a class="activator"
-                       data-action="<?= Url::toRoute(['forms/membership', 'cottageId' => $cottageInfo->globalInfo->cottageNumber]) ?>">Членские взносы</a></td>
-                <td><?= $cottageInfo->membershipDebts > 0 ? "<a class='btn btn-default detail-debt' data-type='membership' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->membershipDebts) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
+                       data-action="<?= Url::toRoute(['forms/membership', 'cottageId' => $cottageInfo->globalInfo->cottageNumber]) ?>">Членские
+                        взносы</a></td>
+                <td><?= $cottageDebt > 0 ? "<a class='btn btn-default detail-debt' data-type='membership' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageDebt) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
             </tr>
             <tr>
                 <td>Членские взносы- последний оплаченный квартал</td>
                 <td>
-                    <b class="text-info"><?= TimeHandler::getFullFromShortQuarter($cottageInfo->globalInfo->membershipPayFor) ?></b>
+                    <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->globalInfo)); ?></b>
                     <?php
                     if ($cottageInfo->globalInfo->partialPayedMembership) {
                         // получу данные о неполном платеже
@@ -133,8 +136,9 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             </tr>
             <tr>
                 <td><a class="activator"
-                       data-action="<?= Url::toRoute(['forms/target', 'cottageId' => $cottageInfo->globalInfo->cottageNumber]) ?>">Целевые взносы</a></td>
-                <td><?= TargetHandler::getCottageDebtText($cottageInfo->globalInfo)?></td>
+                       data-action="<?= Url::toRoute(['forms/target', 'cottageId' => $cottageInfo->globalInfo->cottageNumber]) ?>">Целевые
+                        взносы</a></td>
+                <td><?= TargetHandler::getCottageDebtText($cottageInfo->globalInfo) ?></td>
             </tr>
             <tr>
                 <td>Разовые платежи</td>
@@ -225,16 +229,18 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     <?php
                 }
                 if ($cottageInfo->additionalCottageInfo['cottageInfo']->isMembership) {
+                    $cottageDebt = MembershipHandler::getDebtAmount($cottageInfo->additionalCottageInfo['cottageInfo']);
                     ?>
                     <tr class="info">
                         <td><a class="activator"
-                               data-action="<?= Url::toRoute(['forms/membership', 'cottageId' => $cottageInfo->additionalCottageInfo['cottageInfo']->getCottageNumber()]) ?>">Членские взносы</a></td>
-                        <td><?= $cottageInfo->additionalCottageInfo['membershipDebt'] > 0 ? "<a class='btn btn-default detail-debt' data-type='membership_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['membershipDebt']) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
+                               data-action="<?= Url::toRoute(['forms/membership', 'cottageId' => $cottageInfo->additionalCottageInfo['cottageInfo']->getCottageNumber()]) ?>">Членские
+                                взносы</a></td>
+                        <td><?= $cottageDebt > 0 ? "<a class='btn btn-default detail-debt' data-type='membership_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($cottageDebt) . '</b></a>' : "<b class='text-success'>Оплачено</b>" ?></td>
                     </tr>
                     <tr class="info">
                         <td>Членские взносы- последний оплаченный квартал</td>
                         <td>
-                            <b class="text-info"><?= TimeHandler::getFullFromShortQuarter($cottageInfo->additionalCottageInfo['cottageInfo']->membershipPayFor) ?></b>
+                            <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->additionalCottageInfo['cottageInfo'])); ?></b>
                             <?php
                             if ($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedMembership) {
                                 // получу данные о неполном платеже
@@ -258,7 +264,8 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     ?>
                     <tr class="info">
                         <td><a class="activator"
-                               data-action="<?= Url::toRoute(['forms/target', 'cottageId' => $cottageInfo->additionalCottageInfo['cottageInfo']->getCottageNumber()]) ?>">Целевые взносы</a></td>
+                               data-action="<?= Url::toRoute(['forms/target', 'cottageId' => $cottageInfo->additionalCottageInfo['cottageInfo']->getCottageNumber()]) ?>">Целевые
+                                взносы</a></td>
                         <td><?= TargetHandler::getCottageDebtText($cottageInfo->additionalCottageInfo['cottageInfo']) ?></td>
                     </tr>
                     <?php

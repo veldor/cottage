@@ -4,6 +4,7 @@
 namespace app\models\database;
 
 
+use app\models\Calculator;
 use app\models\Cottage;
 use app\models\interfaces\CottageInterface;
 use app\models\Table_cottages;
@@ -51,5 +52,10 @@ class Accruals_membership extends ActiveRecord
     public static function getItem(CottageInterface $cottageInfo, string $quarter)
     {
         return self::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'quarter' => $quarter]);
+    }
+
+    public function getAccrual()
+    {
+        return Calculator::countFixedFloat($this->fixed_part, $this->square_part, $this->counted_square);
     }
 }

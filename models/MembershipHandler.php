@@ -15,6 +15,7 @@ use app\models\selections\FixedFloatTariff;
 use app\models\selections\MembershipDebt;
 use DOMElement;
 use Exception;
+use phpDocumentor\Reflection\Types\Self_;
 use yii\base\InvalidArgumentException;
 use yii\base\InvalidValueException;
 use yii\base\Model;
@@ -83,16 +84,16 @@ class MembershipHandler extends Model
 
     /**
      * Получение платежей за данный период
-     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param $cottage CottageInterface
      * @param string $period
      * @return Table_additional_payed_membership[]|Table_payed_membership[]
      */
     public static function getPaysForPeriod($cottage, string $period): array
     {
         if (Cottage::isMain($cottage)) {
-            return Table_payed_membership::findAll(['cottageId' => $cottage->cottageNumber, 'quarter' => $period]);
+            return Table_payed_membership::findAll(['cottageId' => $cottage->getBaseCottageNumber(), 'quarter' => $period]);
         }
-        return Table_additional_payed_membership::findAll(['cottageId' => $cottage->masterId, 'quarter' => $period]);
+        return Table_additional_payed_membership::findAll(['cottageId' => $cottage->getBaseCottageNumber(), 'quarter' => $period]);
     }
 
     /**
@@ -226,6 +227,76 @@ class MembershipHandler extends Model
         }
         return [['name' => 'Начислено к оплате, руб.', 'data' => $accrual], ['name' => 'Оплачено, руб.', 'data' => $pays]];
 
+    }
+
+    /**
+     * Получение последнего квартала, за который была произведена оплата взносов
+     * @param $cottageInfo CottageInterface
+     */
+    public static function getLastPayedQuarter($cottageInfo)
+    {
+        // получу все начисления, считая с конца
+        $accruals = Accruals_membership::find()->where(['cottage_number' => $cottageInfo->getCottageNumber()])->orderBy('quarter')->all();
+        if (!empty($accruals)) {
+            $lastPayedQuarter = null;
+            $lastQuarter = null;
+            while (true) {
+                /** @var Accruals_membership $quarter */
+                $quarter = array_pop($accruals);
+                if (!empty($quarter)) {
+                    $lastQuarter = $quarter->quarter;
+                    $accrued = Calculator::countFixedFloat($quarter->fixed_part, $quarter->square_part, $quarter->counted_square);
+                    if ($accrued > 0) {
+                        // посчитаю оплаты
+                        $pays = self::getPaysForPeriod($cottageInfo, $quarter->quarter);
+                        if (empty($pays)) {
+                            continue;
+                        }
+                        $payed = 0;
+                        foreach ($pays as $pay) {
+                            $payed += $pay->summ;
+                        }
+                        if (CashHandler::toRubles($payed) === CashHandler::toRubles($accrued)){
+                            if($lastPayedQuarter === null){
+                                $lastPayedQuarter = $quarter->quarter;
+                            }
+                            return $lastPayedQuarter;
+                        }
+                    } else {
+                        if ($lastPayedQuarter === null) {
+                            $lastPayedQuarter = $quarter->quarter;
+                        }
+                    }
+                }
+                else{
+                    return TimeHandler::getPrevQuarter($lastQuarter);
+                }
+            }
+        }
+    }
+
+    public static function getPeriodPaysAmount(string $cottage_number, string $quarter)
+    {
+        $pays = self::getPaysForPeriod(Cottage::getCottageByLiteral($cottage_number), $quarter);
+        $payed = 0;
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                $payed += $pay->summ;
+            }
+        }
+        return CashHandler::toRubles($payed);
+    }
+
+    public static function getDebtAmount($cottageInfo)
+    {
+        $cottageDebt = self::getDebt($cottageInfo);
+        $debt = 0;
+        if (!empty($cottageDebt)) {
+            foreach ($cottageDebt as $item) {
+                $debt += $item->amount;
+            }
+        }
+        return $debt;
     }
 
 
