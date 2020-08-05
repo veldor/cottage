@@ -132,6 +132,8 @@ return [
     'individual/fill' => 'filling/fill-missing-individuals',
     'change/transaction-time' => 'payments/change-transaction-date',
     'fines/count/<cottageNumber:[0-9]+(-a)?>' => 'payments/count-fines',
+    'fines/lock/<id:[0-9]+?>' => 'fines/lock',
+    'fines/unlock/<id:[0-9]+?>' => 'fines/unlock',
     'fines/recount/<cottageNumber:\d+>' => 'fines/recount-fines',
     'fines/recount-<total:total>/<cottageNumber:\d+>' => 'fines/recount-fines',
     'bill/reopen/<billId:[0-9]+>' => 'payments/bill-reopen',

@@ -8,13 +8,13 @@ use app\models\Table_tariffs_power;
 
 class SingleDebt
 {
-    public $amount;
+    public float $amount;
     /**
-     * @var string
+     * @var float
      */
-    public $partialPayed;
+    public float $partialPayed;
     /**
-     * @var string
+     * @var float
      */
     public $description;
     /**

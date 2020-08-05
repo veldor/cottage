@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\interfaces\CottageInterface;
 use app\models\selections\SingleDebt;
 use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
@@ -59,6 +60,18 @@ class SingleHandler extends Model
                 }
             }
         }
+    }
+
+    public static function getDebt(CottageInterface $globalInfo)
+    {
+        $duties = self::getDebtReport($globalInfo);
+        $debt = 0;
+        if(!empty($duties)){
+            foreach ($duties as $duty) {
+                $debt += $duty->amount - $duty->partialPayed;
+            }
+        }
+        return $debt;
     }
 
     public function scenarios(): array

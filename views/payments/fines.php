@@ -44,14 +44,21 @@ if(!empty($info)){
         } catch (Exception $e) {
         }
         if($item->is_enabled){
-            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default activator hidden'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default activator'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
+            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default ajax-activator hidden'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default ajax-activator'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
         }
         else{
-            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default activator'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default activator hidden'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
+            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default ajax-activator'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default ajax-activator hidden'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
         }
 
+        if($item->locked){
+            $locked = "<a class='btn btn-default ajax-activator' href='#' data-action='/fines/unlock/{$item->id}'><span class='glyphicon glyphicon-lock text-success'></span></a>";
 
-        echo "<tr><td>$type</td><td>{$item->period}</td><td><b class='text-info popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='bottom' data-content='$itemInfo'>" . CashHandler::toSmoothRubles($item->summ) . "</b></td><td><b class='$text'>" . CashHandler::toSmoothRubles($item->payed_summ) . "</b></td><td>$controlItem</td></tr>";
+        }
+        else{
+            $locked = "<a class='btn btn-default activator' href='#' data-action='/fines/lock/{$item->id}'><span class='glyphicon glyphicon-lock text-danger'></span></a>";
+        }
+
+        echo "<tr><td>$type</td><td>{$item->period}</td><td><b class='text-info popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='bottom' data-content='$itemInfo'>" . CashHandler::toSmoothRubles($item->summ) . "</b></td><td><b class='$text'>" . CashHandler::toSmoothRubles($item->payed_summ) . "</b></td><td>$controlItem $locked</td></tr>";
     }
     echo '</table>';
 }

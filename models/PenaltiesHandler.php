@@ -54,4 +54,12 @@ class PenaltiesHandler extends Model
         }
         return ['status' => 1, 'message' => 'Все пени посчитаны'];
     }
+
+    public static function unlockFine($id)
+    {
+        $fine = Table_penalties::findOne($id);
+        $fine->locked = 0;
+        $fine->save();
+        FinesHandler::checkCottage(Cottage::getCottageByLiteral($fine->cottage_number));
+    }
 }

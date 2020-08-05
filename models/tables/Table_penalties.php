@@ -14,6 +14,7 @@ use yii\db\ActiveRecord;
  * @property bool $is_partial_payed [tinyint(1)]  Чатично оплачено
  * @property bool $is_full_payed [tinyint(1)]  Полностью оплачено
  * @property bool $is_enabled [tinyint(1)]  Активность пени
+ * @property bool $locked [tinyint(1)]  Активность пени
  */
 
 class Table_penalties extends ActiveRecord

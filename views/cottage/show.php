@@ -7,7 +7,9 @@ use app\models\database\Mail;
 use app\models\DOMHandler;
 use app\models\GrammarHandler;
 use app\models\MembershipHandler;
+use app\models\PowerHandler;
 use app\models\Reminder;
+use app\models\SingleHandler;
 use app\models\Table_payed_power;
 use app\models\Table_power_months;
 use app\models\tables\Table_penalties;
@@ -28,6 +30,12 @@ if (Reminder::requreRemind()) {
 }
 
 /** @var Cottage $cottageInfo */
+
+$totalDebt = 0;
+
+$totalDebt += $cottageInfo->powerDebts;
+
+
 $this->title = 'Участок № ' . $cottageInfo->globalInfo->cottageNumber;
 
 $haveAdditional = $cottageInfo->globalInfo->haveAdditional;
@@ -99,6 +107,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         }
                     }
                     $cottageDebt = MembershipHandler::getDebtAmount($cottageInfo->globalInfo);
+                    $totalDebt += $cottageDebt;
                     ?>
                 </td>
             </tr>
@@ -155,12 +164,16 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 }
             }
             echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button> <button class='btn btn-default activator' data-action='/fines/recount/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-warning'>пересчитать</span></button> <button class='btn btn-default activator' data-action='/fines/recount-total/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-danger'>пересчитать всё</span></button></td></tr>";
-            $cottageInfo->totalDebt += $total;
+            $totalDebt += $total;
+            $totalDebt += TargetHandler::getCottageDebt($cottageInfo->globalInfo);
+            $totalDebt += SingleHandler::getDebt($cottageInfo->globalInfo);
             ?>
             </tbody>
             <tr>
                 <td>Итоговая задолженность</td>
-                <td><?= $cottageInfo->totalDebt > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->totalDebt) . '</b>' : "<b class='text-success'>Отсутствует</b>" ?></td>
+                <?php
+                ?>
+                <td><?= $totalDebt > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($totalDebt) . '</b>' : "<b class='text-success'>Отсутствует</b>" ?></td>
             </tr>
             <tr>
                 <td>Депозит участка</td>
@@ -179,6 +192,10 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
 
         <?php
         if ($cottageInfo->globalInfo->haveAdditional) {
+            $totalDebt = 0;
+            $totalDebt += MembershipHandler::getDebtAmount($cottageInfo->additionalCottageInfo['cottageInfo']);
+            $totalDebt += TargetHandler::getCottageDebt($cottageInfo->additionalCottageInfo['cottageInfo']);
+            $totalDebt += SingleHandler::getDebt($cottageInfo->additionalCottageInfo['cottageInfo']);
             ?>
 
             <table class="table table-hover">
@@ -322,13 +339,14 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                         echo "<tr class='info'><td>Пени</td><td><button id='finesSummDouble' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . '</button></td></tr>';
                         $cottageInfo->totalDebt += $total;
                     }
+                    $totalDebt += $total;
                 }
                 $fullDuty = CashHandler::toRubles($cottageInfo->additionalCottageInfo['totalDebt']) + CashHandler::toRubles($cottageInfo->totalDebt);
                 ?>
                 </tbody>
                 <tr class="info">
                     <td>Итоговая задолженность дополнительного участка</td>
-                    <td><?= $cottageInfo->additionalCottageInfo['totalDebt'] > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($cottageInfo->additionalCottageInfo['totalDebt'] + $total) . '</b>' : "<b class='text-success'>Отсутствует</b>" ?></td>
+                    <td><?= $totalDebt > 0 ? "<b class='text-danger'>" . CashHandler::toSmoothRubles($totalDebt) . '</b>' : "<b class='text-success'>Отсутствует</b>" ?></td>
                 </tr>
                 <tr class="info">
                     <td>Общая задолженность обоих участков</td>

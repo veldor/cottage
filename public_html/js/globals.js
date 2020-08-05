@@ -905,6 +905,7 @@ function handleModalForm(data) {
 
 // обработка формы, переданной через AJAX без валидации ===============================================================
 function handleModalFormNoValidate(data) {
+    console.log('click me');
     "use strict";
     if (data.status && data.status === 1) {
         let modal = makeModal(data.header, data.data);
@@ -927,10 +928,12 @@ function handleModalFormNoValidate(data) {
 // обработка активаторов AJAX-запросов =================================================================================
 function handleAjaxActivators() {
     "use strict";
+    console.log('enable activators');
     // найду активаторы AJAX-запросов
     let activators = $('.activator');
     activators.off('click.request');
     activators.on('click.request', function () {
+        console.log('activator');
         let action = $(this).attr('data-action');
         if (action) {
             // отправлю запрос на форму

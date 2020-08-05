@@ -488,6 +488,7 @@ function addToDeposit(double) {
 function showFines(data) {
     if (data['status'] === 1) {
         makeModal('Расчёт пени', data['text']);
+        handleAjaxActivators();
     }
 }
 

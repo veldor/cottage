@@ -193,6 +193,17 @@ class TargetHandler extends Model
         return "<a class='btn btn-default detail-debt' data-type='target_additional' href='#'><b class='text-danger'>Задолженность " . CashHandler::toSmoothRubles($duty) . '</b></a>';
 
     }
+    public static function getCottageDebt(CottageInterface $cottageInfo)
+    {
+        $duty = 0;
+        $accruals = self::getDebt($cottageInfo);
+        if (!empty($accruals)) {
+            foreach ($accruals as $accrual) {
+                $duty += CashHandler::toRubles($accrual->amount - $accrual->partialPayed);
+            }
+        }
+        return $duty;
+    }
 
     public static function getPayments()
     {

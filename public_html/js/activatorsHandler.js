@@ -1,5 +1,5 @@
 function handleActivators(){
-    let activators = $('.activator');
+    let activators = $('.ajax-activator');
     activators.on('click.doAction', function (e) {
         e.preventDefault();
        let url = $(this).attr('data-action');

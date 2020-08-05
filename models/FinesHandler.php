@@ -300,7 +300,7 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $registeredPowerDatum->month, 'pay_type' => 'power'])->one();
-        if ($existentFine) {
+        if ($existentFine && !$existentFine->locked) {
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "электричество {$cottage->cottageNumber} {$registeredPowerDatum->month} Пересчитано\n";
@@ -332,7 +332,7 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $quarter, 'pay_type' => 'membership'])->one();
-        if ($existentFine) {
+        if ($existentFine&& !$existentFine->locked) {
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "членские {$cottage->cottageNumber} {$quarter} Пересчитано\n";
@@ -364,7 +364,7 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $year, 'pay_type' => 'target'])->one();
-        if ($existentFine) {
+        if ($existentFine&& !$existentFine->locked) {
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "целевые {$cottage->cottageNumber} {$year} Пересчитано {$fullAmount}\n";
@@ -724,7 +724,7 @@ class FinesHandler extends Model
      * @param $cottageInfo
      * @throws ExceptionWithStatus
      */
-    private static function checkCottage($cottageInfo): void
+    public static function checkCottage($cottageInfo): void
     {
         $powerDuties = PowerHandler::getDebtReport($cottageInfo);
         if (!empty($powerDuties)) {

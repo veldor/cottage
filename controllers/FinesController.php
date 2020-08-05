@@ -4,8 +4,11 @@
 namespace app\controllers;
 
 
+use app\models\CashHandler;
 use app\models\ExceptionWithStatus;
 use app\models\FinesHandler;
+use app\models\PenaltiesHandler;
+use app\models\tables\Table_penalties;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -26,7 +29,12 @@ class FinesController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['change', 'recount-fines'],
+                        'actions' => [
+                            'change',
+                            'recount-fines',
+                            'lock',
+                            'unlock'
+                        ],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -64,5 +72,32 @@ class FinesController extends Controller
         FinesHandler::recalculateFines($cottageNumber, (bool)$total);
         Yii::$app->response->format = Response::FORMAT_JSON;
         return ['status' => 2];
+    }
+
+    public function actionLock($id){
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        if(Yii::$app->request->isGet){
+            $fineInfo = Table_penalties::findOne($id);
+            $view = $this->renderAjax('lock', ['matrix' => $fineInfo]);
+            return ['status' => 1,
+                'header' => 'Фиксировать пени',
+                'data' => $view,
+            ];
+        }
+        if(Yii::$app->request->isPost){
+            $summ = CashHandler::toRubles(Yii::$app->request->post("Table_penalties")['summ']);
+            $fine = Table_penalties::findOne($id);
+            $fine->summ = $summ;
+            $fine->locked = 1;
+            $fine->save();
+            return [
+                'status' => 1,
+                'message' => 'Сумма пени заблокирована'
+            ];
+        }
+    }
+
+    public function actionUnlock($id){
+        PenaltiesHandler::unlockFine($id);
     }
 }
