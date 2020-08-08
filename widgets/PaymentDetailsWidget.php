@@ -780,7 +780,7 @@ class PaymentDetailsWidget extends Widget
                         /** @var Table_view_fines_info $item */
                         foreach ($this->info['fines'] as $item) {
                             $summ += $item->start_summ;
-                            $daysLeft = FinesHandler::getFineDaysLeft(Table_penalties::findOne($item->fines_id));
+                            $daysLeft = $item->start_days;
                             $forDay = CashHandler::toSmoothRubles($item->start_summ / $daysLeft);
                             ?>
                             <tr>
