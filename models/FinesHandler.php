@@ -332,7 +332,7 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $quarter, 'pay_type' => 'membership'])->one();
-        if ($existentFine&& !$existentFine->locked) {
+        if ($existentFine && !$existentFine->locked) {
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "членские {$cottage->cottageNumber} {$quarter} Пересчитано\n";
@@ -364,7 +364,7 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $year, 'pay_type' => 'target'])->one();
-        if ($existentFine&& !$existentFine->locked) {
+        if ($existentFine && !$existentFine->locked) {
             $existentFine->summ = CashHandler::toRubles($fullAmount);
             $existentFine->save();
             //echo "целевые {$cottage->cottageNumber} {$year} Пересчитано {$fullAmount}\n";
@@ -434,23 +434,25 @@ class FinesHandler extends Model
 
         // получу стоимость квартала
         $tariff = Accruals_membership::findOne(['quarter' => $item->period, 'cottage_number' => $cottageInfo->getCottageNumber()]);
-        $fixed = $tariff->fixed_part;
-        $float = $tariff->square_part;
+        if (!empty($tariff)) {
+            $fixed = $tariff->fixed_part;
+            $float = $tariff->square_part;
 
-        $startAmount = Calculator::countFixedFloat(
-            $fixed,
-            $float,
-            $tariff->counted_square);
-        $answer .= 'Сумма взноса: <b class="text-info">' . CashHandler::toSmoothRubles($startAmount) . '</b><br/>';
-        // получу оплаты по кварталу
-        if ($isMain) {
-            $pays = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->period])->all();
-        } else {
-            $pays = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $item->period])->all();
+            $startAmount = Calculator::countFixedFloat(
+                $fixed,
+                $float,
+                $tariff->counted_square);
+            $answer .= 'Сумма взноса: <b class="text-info">' . CashHandler::toSmoothRubles($startAmount) . '</b><br/>';
+            // получу оплаты по кварталу
+            if ($isMain) {
+                $pays = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->period])->all();
+            } else {
+                $pays = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $item->period])->all();
+            }
+            $payUp = self::getPayUp('quarter', $item->period);
+            $answer .= 'Срок оплаты: <b class="text-info">' . TimeHandler::getPayUpQuarter($item->period) . '</b><br/>';
+            $answer = self::handleInnerPays($pays, $payUp, $answer, $startAmount);
         }
-        $payUp = self::getPayUp('quarter', $item->period);
-        $answer .= 'Срок оплаты: <b class="text-info">' . TimeHandler::getPayUpQuarter($item->period) . '</b><br/>';
-        $answer = self::handleInnerPays($pays, $payUp, $answer, $startAmount);
         return $answer;
     }
 
