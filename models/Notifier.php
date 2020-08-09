@@ -19,10 +19,9 @@ class Notifier extends Model
     public static function sendDuties($cottageNumber)
     {
         $cottage = Cottage::getCottageInfo($cottageNumber);
-        if (!empty($cottage->cottageOwnerEmail) || !empty($cottage->cottageContacterEmail)) {
-            $dutyText = Filling::getCottageDutyText($cottage);
-            $depositInfo = $cottage->deposit > 0 ? "<tr><td><h3>Депозит участка</h3></td></tr><tr><td>Средств на депозите: <b style='color: #3e8f3e'>{$cottage->deposit}</b> &#8381;</td></tr><tr><td><b style='color: #3e8f3e'>Средства, находящиеся на депозите, вы можете использовать для оплаты любых взносов СНТ или потребленной электроэнергии.</b></td></tr>" : '';
-            $text = <<<EOT
+        $dutyText = Filling::getCottageDutyText($cottage);
+        $depositInfo = $cottage->deposit > 0 ? "<tr><td><h3>Депозит участка</h3></td></tr><tr><td>Средств на депозите: <b style='color: #3e8f3e'>{$cottage->deposit}</b> &#8381;</td></tr><tr><td><b style='color: #3e8f3e'>Средства, находящиеся на депозите, вы можете использовать для оплаты любых взносов СНТ или потребленной электроэнергии.</b></td></tr>" : '';
+        $text = <<<EOT
 <table style='max-width: 600px; width: 100%; margin:0; padding: 0; text-align: center;'>
 <tr>
 <td>
@@ -37,9 +36,7 @@ $dutyText
 $depositInfo
 </table>
 EOT;
-            return MailingSchedule::addSingleMailing($cottage, 'Напоминание о задолженностях', $text);
-        }
-        return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
+        return MailingSchedule::addSingleMailing($cottage, 'Напоминание о задолженностях', $text);
     }
 
     /**
@@ -98,34 +95,33 @@ EOT;
     public static function sendRegInfo($cottageNumber)
     {
         if ($cottage = Table_cottages::findOne(['cottageNumber' => (int)$cottageNumber])) {
-            if ($cottage->cottageOwnerEmail || $cottage->cottageContacterEmail) {
-                $dutyText = Filling::getCottageDutyText($cottage);
-                $depositInfo = $cottage->deposit > 0 ? "<tr><td colspan='2'><h3>Депозит участка</h3></td></tr><tr><td colspan='2'>Средств на депозите: <b style='color: #3e8f3e'>{$cottage->deposit}</b> &#8381;</td></tr><tr><td colspan='2'><b style='color: #3e8f3e'>Средства, находящиеся на депозите, вы можете использовать для оплаты любых взносов СНТ или потребленной электроэнергии.</b></td></tr>" : '';
+            $dutyText = Filling::getCottageDutyText($cottage);
+            $depositInfo = $cottage->deposit > 0 ? "<tr><td colspan='2'><h3>Депозит участка</h3></td></tr><tr><td colspan='2'>Средств на депозите: <b style='color: #3e8f3e'>{$cottage->deposit}</b> &#8381;</td></tr><tr><td colspan='2'><b style='color: #3e8f3e'>Средства, находящиеся на депозите, вы можете использовать для оплаты любых взносов СНТ или потребленной электроэнергии.</b></td></tr>" : '';
 
-                $regData = Filling::getRow('Номер участка', $cottage->cottageNumber);
-                $regData .= Filling::getRow('Площадь участка', $cottage->cottageSquare, '', 'м<sup>2</sup>');
-                $regData .= Filling::getRow('ФИО владельца участка', $cottage->cottageOwnerPersonals, '');
-                if (!empty($cottage->cottageOwnerPhone)) {
-                    $regData .= Filling::getRow('Номер телефона владельца участка', $cottage->cottageOwnerPhone, '');
-                }
-                if (!empty($cottage->cottageOwnerEmail)) {
-                    $regData .= Filling::getRow('Адрес электронной почты владельца участка', $cottage->cottageOwnerEmail, '');
-                }
-                if (!empty(GrammarHandler::clearAddress($cottage->cottageOwnerAddress))) {
-                    $regData .= Filling::getRow('Адрес владельца участка', GrammarHandler::clearAddress($cottage->cottageOwnerAddress), '');
-                }
-                if (!empty($cottage->cottageContacterPersonals)) {
-                    $regData .= Filling::getRow('ФИО контактного лица', $cottage->cottageContacterPersonals, '');
-                }
-                if (!empty($cottage->cottageContacterPhone)) {
-                    $regData .= Filling::getRow('Номер телефона контактного лица', $cottage->cottageContacterPhone, '');
-                }
-                if (!empty($cottage->cottageContacterEmail)) {
-                    $regData .= Filling::getRow('Адрес электронной почты контактного лица', $cottage->cottageContacterEmail, '');
-                }
+            $regData = Filling::getRow('Номер участка', $cottage->cottageNumber);
+            $regData .= Filling::getRow('Площадь участка', $cottage->cottageSquare, '', 'м<sup>2</sup>');
+            $regData .= Filling::getRow('ФИО владельца участка', $cottage->cottageOwnerPersonals, '');
+            if (!empty($cottage->cottageOwnerPhone)) {
+                $regData .= Filling::getRow('Номер телефона владельца участка', $cottage->cottageOwnerPhone, '');
+            }
+            if (!empty($cottage->cottageOwnerEmail)) {
+                $regData .= Filling::getRow('Адрес электронной почты владельца участка', $cottage->cottageOwnerEmail, '');
+            }
+            if (!empty(GrammarHandler::clearAddress($cottage->cottageOwnerAddress))) {
+                $regData .= Filling::getRow('Адрес владельца участка', GrammarHandler::clearAddress($cottage->cottageOwnerAddress), '');
+            }
+            if (!empty($cottage->cottageContacterPersonals)) {
+                $regData .= Filling::getRow('ФИО контактного лица', $cottage->cottageContacterPersonals, '');
+            }
+            if (!empty($cottage->cottageContacterPhone)) {
+                $regData .= Filling::getRow('Номер телефона контактного лица', $cottage->cottageContacterPhone, '');
+            }
+            if (!empty($cottage->cottageContacterEmail)) {
+                $regData .= Filling::getRow('Адрес электронной почты контактного лица', $cottage->cottageContacterEmail, '');
+            }
 
 
-                $text = <<<EOT
+            $text = <<<EOT
 <table style='max-width: 600px; width: 100%; margin:0; padding: 0; text-align: center;'>
 $regData
 <tr>
@@ -136,9 +132,7 @@ $dutyText
 $depositInfo
 </table>
 EOT;
-                return MailingSchedule::addSingleMailing($cottage, 'Участок зарегистрирован', $text);
-            }
-            return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
+            return MailingSchedule::addSingleMailing($cottage, 'Участок зарегистрирован', $text);
         }
         return false;
     }
@@ -153,14 +147,11 @@ EOT;
         $billInfo = Table_payment_bills::find()->where(['id' => $billId])->one();
         if (!empty($billInfo)) {
             $cottageInfo = Cottage::getCottageInfo($billInfo->cottageNumber);
-            if ($cottageInfo->cottageOwnerEmail || $cottageInfo->cottageContacterEmail) {
-                $payDetails = Filling::getPaymentDetails($billInfo);
-                $dutyText = Filling::getCottageDutyText($cottageInfo);
-                $mailBody = $payDetails;
-                $mailBody .= $dutyText;
-                return MailingSchedule::addSingleMailing($cottageInfo, 'Вам выставлен счёт.', $mailBody);
-            }
-            return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
+            $payDetails = Filling::getPaymentDetails($billInfo);
+            $dutyText = Filling::getCottageDutyText($cottageInfo);
+            $mailBody = $payDetails;
+            $mailBody .= $dutyText;
+            return MailingSchedule::addSingleMailing($cottageInfo, 'Вам выставлен счёт.', $mailBody);
         }
         return false;
     }
@@ -175,14 +166,11 @@ EOT;
         $billInfo = Table_payment_bills_double::find()->where(['id' => $billId])->one();
         if (!empty($billInfo)) {
             $cottageInfo = AdditionalCottage::getCottage($billInfo->cottageNumber);
-            if ($cottageInfo->cottageOwnerEmail) {
-                $payDetails = Filling::getPaymentDetails($billInfo);
-                $dutyText = Filling::getCottageDutyText($cottageInfo);
-                $mailBody = $payDetails;
-                $mailBody .= $dutyText;
-                return  MailingSchedule::addSingleMailing($cottageInfo, 'Вам выставлен счёт.', $mailBody);
-            }
-            return ['status' => 4, 'message' => 'Нет ни одного адреса почты'];
+            $payDetails = Filling::getPaymentDetails($billInfo);
+            $dutyText = Filling::getCottageDutyText($cottageInfo);
+            $mailBody = $payDetails;
+            $mailBody .= $dutyText;
+            return MailingSchedule::addSingleMailing($cottageInfo, 'Вам выставлен счёт.', $mailBody);
         }
         return false;
     }
