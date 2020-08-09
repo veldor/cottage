@@ -70,7 +70,7 @@ class PenaltiesHandler extends Model
             //$js ='<script>$("tr[data-fine-id="{$existentFine->id}"]").remove();</script>';
             $js = "<script>$('tr[data-fine-id=\"{$existentFine->id}\"]').remove()</script>";
             $existentFine->delete();
-            return ['status' => 1, 'message' => 'Пени за период не расчитываются' . $js];
+            return ['status' => 1, 'message' => 'Пени удалены' . $js];
         }
     }
 }
