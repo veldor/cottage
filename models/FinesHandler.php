@@ -300,9 +300,11 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $registeredPowerDatum->month, 'pay_type' => 'power'])->one();
-        if ($existentFine && !$existentFine->locked) {
-            $existentFine->summ = CashHandler::toRubles($fullAmount);
-            $existentFine->save();
+        if ($existentFine) {
+            if(!$existentFine->locked){
+                $existentFine->summ = CashHandler::toRubles($fullAmount);
+                $existentFine->save();
+            }
             //echo "электричество {$cottage->cottageNumber} {$registeredPowerDatum->month} Пересчитано\n";
         } elseif ($createIfNotFound) {
             self::createFine(
@@ -332,9 +334,11 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $quarter, 'pay_type' => 'membership'])->one();
-        if ($existentFine && !$existentFine->locked) {
-            $existentFine->summ = CashHandler::toRubles($fullAmount);
-            $existentFine->save();
+        if ($existentFine) {
+            if(!$existentFine->locked){
+                $existentFine->summ = CashHandler::toRubles($fullAmount);
+                $existentFine->save();
+            }
             //echo "членские {$cottage->cottageNumber} {$quarter} Пересчитано\n";
         } elseif ($createIfNotFound) {
             self::createFine(
@@ -364,9 +368,11 @@ class FinesHandler extends Model
             $cottageNumber = $cottage->masterId . '-a';
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $year, 'pay_type' => 'target'])->one();
-        if ($existentFine && !$existentFine->locked) {
-            $existentFine->summ = CashHandler::toRubles($fullAmount);
-            $existentFine->save();
+        if ($existentFine) {
+            if(!$existentFine->locked){
+                $existentFine->summ = CashHandler::toRubles($fullAmount);
+                $existentFine->save();
+            }
             //echo "целевые {$cottage->cottageNumber} {$year} Пересчитано {$fullAmount}\n";
         } elseif ($createIfNotFound) {
             self::createFine(
@@ -504,7 +510,7 @@ class FinesHandler extends Model
     {
         if (empty($pays)) {
             // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
-            $difference = TimeHandler::checkDayDifference($payUp);
+            $difference = TimeHandler::checkDayDifference($payUp) - 1;
             if ($difference === 0) {
                 $difference = 1;
             }
@@ -675,7 +681,7 @@ class FinesHandler extends Model
                     self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fullAmount, $payUp, true);
                 }
             } else if ($payUp < time()) {
-                $fineAmount = self::countFine($membershipDuty->amount, TimeHandler::checkDayDifference($payUp));
+                $fineAmount = self::countFine($membershipDuty->amount, TimeHandler::checkDayDifference($payUp) - 1);
                 // пересчитаю пени
                 self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fineAmount, $payUp, true);
             }

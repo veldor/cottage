@@ -105,18 +105,13 @@ class FinesController extends Controller
         PenaltiesHandler::unlockFine($id);
         return [
             'status' => 1,
-            'message' => 'Сумма пени разблокирована'
+            'message' => 'Сумма пени разблокирована. Перезагрузите страницу для перерасчёта'
         ];
     }
 
     public function actionDelete($id)
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
-        PenaltiesHandler::deleteFine($id);
-        return [
-            'status' => 1,
-            'header' => 'Успешно',
-            'body' => 'Пени удалено'
-        ];
+        return PenaltiesHandler::deleteFine($id);
     }
 }

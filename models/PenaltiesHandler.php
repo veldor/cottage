@@ -66,8 +66,11 @@ class PenaltiesHandler extends Model
     public static function deleteFine($id)
     {
         $existentFine = Table_penalties::findOne($id);
-        if(!empty($existentFine)){
+        if($existentFine !== null){
+            //$js ='<script>$("tr[data-fine-id="{$existentFine->id}"]").remove();</script>';
+            $js = "<script>$('tr[data-fine-id=\"{$existentFine->id}\"]').remove()</script>";
             $existentFine->delete();
+            return ['status' => 1, 'message' => 'Пени за период не расчитываются' . $js];
         }
     }
 }

@@ -37,28 +37,28 @@ if(!empty($info)){
         }
         // расчитаю количество дней, за которые начисляются пени
         try {
-            $dayDifference = TimeHandler::checkDayDifference($item->payUpLimit);
+            $dayDifference = TimeHandler::checkDayDifference($item->payUpLimit) - 1;
             if($dayDifference === 0){
                 $dayDifference = 1;
             }
         } catch (Exception $e) {
         }
         if($item->is_enabled){
-            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default ajax-activator hidden'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default ajax-activator'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
+            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default ajax-activator hidden'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default ajax-activator'><span class='glyphicon glyphicon-minus text-danger popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='auto' data-content='Не учитывать пени'></span></a>";
         }
         else{
-            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default ajax-activator'><span class='glyphicon glyphicon-plus text-success'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default ajax-activator hidden'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
+            $controlItem = "<a href='#' id='fines_{$item->id}_enable' data-action='/fines/enable/{$item->id}' class='btn btn-default ajax-activator'><span class='glyphicon glyphicon-plus text-success popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='auto' data-content='Учитывать пени'></span></a><a href='#' id='fines_{$item->id}_disable' data-action='/fines/disable/{$item->id}' class='btn btn-default ajax-activator hidden'><span class='glyphicon glyphicon-minus text-danger'></span></a>";
         }
 
         if($item->locked){
-            $locked = "<a class='btn btn-default ajax-activator' href='#' data-action='/fines/unlock/{$item->id}'><span class='glyphicon glyphicon-lock text-success'></span></a>";
+            $locked = "<a class='btn btn-default ajax-activator' href='#' data-action='/fines/unlock/{$item->id}'><span class='glyphicon glyphicon-lock text-success popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='auto' data-content='Разблокировать пени'></span></a>";
 
         }
         else{
-            $locked = "<a class='btn btn-default activator' href='#' data-action='/fines/lock/{$item->id}'><span class='glyphicon glyphicon-lock text-danger'></span></a>";
+            $locked = "<a class='btn btn-default activator' href='#' data-action='/fines/lock/{$item->id}'><span class='glyphicon glyphicon-lock text-danger popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='auto' data-content='Заблокировать пени'></span></a>";
         }
 
-        echo "<tr><td>$type</td><td>{$item->period}</td><td><b class='text-info popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='bottom' data-content='$itemInfo'>" . CashHandler::toSmoothRubles($item->summ) . "</b></td><td><b class='$text'>" . CashHandler::toSmoothRubles($item->payed_summ) . "</b></td><td>$controlItem $locked <a class='btn btn-default activator' data-action='/fines/delete/{$item->id}'><span class='glyphicon glyphicon-trash text-danger'></span></a></td></tr>";
+        echo "<tr data-fine-id='{$item->id}'><td>$type</td><td>{$item->period}</td><td><b class='text-info popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='bottom' data-content='$itemInfo'>" . CashHandler::toSmoothRubles($item->summ) . "</b></td><td><b class='$text'>" . CashHandler::toSmoothRubles($item->payed_summ) . "</b></td><td>$controlItem $locked <a class='btn btn-default ajax-activator' data-action='/fines/delete/{$item->id}'><span class='glyphicon glyphicon-trash text-danger popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='auto' data-content='Удалить пени'></span></a></td></tr>";
     }
     echo '</table>';
 }
