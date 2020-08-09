@@ -33,7 +33,8 @@ class FinesController extends Controller
                             'change',
                             'recount-fines',
                             'lock',
-                            'unlock'
+                            'unlock',
+                            'delete'
                         ],
                         'roles' => ['writer'],
                     ],
@@ -54,7 +55,7 @@ class FinesController extends Controller
         if ($action === 'disable') {
             return FinesHandler::disableFine($finesId);
         }
-        if($action === 'enable') {
+        if ($action === 'enable') {
             return FinesHandler::enableFine($finesId);
         }
         throw new NotFoundHttpException();
@@ -74,9 +75,10 @@ class FinesController extends Controller
         return ['status' => 2];
     }
 
-    public function actionLock($id){
+    public function actionLock($id)
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
-        if(Yii::$app->request->isGet){
+        if (Yii::$app->request->isGet) {
             $fineInfo = Table_penalties::findOne($id);
             $view = $this->renderAjax('lock', ['matrix' => $fineInfo]);
             return ['status' => 1,
@@ -84,7 +86,7 @@ class FinesController extends Controller
                 'data' => $view,
             ];
         }
-        if(Yii::$app->request->isPost){
+        if (Yii::$app->request->isPost) {
             $summ = CashHandler::toRubles(Yii::$app->request->post("Table_penalties")['summ']);
             $fine = Table_penalties::findOne($id);
             $fine->summ = $summ;
@@ -97,7 +99,24 @@ class FinesController extends Controller
         }
     }
 
-    public function actionUnlock($id){
+    public function actionUnlock($id)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
         PenaltiesHandler::unlockFine($id);
+        return [
+            'status' => 1,
+            'message' => 'Сумма пени разблокирована'
+        ];
+    }
+
+    public function actionDelete($id)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        PenaltiesHandler::deleteFine($id);
+        return [
+            'status' => 1,
+            'header' => 'Успешно',
+            'body' => 'Пени удалено'
+        ];
     }
 }

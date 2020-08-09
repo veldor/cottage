@@ -62,4 +62,12 @@ class PenaltiesHandler extends Model
         $fine->save();
         FinesHandler::checkCottage(Cottage::getCottageByLiteral($fine->cottage_number));
     }
+
+    public static function deleteFine($id)
+    {
+        $existentFine = Table_penalties::findOne($id);
+        if(!empty($existentFine)){
+            $existentFine->delete();
+        }
+    }
 }

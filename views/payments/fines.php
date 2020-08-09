@@ -58,7 +58,7 @@ if(!empty($info)){
             $locked = "<a class='btn btn-default activator' href='#' data-action='/fines/lock/{$item->id}'><span class='glyphicon glyphicon-lock text-danger'></span></a>";
         }
 
-        echo "<tr><td>$type</td><td>{$item->period}</td><td><b class='text-info popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='bottom' data-content='$itemInfo'>" . CashHandler::toSmoothRubles($item->summ) . "</b></td><td><b class='$text'>" . CashHandler::toSmoothRubles($item->payed_summ) . "</b></td><td>$controlItem $locked</td></tr>";
+        echo "<tr><td>$type</td><td>{$item->period}</td><td><b class='text-info popover-active' data-html='true' data-toggle='popover' data-parent='div#myModal' data-trigger='hover' data-placement='bottom' data-content='$itemInfo'>" . CashHandler::toSmoothRubles($item->summ) . "</b></td><td><b class='$text'>" . CashHandler::toSmoothRubles($item->payed_summ) . "</b></td><td>$controlItem $locked <a class='btn btn-default activator' data-action='/fines/delete/{$item->id}'><span class='glyphicon glyphicon-trash text-danger'></span></a></td></tr>";
     }
     echo '</table>';
 }
