@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\interfaces\CottageInterface;
 use yii\db\ActiveRecord;
 
 /**
@@ -37,19 +38,23 @@ class Table_power_months extends ActiveRecord
     }
 
     /**
-     * @param Table_cottages $cottage
-     * @return Table_power_months
+     * @param CottageInterface $cottage
+     * @return Table_power_months|Table_additional_power_months
      */
-    public static function getLastFilled(Table_cottages $cottage): Table_power_months
+    public static function getLastFilled(CottageInterface $cottage)
     {
-        return self::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('month DESC')->one();
+        if($cottage->isMain()){
+            return self::find()->where(['cottageNumber' => $cottage->getCottageNumber()])->orderBy('month DESC')->one();
+        }
+        return Table_additional_power_months::find()->where(['cottageNumber' => $cottage->getCottageNumber()])->orderBy('month DESC')->one();
+
     }
 
     /**
-     * @param Table_cottages $cottageInfo
+     * @param CottageInterface $cottageInfo
      * @return Table_power_months[]
      */
-    public static function getAllData(Table_cottages $cottageInfo): array
+    public static function getAllData(CottageInterface $cottageInfo): array
     {
         return self::findAll(['cottageNumber' => $cottageInfo->cottageNumber]);
     }

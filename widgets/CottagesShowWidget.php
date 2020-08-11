@@ -5,7 +5,10 @@ namespace app\widgets;
 use app\models\CashHandler;
 use app\models\ComplexPayment;
 use app\models\Cottage;
+use app\models\MembershipHandler;
+use app\models\PowerHandler;
 use app\models\Table_cottages;
+use app\models\TargetHandler;
 use app\models\TimeHandler;
 use yii\base\Widget;
 use yii\helpers\Html;
@@ -50,12 +53,24 @@ class CottagesShowWidget extends Widget{
                 $additional = "<span class='glyphicon glyphicon-plus'></span>";
             }
             // подсчитаю долги по участку
-            if($cottage->targetDebt > 0 || $cottage->powerDebt > 0 || $cottage->singleDebt > 0 || $cottage->membershipPayFor < $nowQuarter){
+            $powerDebt = PowerHandler::getDebt($cottage);
+            $cottage->powerDebt = $powerDebt;
+            $membershipDebt = MembershipHandler::getDebtAmount($cottage);
+            if($cottage->haveAdditional){
+                $membershipDebt += MembershipHandler::getDebtAmount($cottage->getAdditional());
+            }
+
+            $targetDebt = TargetHandler::getCottageDebt($cottage);
+            if($cottage->haveAdditional){
+                $targetDebt += TargetHandler::getCottageDebt($cottage->getAdditional());
+            }
+
+            if($targetDebt > 0 || $cottage->powerDebt > 0 || $cottage->singleDebt > 0 || $membershipDebt > 0){
                 $content = '';
                 $smoothSumm = null;
-                if($cottage->targetDebt > 0){
+                if($targetDebt > 0){
                     try{
-                        $smoothSumm = CashHandler::toSmoothRubles($cottage->targetDebt);
+                        $smoothSumm = CashHandler::toSmoothRubles($targetDebt);
                     }
                     catch (\Exception $e){
                         echo $cottage->targetDebt;
@@ -71,10 +86,9 @@ class CottagesShowWidget extends Widget{
                     $smoothSumm = CashHandler::toSmoothRubles($cottage->singleDebt);
                     $content .= "<p>Разовые: <b class=\"text-danger\">{$smoothSumm}</b></p>";
                 }
-                if($cottage->membershipPayFor < $nowQuarter){
-                    $fullQuarter = TimeHandler::getFullFromShortQuarter(TimeHandler::getNextQuarter($cottage->membershipPayFor));
-
-                    $content .= "<p>Членские c: <b class=\"text-danger\">{$fullQuarter}</b></p>";
+                if($membershipDebt > 0){
+                    $smoothSumm = CashHandler::toSmoothRubles($membershipDebt);
+                    $content .= "<p>Членские: <b class=\"text-danger\">{$smoothSumm}</b></p>";
                 }
                 if(!empty($cottage->deposit)){
                     $deposit = CashHandler::toSmoothRubles($cottage->deposit);

@@ -8,6 +8,8 @@
 
 namespace app\models;
 
+use app\models\database\Mail;
+use app\models\interfaces\CottageInterface;
 use app\models\tables\Table_penalties;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
@@ -227,15 +229,12 @@ class Cottage extends Model
     }
 
     /**
-     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param $cottage CottageInterface
      * @return bool
      */
     public static function hasMail($cottage)
     {
-        if (!empty($cottage->cottageOwnerEmail) || !empty($cottage->cottageContacterEmail)) {
-            return true;
-        }
-        return false;
+        return Mail::find()->where(['cottage' => $cottage->getCottageNumber()])->count();
     }
 
     /**

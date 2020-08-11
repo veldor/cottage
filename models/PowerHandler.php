@@ -11,6 +11,7 @@ namespace app\models;
 
 use app\models\database\PersonalPower;
 use app\models\handlers\BillsHandler;
+use app\models\interfaces\CottageInterface;
 use app\models\selections\PowerDebt;
 use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
@@ -334,10 +335,10 @@ class PowerHandler extends Model
 
     /**
      * Возвращает сумму долга по участку
-     * @param Table_cottages $globalInfo
+     * @param CottageInterface $globalInfo
      * @return float
      */
-    public static function getDebt(Table_cottages $globalInfo): float
+    public static function getDebt(CottageInterface $globalInfo): float
     {
         // получу актуальную задолженность
         $duties = Table_power_months::getAllData($globalInfo);
