@@ -16,7 +16,7 @@ AppAsset::register($this);
 
 // получу задолженности по членским
 echo '<?xml version="1.0"?><debt>';
-$cottages = Cottage::getRegistred();
+$cottages = Cottage::getRegister();
 foreach ($cottages as $cottage) {
     // получу задолженность по членским взносам
     $debt = MembershipHandler::getDebt($cottage);

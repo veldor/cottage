@@ -11,6 +11,7 @@ namespace app\models;
 use app\models\database\Mail;
 use app\models\interfaces\CottageInterface;
 use app\models\tables\Table_penalties;
+use Exception;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
 use yii\web\NotFoundHttpException;
@@ -30,13 +31,12 @@ class Cottage extends Model
     public $counterChanged = false;
     public $totalDebt = 0;
     public array $additionalCottageInfo;
-    public $fines;
+    public array $fines;
 
     /**
      * Cottage constructor.
      * @param $cottageId
      * @throws NotFoundHttpException
-     * @throws \ErrorException
      */
     public function __construct($cottageId)
     {
@@ -57,7 +57,7 @@ class Cottage extends Model
             $this->powerPayDifference = $powerStatus['powerPayDifference'];
             // определю, можно ли удалить данные по потреблению электроэнергии. Можно, если ещё не поступала оплата
             $this->powerDataCancellable = PowerHandler::isDataCancellable($this->globalInfo);
-            $this->powerDebts = PowerHandler::getDebt($this->globalInfo);
+            $this->powerDebts = PowerHandler::getDebtAmount($this->globalInfo);
             if ($this->powerDebts !== $this->globalInfo->powerDebt) {
                 $this->globalInfo->powerDebt = $this->powerDebts;
                 $this->globalInfo->save();
@@ -65,7 +65,7 @@ class Cottage extends Model
             // Посчитаю задолженности
             $duty = MembershipHandler::getDebt($this->globalInfo);
             $this->membershipDebts = 0;
-            if(!empty($duty)){
+            if (!empty($duty)) {
                 foreach ($duty as $item) {
                     $this->membershipDebts += CashHandler::toRubles($item->amount - $item->partialPayed);
                 }
@@ -165,9 +165,9 @@ class Cottage extends Model
 
     /**
      * @param bool $double
-     * @return Table_cottages[]|Table_additional_cottages[]
+     * @return CottageInterface[]
      */
-    public static function getRegistred($double = false)
+    public static function getRegister($double = false): array
     {
         if ($double) {
             return Table_additional_cottages::find()->where(['hasDifferentOwner' => 1])->orderBy('masterId')->all();
@@ -183,12 +183,8 @@ class Cottage extends Model
         $answer = [];
         $data = Table_cottages::find()->orderBy('cottageNumber')->all();
         if (!empty($data)) {
-            if (is_array($data)) {
-                foreach ($data as $item) {
-                    $answer[$item->cottageNumber] = $item;
-                }
-            } else {
-                $answer[$data->cottageNumber] = $data;
+            foreach ($data as $item) {
+                $answer[$item->cottageNumber] = $item;
             }
         }
         return $answer;
@@ -208,31 +204,17 @@ class Cottage extends Model
     {
         $re = '/^(\d+)(-a)?$/';
         $match = null;
-        if (preg_match($re, $key, $match)) {
-            if (count($match) === 2) {
-                return self::getCottageInfo($match[1]);
-            }
+        if (preg_match($re, $key, $match) && count($match) === 2) {
+            return self::getCottageInfo($match[1]);
         }
         return self::getCottageInfo($match[1], true);
-    }
-
-    public static function getCottageInfoForMail($own, $cottageNumber)
-    {
-
-        // получу сведения о участке
-        if ($own === 'main') {
-            $cottageInfo = Cottage::getCottageInfo($cottageNumber);
-        } else {
-            $cottageInfo = Cottage::getCottageInfo($cottageNumber, true);
-        }
-        return $cottageInfo;
     }
 
     /**
      * @param $cottage CottageInterface
      * @return bool
      */
-    public static function hasMail($cottage)
+    public static function hasMail($cottage): bool
     {
         return Mail::find()->where(['cottage' => $cottage->getCottageNumber()])->count();
     }
@@ -262,7 +244,12 @@ class Cottage extends Model
         return self::getCottageInfo((int)$key, $additional);
     }
 
-    public static function hasPayUpDuty(Table_cottages $cottage)
+    /**
+     * @param CottageInterface $cottage
+     * @return bool
+     * @throws Exception
+     */
+    public static function hasPayUpDuty(CottageInterface $cottage): bool
     {
         $time = time();
         // получу данные по целевым задолженностям
@@ -270,28 +257,23 @@ class Cottage extends Model
         if (!empty($duty)) {
             foreach ($duty as $value) {
                 $tariff = Table_tariffs_target::findOne(['year' => $value->year]);
-                if ($tariff->payUpTime < $time) {
+                if ($tariff !== null && $tariff->payUpTime < $time) {
                     return true;
                 }
             }
         }
-        // если не оплачен предыдущий месяц электроэнергии
-        if ($cottage->powerDebt > 0) {
-            $months = Table_power_months::find()->where(['month' => $cottage->membershipPayFor])->all();
-            if (!empty($months)) {
-                foreach ($months as $month) {
-                    if ($month->difference > 0 && $month->month <= TimeHandler::getPreviousMonth()) {
-                        return true;
-                    }
-                }
-            }
-        }
-        // если не оплачен текущий квартал
-        if ($cottage->membershipPayFor < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
+        // получу данные о первом неоплаченном месяце
+        $firstUnpaidMonth = Table_power_months::getFirstUnpaid($cottage);
+        if ($firstUnpaidMonth !== null && TimeHandler::getPayUpMonth($firstUnpaidMonth->month) < $time) {
             return true;
         }
 
-        if ($cottage->membershipPayFor === TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
+        // если не оплачен текущий квартал
+        if (MembershipHandler::getLastPayedQuarter($cottage) < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
+            return true;
+        }
+
+        if (MembershipHandler::getLastPayedQuarter($cottage) === TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
             $payUp = TimeHandler::getPayUpQuarterTimestamp(TimeHandler::getCurrentQuarter());
             $dayDifference = TimeHandler::checkDayDifference($payUp);
             if ($dayDifference > 0) {
@@ -301,19 +283,22 @@ class Cottage extends Model
         return false;
     }
 
-    public static function getPreviousCottage()
+    /**
+     * @return string
+     */
+    public static function getPreviousCottage(): string
     {
         $link = $_SERVER['HTTP_REFERER'];
-        if (preg_match('/https\:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
+        if (preg_match('/https:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
             while ($next = --$matches[1]) {
                 try {
-                    if (Cottage::getCottageByLiteral($next) !== null) {
+                    if (self::getCottageByLiteral($next) !== null) {
                         return 'https://dev.com/show-cottage/' . $next;
                     }
                     if ($next < 1) {
                         break;
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
 
                 }
             }
@@ -321,19 +306,22 @@ class Cottage extends Model
         return 'https://dev.com/show-cottage/180';
     }
 
-    public static function getNextCottage()
+    /**
+     * @return string
+     */
+    public static function getNextCottage(): string
     {
         $link = $_SERVER['HTTP_REFERER'];
-        if (preg_match('/https\:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
+        if (preg_match('/https:\/\/dev\.com\/show-cottage\/(\d+)/', $link, $matches)) {
             while ($next = ++$matches[1]) {
                 try {
-                    if (!empty(Cottage::getCottageByLiteral($next))) {
+                    if (self::getCottageByLiteral($next) !== null) {
                         return 'https://dev.com/show-cottage/' . $next;
                     }
                     if ($next > 180) {
                         break;
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
 
                 }
             }

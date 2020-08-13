@@ -1,10 +1,12 @@
 <?php
 
+require_once dirname(__DIR__) . '/priv/Info.php';
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
+$urlRules = require __DIR__ . '/rules.php';
 
 $config = [
-    'id' => 'basic-console',
+    'id' => 'cottage',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
     'controllerNamespace' => 'app\commands',

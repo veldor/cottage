@@ -292,4 +292,5 @@ function handle() {
 $(function () {
     handleAddingCottage();
     handle();
+    handleAjaxActivators();
 });

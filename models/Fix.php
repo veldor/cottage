@@ -243,7 +243,7 @@ class Fix extends Model
     public static function fix()
     {
         // зарегистрирую все почтовые ящики
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
                 if (!empty($cottage->cottageOwnerEmail) && Mail::findOne(['cottage' => $cottage->cottageNumber, 'email' => $cottage->cottageOwnerEmail, 'cottage_is_double' => false]) === null) {

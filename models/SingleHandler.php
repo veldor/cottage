@@ -62,7 +62,7 @@ class SingleHandler extends Model
         }
     }
 
-    public static function getDebt(CottageInterface $globalInfo)
+    public static function getDebtAmount(CottageInterface $globalInfo)
     {
         $duties = self::getDebtReport($globalInfo);
         $debt = 0;

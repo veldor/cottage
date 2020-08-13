@@ -86,4 +86,12 @@ class Table_additional_cottages extends ActiveRecord implements CottageInterface
     {
         return (bool) $this->individualTariff;
     }
+
+    /**
+     * @return bool
+     */
+    public function haveAdditional():bool
+    {
+        return false;
+    }
 }

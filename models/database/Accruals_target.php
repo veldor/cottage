@@ -38,8 +38,8 @@ class Accruals_target extends ActiveRecord
      */
     public static function addQuarter($quarter, $fixed, $float): void
     {
-        $cottages = Cottage::getRegistred();
-        $additionalCottages = Cottage::getRegistred(true);
+        $cottages = Cottage::getRegister();
+        $additionalCottages = Cottage::getRegister(true);
         $cottages = array_merge($cottages, $additionalCottages);
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {

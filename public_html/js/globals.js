@@ -928,7 +928,6 @@ function handleModalFormNoValidate(data) {
 // обработка активаторов AJAX-запросов =================================================================================
 function handleAjaxActivators() {
     "use strict";
-    console.log('enable activators');
     // найду активаторы AJAX-запросов
     let activators = $('.activator');
     activators.off('click.request');

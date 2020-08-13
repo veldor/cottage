@@ -51,8 +51,8 @@ class Search extends Model
         $yearMembership = 0;
         $yearTarget = 0;
         $yearAccruals = [];
-        $cottages = Cottage::getRegistred();
-        $additionalCottages = Cottage::getRegistred(true);
+        $cottages = Cottage::getRegister();
+        $additionalCottages = Cottage::getRegister(true);
         $cottages = array_merge($cottages, $additionalCottages);
         // пройдусь по месяцам в году
         $months = TimeHandler::$monthNames;

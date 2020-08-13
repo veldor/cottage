@@ -225,7 +225,9 @@ class Pay extends Model
             // найду информацию о счёте
             if ($this->double) {
                 $billInfo = Table_payment_bills_double::findOne($this->billIdentificator);
-                $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
+                if($billInfo !== null){
+                    $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
+                }
             } else {
                 $billInfo = Table_payment_bills::findOne($this->billIdentificator);
                 $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber);
@@ -329,7 +331,7 @@ class Pay extends Model
                         }
                     }
                 }
-                if ($gainedSumm != $neededSumm) {
+                if ($gainedSumm !== $neededSumm) {
                     throw new ExceptionWithStatus('Не сходится сумма');
                 }
 
@@ -361,7 +363,7 @@ class Pay extends Model
             if ($payType === 'full') {
                 // проверю сумму начисления на депозит
                 $neededDeposit = CashHandler::toRubles(CashHandler::toRubles($this->rawSumm) - CashHandler::toRubles($neededSumm));
-                if ($neededDeposit != $this->toDeposit) {
+                if ($neededDeposit !== $this->toDeposit) {
                     throw new ExceptionWithStatus('Не сходится сумма начисления на депозит');
                 }
 
@@ -420,7 +422,7 @@ class Pay extends Model
             // если используются средства с депозита и это первый платёж по данному счёту- списываю средства
             $billTransaction->transactionReason = 'Частичная оплата по счёту № ' . $billInfo->id;
             $billTransaction->save();
-            if ($billInfo->payedSumm == $billInfo->totalSumm) {
+            if ($billInfo->payedSumm === $billInfo->totalSumm) {
                 $billInfo->isPartialPayed = 0;
                 $billInfo->isPayed = 1;
             }

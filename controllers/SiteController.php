@@ -8,6 +8,7 @@ use app\models\MailSettings;
 use app\models\migration\Migration;
 use app\models\Reminder;
 use app\models\TariffsKeeper;
+use app\models\Utils;
 use app\models\YaAuth;
 use Yii;
 use yii\filters\AccessControl;
@@ -62,14 +63,17 @@ class SiteController extends Controller
      */
     public function actionIndex(): ?string
     {
+        // запущу обновление данных
+        Utils::startRefreshMainData();
         // Получу информацию о зарегистрированных участках
-        $existedCottages = Cottage::getRegistred();
+        $existedCottages = Cottage::getRegister();
         // Проверю заполненность тарифов на данный момент
-        if(TariffsKeeper::checkFilling())
+        if(TariffsKeeper::checkFilling()){
+            // проверю заполненность информации о долгах
+            Utils::checkDebtFilling($existedCottages);
             return $this->render('index',['existedCottages' => $existedCottages]);
-        else{
-            return $this->redirect('/tariffs/index', 301);
         }
+        return $this->redirect('/tariffs/index', 301);
     }
     public function actionAuth()
     {
@@ -96,17 +100,7 @@ class SiteController extends Controller
      */
     public function actionTest(): void
     {
-        MailSettings::getInstance();
-        //return $this->renderPartial('test');
-        //Migration::migrateCottages();
-        //return $this->render('test');
-        //Fix::test();
-        /*Migration::migrateCottages();
-        Migration::migrateTariffs();
-        Migration::migratePaysData();
-        Migration::migrateBillsData();
-        Migration::migratePayments();
-        return 'done';*/
+        echo Cottage::hasPayUpDuty(Cottage::getCottageByLiteral('94'));
     }
 
     /**

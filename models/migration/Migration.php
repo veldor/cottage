@@ -78,7 +78,7 @@ class Migration extends Model
         $emails = '<?xml version="1.0" encoding="utf-8"?><emails>';
         $phones = '<?xml version="1.0" encoding="utf-8"?><phones>';
         // перегоню необходимую информацию об участках в XML
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         foreach ($cottages as $cottage) {
             $individualTariff = $cottage->individualTariff ? 1 : 0;
             $cottageHaveRights = $cottage->cottageHaveRights ? 1 : 0;
@@ -178,7 +178,7 @@ class Migration extends Model
     public static function migratePaysData()
     {
         // миграция данных по взносам
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         $powers = '<?xml version="1.0" encoding="utf-8"?><powers>';
 
         // тарифы членских взносов

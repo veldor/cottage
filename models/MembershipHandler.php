@@ -9,6 +9,7 @@
 namespace app\models;
 
 use app\models\database\Accruals_membership;
+use app\models\database\CottagesFastInfo;
 use app\models\database\CottageSquareChanges;
 use app\models\interfaces\CottageInterface;
 use app\models\selections\FixedFloatTariff;
@@ -287,6 +288,11 @@ class MembershipHandler extends Model
         return CashHandler::toRubles($payed);
     }
 
+    /**
+     * Возвращает сумму долга по участку
+     * @param $cottageInfo CottageInterface
+     * @return float
+     */
     public static function getDebtAmount($cottageInfo)
     {
         $cottageDebt = self::getDebt($cottageInfo);
@@ -343,7 +349,7 @@ class MembershipHandler extends Model
     }
 
     /**
-     * @param $cottage Table_additional_cottages|Table_cottages
+     * @param $cottage CottageInterface
      * @return MembershipDebt[]
      */
     public static function getDebt($cottage): array
@@ -592,7 +598,8 @@ class MembershipHandler extends Model
             $write->summ = $summ;
             $write->paymentDate = $transaction->bankDate;
             $write->save();
-            self::recalculateMembership($payment['date']);
+            CottagesFastInfo::recalculateMembershipDebt($cottageInfo);
+            CottagesFastInfo::checkExpired($cottageInfo);
         }
     }
 
@@ -618,7 +625,8 @@ class MembershipHandler extends Model
         $write->paymentDate = $transaction->bankDate;
         $write->transactionId = $transaction->id;
         $write->save();
-        self::recalculateMembership($date);
+        CottagesFastInfo::recalculateMembershipDebt($cottageInfo);
+        CottagesFastInfo::checkExpired($cottageInfo);
     }
 
     public static function recalculateMembership($period)
@@ -650,7 +658,7 @@ class MembershipHandler extends Model
                     $additionalPayedCounter++;
                 }
             }
-            $cottages = Cottage::getRegistred();
+            $cottages = Cottage::getRegister();
             $additionalCottages = AdditionalCottage::getRegistred();
 
             $cottagesCount = count($cottages);

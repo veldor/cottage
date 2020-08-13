@@ -77,6 +77,7 @@ class FinesHandler extends Model
         $summ = 0;
         $fines = Table_penalties::find()->where(['cottage_number' => $cottageId])->all();
         if (!empty($fines)) {
+            /** @var Table_penalties $fine */
             foreach ($fines as $fine) {
                 if ($fine->is_enabled) {
                     $summ += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
@@ -131,7 +132,7 @@ class FinesHandler extends Model
         $time = time();
         // получу список участков
         if ($cottageNumber === null) {
-            $cottages = Cottage::getRegistred();
+            $cottages = Cottage::getRegister();
         } else {
             $cottages = Table_cottages::findAll(['cottageNumber' => $cottageNumber]);
         }

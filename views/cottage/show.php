@@ -165,8 +165,8 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             }
             echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button> <button class='btn btn-default activator' data-action='/fines/recount/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-warning'>пересчитать</span></button> <button class='btn btn-default activator' data-action='/fines/recount-total/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-danger'>пересчитать всё</span></button></td></tr>";
             $totalDebt += $total;
-            $totalDebt += TargetHandler::getCottageDebt($cottageInfo->globalInfo);
-            $totalDebt += SingleHandler::getDebt($cottageInfo->globalInfo);
+            $totalDebt += TargetHandler::getDebtAmount($cottageInfo->globalInfo);
+            $totalDebt += SingleHandler::getDebtAmount($cottageInfo->globalInfo);
             ?>
             </tbody>
             <tr>
@@ -194,8 +194,8 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
         if ($cottageInfo->globalInfo->haveAdditional) {
             $totalDebt = 0;
             $totalDebt += MembershipHandler::getDebtAmount($cottageInfo->additionalCottageInfo['cottageInfo']);
-            $totalDebt += TargetHandler::getCottageDebt($cottageInfo->additionalCottageInfo['cottageInfo']);
-            $totalDebt += SingleHandler::getDebt($cottageInfo->additionalCottageInfo['cottageInfo']);
+            $totalDebt += TargetHandler::getDebtAmount($cottageInfo->additionalCottageInfo['cottageInfo']);
+            $totalDebt += SingleHandler::getDebtAmount($cottageInfo->additionalCottageInfo['cottageInfo']);
             ?>
 
             <table class="table table-hover">

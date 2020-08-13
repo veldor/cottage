@@ -6,9 +6,14 @@ namespace app\models;
 
 use app\models\database\Accruals_membership;
 use app\models\database\Accruals_target;
+use app\models\database\CottagesFastInfo;
 use app\models\database\CottageSquareChanges;
+use app\models\interfaces\CottageInterface;
+use app\models\selections\PowerDebt;
 use app\models\utils\DbTransaction;
 use DOMElement;
+use Exception;
+use Yii;
 use yii\base\Model;
 
 class Utils extends Model
@@ -18,7 +23,7 @@ class Utils extends Model
     {
         $xml = '<?xml version="1.0" encoding="utf-8"?><cottages>';
         // получу все участки
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
                 $xml .= '<cottage><cottage_number>' . $cottage->cottageNumber . '</cottage_number><email>';
@@ -58,7 +63,7 @@ class Utils extends Model
     public static function fillMembershipAccruals(): void
     {
         $transaction = new DbTransaction();
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         $additionalCottages = Table_additional_cottages::find()->orderBy('masterId')->all();
         $cottages = array_merge($cottages, $additionalCottages);
         if (!empty($cottages)) {
@@ -90,8 +95,8 @@ class Utils extends Model
         $tariff = Table_tariffs_target::findOne(['year' => '2020']);
         if ($tariff !== null) {
             $transaction = new DbTransaction();
-            $cottages = Cottage::getRegistred();
-            $additionalCottages = Cottage::getRegistred(true);
+            $cottages = Cottage::getRegister();
+            $additionalCottages = Cottage::getRegister(true);
             $cottages = array_merge($cottages, $additionalCottages);
             if (!empty($cottages)) {
                 foreach ($cottages as $cottage) {
@@ -123,7 +128,7 @@ class Utils extends Model
     public static function fillTargetAccruals()
     {
         $transaction = new DbTransaction();
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         $additionalCottages = Table_additional_cottages::find()->orderBy('masterId')->all();
         $cottages = array_merge($cottages, $additionalCottages);
         if (!empty($cottages)) {
@@ -143,7 +148,7 @@ class Utils extends Model
 
                     // посчитаю оплату вне системы
                     // получу данные о текущем состоянии оплаты целевых платежей
-                    if($cottage->targetPaysDuty !== null){
+                    if ($cottage->targetPaysDuty !== null) {
                         $targetDom = new DOMHandler($cottage->targetPaysDuty);
                         $yearDuty = $targetDom->query('/targets/target[@year="' . $year . '"]');
                         if ($yearDuty->length === 1) {
@@ -159,8 +164,7 @@ class Utils extends Model
                             $accrued = Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $square);
                             (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($accrued - $payed)]))->save();
                         }
-                    }
-                    else{
+                    } else {
                         $payed = TargetHandler::getPartialPayed($cottage, $year);
                         $accrued = Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $square);
                         (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($accrued - $payed)]))->save();
@@ -171,4 +175,76 @@ class Utils extends Model
         }
         $transaction->commitTransaction();
     }
+
+    /**
+     * @param $cottages CottageInterface[]
+     */
+    public static function checkDebtFilling($cottages): void
+    {
+        if (!CottagesFastInfo::find()->count()) {
+            // заодно обновлю информацию об оплате электроэнергии
+            $power = Table_power_months::find()->all();
+            if (!empty($power)) {
+                foreach ($power as $item) {
+                    if ($item->difference === 0) {
+                        $item->payed = 'yes';
+                        $item->save();
+                    } else if ($item->payed === 'no') {
+                        // получу платежи по счёту
+                        $pays = PowerHandler::getPaysForPeriodAmount(Cottage::getCottageByLiteral($item->cottageNumber), $item->month);
+                        if ($pays === $item->totalPay) {
+                            $item->payed = 'yes';
+                            $item->save();
+                        }
+                    }
+                }
+            }
+            foreach ($cottages as $cottage) {
+                (new CottagesFastInfo(['cottage_number' => $cottage->getCottageNumber()]))->save();
+            }
+            self::reFillFastInfo($cottages);
+        }
+    }
+
+    /**
+     * @param CottageInterface[] $cottages
+     */
+    public static function reFillFastInfo($cottages): void
+    {
+        // заполню начальные данные
+        /** @var CottageInterface $cottage */
+        foreach ($cottages as $cottage) {
+            // получу данные о долгах по электоэнергии
+            CottagesFastInfo::recalculatePowerDebt($cottage);
+            CottagesFastInfo::recalculateMembershipDebt($cottage);
+            CottagesFastInfo::recalculateTargetDebt($cottage);
+            CottagesFastInfo::recalculateSingleDebt($cottage);
+            CottagesFastInfo::recalculateFines($cottage);
+            CottagesFastInfo::checkMail($cottage);
+            CottagesFastInfo::checkUnpaidBill($cottage);
+            CottagesFastInfo::checkExpired($cottage);
+        }
+    }
+
+    public static function startRefreshMainData()
+    {
+
+        $file = Yii::$app->basePath . '\\yii.bat';
+        if(is_file($file)){
+            $command = "$file console/refresh-main-data";
+            $outFilePath =  Yii::$app->basePath . '/logs/content_change.log';
+            $outErrPath = Yii::$app->basePath . '/logs/content_change_err.log';
+            $command .= ' > ' . $outFilePath . ' 2>' . $outErrPath . ' &"';
+            try{
+                // попробую вызвать процесс асинхронно
+                $handle = new \COM('WScript.Shell');
+                $handle->Run($command, 0, false);
+            }
+            catch (Exception $e){
+                exec($command);
+            }
+        }
+    }
+
+
 }

@@ -9,4 +9,5 @@ interface CottageInterface
     public function isMain();
     public function isIndividualTariff();
     public function save();
+    public function haveAdditional();
 }

@@ -96,7 +96,7 @@ class TotalDutyReport extends Model
             throw new RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
         }
         // получу данные по задолженностям на это число
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         if (!empty($cottages) && count($cottages) > 0) {
             foreach ($cottages as $cottage) {
                 $powerDetailsXml .= '<участок><номер>' . $cottage->cottageNumber . '</номер>';

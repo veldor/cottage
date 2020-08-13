@@ -5,16 +5,21 @@ namespace app\models;
 
 
 use app\models\tables\Table_penalties;
+use Exception;
 use yii\base\Model;
 
 class PenaltiesHandler extends Model
 {
     private const PERCENT = 0.5;
 
-    public static function countPenalties()
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public static function countPenalties(): array
     {
         // найду все участки
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         foreach ($cottages as $cottage) {
             $powerDuties = PowerHandler::getDebtReport($cottage);
             if (!empty($powerDuties)) {
@@ -55,15 +60,27 @@ class PenaltiesHandler extends Model
         return ['status' => 1, 'message' => 'Все пени посчитаны'];
     }
 
-    public static function unlockFine($id)
+    /**
+     * @param $id
+     * @throws ExceptionWithStatus
+     */
+    public static function unlockFine($id): void
     {
         $fine = Table_penalties::findOne($id);
-        $fine->locked = 0;
-        $fine->save();
-        FinesHandler::checkCottage(Cottage::getCottageByLiteral($fine->cottage_number));
+        if($fine !== null){
+            $fine->locked = 0;
+            $fine->save();
+            FinesHandler::checkCottage(Cottage::getCottageByLiteral($fine->cottage_number));
+        }
     }
 
-    public static function deleteFine($id)
+    /**
+     * @param $id
+     * @return array|null
+     * @throws \Throwable
+     * @throws \yii\db\StaleObjectException
+     */
+    public static function deleteFine($id): ?array
     {
         $existentFine = Table_penalties::findOne($id);
         if($existentFine !== null){
@@ -72,5 +89,6 @@ class PenaltiesHandler extends Model
             $existentFine->delete();
             return ['status' => 1, 'message' => 'Пени удалены' . $js];
         }
+        return ['status' => 2, 'message' => 'Данные не найдены'];
     }
 }

@@ -9,6 +9,7 @@ use app\models\ExceptionWithStatus;
 use app\models\Fix;
 use app\models\PenaltiesHandler;
 use app\models\Utils;
+use COM;
 use Exception;
 use Yii;
 use yii\filters\AccessControl;
@@ -35,7 +36,8 @@ class UtilsController extends Controller
                             'mail-delete',
                             'delete-target',
                             'fill-membership-accruals',
-                            'fill-target-accruals'
+                            'fill-target-accruals',
+                            'refresh-main-data'
                         ],
                         'roles' => ['writer'],
                     ],
@@ -49,10 +51,13 @@ class UtilsController extends Controller
         Utils::makeAddressesList();
         Yii::$app->response->xSendFile('post_addresses.xml');
     }
-    public function actionCountPenalties(){
+
+    public function actionCountPenalties()
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
         return PenaltiesHandler::countPenalties();
     }
+
     public function actionFix(): array
     {
         // пофиксирую, если есть что
@@ -78,8 +83,9 @@ class UtilsController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
         Utils::fillMembershipAccruals();
-        return ['status' => 1,'header' => 'Успешно', 'data' => 'Сделано'];
+        return ['status' => 1, 'header' => 'Успешно', 'data' => 'Сделано'];
     }
+
     /**
      * @return array
      * @throws Exception
@@ -88,7 +94,7 @@ class UtilsController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
         Utils::fillTargetAccruals();
-        return ['status' => 1,'header' => 'Успешно', 'data' => 'Сделано'];
+        return ['status' => 1, 'header' => 'Успешно', 'data' => 'Сделано'];
     }
 
     /**
@@ -99,7 +105,16 @@ class UtilsController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
         Utils::deleteTarget();
-        return ['status' => 1,'header' => 'Успешно', 'data' => 'Сделано'];
+        return ['status' => 1, 'header' => 'Успешно', 'data' => 'Сделано'];
     }
 
+    /**
+     * @return array
+     */
+    public function actionRefreshMainData(): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        Utils::startRefreshMainData();
+        return ['status' => 1, 'header' => 'Успешно', 'data' => 'Данные обновлены'];
+    }
 }

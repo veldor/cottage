@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\database\CottagesFastInfo;
 use app\models\database\PersonalPower;
 use app\models\handlers\BillsHandler;
 use app\models\interfaces\CottageInterface;
@@ -143,7 +144,7 @@ class PowerHandler extends Model
 
     /**
      * Получение платежей за данный период
-     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param $cottage CottageInterface
      * @param string $period
      * @return Table_additional_payed_power[]|Table_payed_power[]
      */
@@ -338,7 +339,7 @@ class PowerHandler extends Model
      * @param CottageInterface $globalInfo
      * @return float
      */
-    public static function getDebt(CottageInterface $globalInfo): float
+    public static function getDebtAmount(CottageInterface $globalInfo): float
     {
         // получу актуальную задолженность
         $duties = Table_power_months::getAllData($globalInfo);
@@ -432,6 +433,23 @@ class PowerHandler extends Model
             $monthCounter++;
         }
         return [['name' => 'Начислено к оплате, руб.', 'data' => $accrual], ['name' => 'Оплачено, руб.', 'data' => $pays]];
+    }
+
+    /**
+     * @param CottageInterface $cottage
+     * @param string $month
+     * @return float
+     */
+    public static function getPaysForPeriodAmount(CottageInterface $cottage, string $month)
+    {
+        $pays = self::getPaysForPeriod($cottage, $month);
+        $payed = 0;
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                $payed += CashHandler::toRubles($pay->summ);
+            }
+        }
+        return $payed;
     }
 
     public function scenarios(): array
@@ -956,7 +974,7 @@ class PowerHandler extends Model
      * @param $transaction Table_transactions
      * @param $additional boolean
      */
-    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false)
+    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false): void
     {
         // зарегистрирую платежи
         $realSumm = 0;
@@ -970,6 +988,8 @@ class PowerHandler extends Model
         }
         $cottageInfo->powerPayFor = end($payments['values'])['date'];
         $cottageInfo->powerDebt -= CashHandler::rublesRound($realSumm);
+        CottagesFastInfo::recalculatePowerDebt($cottageInfo);
+        CottagesFastInfo::checkExpired($cottageInfo);
     }
 
     /**
@@ -979,7 +999,7 @@ class PowerHandler extends Model
      * @param $summ
      * @param $transaction Table_transactions|Table_transactions_double
      */
-    public static function insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ)
+    public static function insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ): void
     {
         // проверю тип участка
         if (Cottage::isMain($cottageInfo)) {
@@ -998,8 +1018,14 @@ class PowerHandler extends Model
         $write->transactionId = $transaction->id;
         $write->save();
         $paymentMonth = self::getPaymentMonth($cottageId, $date, !Cottage::isMain($cottageInfo));
+        // если месяц оплачен полностью- отмечу это
+        $pays = self::getPaysForPeriodAmount($cottageInfo, $date);
+        if($pays === $paymentMonth->totalPay){
+            $paymentMonth->payed = 'yes';
+        }
+        CottagesFastInfo::recalculatePowerDebt($cottageInfo);
+        CottagesFastInfo::checkExpired($cottageInfo);
         $paymentMonth->save();
-        self::recalculatePower($date);
     }
 
     /**

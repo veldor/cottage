@@ -216,8 +216,8 @@ EOT;
     public static function getCottagesWithMails()
     {
         // получу список участков
-        $cottages = Cottage::getRegistred();
-        $doubleCottages = Cottage::getRegistred(true);
+        $cottages = Cottage::getRegister();
+        $doubleCottages = Cottage::getRegister(true);
         $cottagesInfo = self::getMails($cottages);
         $doubleCottagesInfo = self::getMails($doubleCottages);
         return ['info' => array_merge($cottagesInfo, $doubleCottagesInfo)];

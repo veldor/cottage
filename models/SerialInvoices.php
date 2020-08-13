@@ -30,7 +30,7 @@ class SerialInvoices extends Model
 
     public static function getCottagesInfo(){
         // найду все основные участки
-        $cottages = Cottage::getRegistred();
+        $cottages = Cottage::getRegister();
         // получу текущий квартал и предыдущий месяц
         self::$quarter = TimeHandler::getCurrentQuarter();
         self::$month = TimeHandler::getPreviousShortMonth();
