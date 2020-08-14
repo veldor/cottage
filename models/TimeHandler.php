@@ -603,9 +603,11 @@ class TimeHandler extends Model
      */
     public static function checkDayDifference(int $firstDate, int $secondDate = null): int
     {
+        // если часы не равны
         // получу дату из временной метки
         $date = new DateTime();
         $date->setTimestamp($firstDate);
+        $date->setTime(23,59,59);
         $nowDatetime = new DateTime();
         if($secondDate !== null)
             $nowDatetime->setTimestamp($secondDate);

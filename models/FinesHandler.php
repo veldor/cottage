@@ -4,7 +4,6 @@ namespace app\models;
 
 
 use app\models\database\Accruals_membership;
-use app\models\database\Accruals_target;
 use app\models\selections\MembershipDebt;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
@@ -21,6 +20,7 @@ class FinesHandler extends Model
     public const START_POINT = 1561939201;
 
     /**
+     * Получение списка всех пени по номеру участка
      * @param $cottageNumber
      * @return Table_penalties[]
      */
@@ -97,7 +97,7 @@ class FinesHandler extends Model
     {
         // найду пени
         $fines = Table_view_fines_info::find()->where(['bill_id' => $bill->id])->all();
-        /** @var Table_penalties $fine */
+        /** @var Table_view_fines_info $fine */
         foreach ($fines as $fine) {
             // определю, какая сумма нужна для погашения платежа
             $summToPay = CashHandler::toRubles(CashHandler::toRubles($fine->start_summ) - $fine->payed_summ);
@@ -141,6 +141,7 @@ class FinesHandler extends Model
                 // получу все данные по электроэнергии
                 $registeredPowerData = Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber])->all();
                 if (!empty($registeredPowerData)) {
+                    /** @var Table_power_months $registeredPowerDatum */
                     foreach ($registeredPowerData as $registeredPowerDatum) {
                         $payUp = self::getPayUp('month', $registeredPowerDatum->month);
                         if ($registeredPowerDatum->totalPay > 0) {
@@ -302,7 +303,7 @@ class FinesHandler extends Model
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $registeredPowerDatum->month, 'pay_type' => 'power'])->one();
         if ($existentFine) {
-            if(!$existentFine->locked){
+            if (!$existentFine->locked) {
                 $existentFine->summ = CashHandler::toRubles($fullAmount);
                 $existentFine->save();
             }
@@ -336,7 +337,7 @@ class FinesHandler extends Model
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $quarter, 'pay_type' => 'membership'])->one();
         if ($existentFine) {
-            if(!$existentFine->locked){
+            if (!$existentFine->locked) {
                 $existentFine->summ = CashHandler::toRubles($fullAmount);
                 $existentFine->save();
             }
@@ -370,7 +371,7 @@ class FinesHandler extends Model
         }
         $existentFine = Table_penalties::find()->where(['cottage_number' => $cottageNumber, 'period' => $year, 'pay_type' => 'target'])->one();
         if ($existentFine) {
-            if(!$existentFine->locked){
+            if (!$existentFine->locked) {
                 $existentFine->summ = CashHandler::toRubles($fullAmount);
                 $existentFine->save();
             }
@@ -511,7 +512,7 @@ class FinesHandler extends Model
     {
         if (empty($pays)) {
             // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
-            $difference = TimeHandler::checkDayDifference($payUp) - 1;
+            $difference = TimeHandler::checkDayDifference($payUp);
             if ($difference === 0) {
                 $difference = 1;
             }
@@ -536,9 +537,6 @@ class FinesHandler extends Model
                         $lastPayDate = $payUp;
                     }
                     $difference = TimeHandler::checkDayDifference($lastPayDate, $pay->paymentDate);
-                    if ($difference === 0) {
-                        $difference = 1;
-                    }
                     $answer .= "Просрочено дней: <b class=\"text-danger\">$difference</b><br/>";
                     $nowAmount = CashHandler::toRubles($amount - $payed);
                     $perDay = CashHandler::countPercent($nowAmount, self::PERCENT);
@@ -557,9 +555,6 @@ class FinesHandler extends Model
             if ($payed < $amount) {
                 // кажется, платёж вообще не оплачен, расчитаю оплату с момента просрочки до текущей даты
                 $difference = TimeHandler::checkDayDifference($lastPayDate);
-                if ($difference === 0) {
-                    $difference = 1;
-                }
                 $nowAmount = CashHandler::toRubles($amount - $payed);
                 $answer .= '<b class="text-danger">Счёт оплачен не полностью!</b><br/>';
                 $answer .= 'Осталось заплатить: <b class="text-info">' . CashHandler::toSmoothRubles($nowAmount) . '</b><br/>';
@@ -682,7 +677,7 @@ class FinesHandler extends Model
                     self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fullAmount, $payUp, true);
                 }
             } else if ($payUp < time()) {
-                $fineAmount = self::countFine($membershipDuty->amount, TimeHandler::checkDayDifference($payUp) - 1);
+                $fineAmount = self::countFine($membershipDuty->amount, TimeHandler::checkDayDifference($payUp));
                 // пересчитаю пени
                 self::setMembershipFineData($cottageInfo, $membershipDuty->quarter, $fineAmount, $payUp, true);
             }
@@ -730,6 +725,7 @@ class FinesHandler extends Model
     }
 
     /**
+     * Пересчёт всех пени по участку
      * @param $cottageInfo
      * @throws ExceptionWithStatus
      */
