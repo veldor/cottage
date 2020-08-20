@@ -46,6 +46,11 @@ class MembershipHandler extends Model
         }
     }
 
+    public static function fillLastPayedQuarter(CottageInterface $cottage){
+        $cottage->membershipPayFor = self::getLastPayedQuarter($cottage);
+        $cottage->save();
+    }
+
     /**
      * Получаю данные о певом учитываемом квартале участка
      * @param Table_cottages $cottage
@@ -371,7 +376,6 @@ class MembershipHandler extends Model
             if ($accrual !== null) {
                 $existentTariff = Table_tariffs_membership::findOne(['quarter' => $key]);
                 // получу значение начисления по кварталу
-
                 $payedYet = 0;
                 // если квартал частично оплачен- вычту сумму частичной оплаты из цены
                 if ($isMain) {
@@ -384,7 +388,9 @@ class MembershipHandler extends Model
                         $payedYet = CashHandler::toRubles($payedYet + $pay->summ);
                     }
                 }
-                $result[] = new MembershipDebt(['partialPayed' => $payedYet, 'amount' => Calculator::countFixedFloat($accrual->fixed_part, $accrual->square_part, $accrual->counted_square), 'quarter' => $key, 'tariffFixed' => $accrual->fixed_part, 'tariffFloat' => $accrual->square_part, 'tariff' => $existentTariff]);
+                if($payedYet < $accrual->getAccrual()){
+                    $result[] = new MembershipDebt(['partialPayed' => $payedYet, 'amount' => Calculator::countFixedFloat($accrual->fixed_part, $accrual->square_part, $accrual->counted_square), 'quarter' => $key, 'tariffFixed' => $accrual->fixed_part, 'tariffFloat' => $accrual->square_part, 'tariff' => $existentTariff]);
+                }
             }
         }
         return $result;

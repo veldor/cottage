@@ -70,8 +70,11 @@ class CottagesFastInfo extends ActiveRecord
      */
     public static function recalculateMembershipDebt(CottageInterface $cottage): void
     {
+        // обновлю данные о последнем оплаченном квартале
+        MembershipHandler::fillLastPayedQuarter($cottage);
         $debt = MembershipHandler::getDebtAmount($cottage);
         if($cottage->haveAdditional()){
+            MembershipHandler::fillLastPayedQuarter($cottage->getAdditional());
             $debt += MembershipHandler::getDebtAmount($cottage->getAdditional());
         }
         $existentItem = self::findOne(['cottage_number' => $cottage->getCottageNumber()]);

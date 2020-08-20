@@ -67,21 +67,30 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
             if($tempNewData >= $oldData){
                 $newData = $tempNewData;
                 $difference += $tempNewData - $tempOldData;
+                $usedPower[] = ['date' => $value['date'], 'payUp' => $payUp, 'start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'inLimit' => $value['in-limit-cost'], 'overLimit' => $value['over-limit-cost'], 'inLimitSpend' => $value['in-limit'], 'overLimitSpend' => $value['over-limit'], 'cost' => $value['powerCost'], 'overCost' => $value['powerOvercost']];
             }
             else{
                 // очевидно, был заменён счётчик
-                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
+                $usedPower[] = ['date' => $value['date'], 'payUp' => $payUp, 'start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'inLimit' => $value['in-limit-cost'], 'overLimit' => $value['over-limit-cost'], 'inLimitSpend' => $value['in-limit'], 'overLimitSpend' => $value['over-limit'], 'cost' => $value['powerCost'], 'overCost' => $value['powerOvercost']];
                 $oldData = $tempOldData;
                 $newData = $tempNewData;
                 $difference = $newData - $oldData;
 
             }
         }
-        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
         foreach ($usedPower as $item) {
-            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . ($payUp < time() ? ' (платёж просрочен)' : '');
+            $values .= TimeHandler::getFullFromShotMonth($item['date']).
+                ". Показания на начало периода: {$item['start']}" . CashHandler::KW .
+                ". Показания на конец периода: {$item['finish']}" . CashHandler::KW .
+                ". Итого потреблено: {$item['difference']}" . CashHandler::KW.
+                ". На общую сумму: <b>" . CashHandler::toSmoothRubles($summ). '</b>' .
+                ". В том числе по соц.норме: {$item['inLimitSpend']} " . CashHandler::KW . " * " . CashHandler::toSmoothRubles($item['cost']) . " = " . CashHandler::toSmoothRubles($item['inLimit']);
+            if($item['overLimit'] > 0){
+                $values .= ". Сверх соц.нормы: {$item['overLimitSpend']} " . CashHandler::KW . " * " . CashHandler::toSmoothRubles($item['overCost']) . " = " . CashHandler::toSmoothRubles($item['overLimit']);
+
+            }
+            $values .= ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($item['payUp']) . ')';
         }
-        $values .= ', на сумму: ' . CashHandler::toSmoothRubles($summ). ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' ;
     }
     if(!empty($paymentContent['additionalPower'])){
         $values .= 'Дополнительный участок: ';
@@ -105,16 +114,25 @@ if(!empty($paymentContent['power']) || !empty($paymentContent['additionalPower']
             }
             else{
                 // очевидно, был заменён счётчик
-                $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
+                $usedPower[] = ['date' => $value['date'], 'payUp' => $payUp, 'start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'inLimit' => $value['in-limit-cost'], 'overLimit' => $value['over-limit-cost'], 'inLimitSpend' => $value['in-limit'], 'overLimitSpend' => $value['over-limit'], 'cost' => $value['powerCost'], 'overCost' => $value['powerOvercost']];
                 $oldData = $tempOldData;
                 $newData = $tempNewData;
                 $difference = $newData - $oldData;
             }
         }
-        $usedPower[] = ['start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'payUp' => $payUp];
+        $usedPower[] = ['date' => $value['date'], 'payUp' => $payUp, 'start' => $oldData, 'finish' => $newData, 'difference' => $difference, 'inLimit' => $value['in-limit-cost'], 'overLimit' => $value['over-limit-cost'], 'inLimitSpend' => $value['in-limit'], 'overLimitSpend' => $value['over-limit'], 'cost' => $value['powerCost'], 'overCost' => $value['powerOvercost']];
         foreach ($usedPower as $item) {
-            $values .= "Последние оплаченные показания: {$item['start']} " . CashHandler::KW . ", новые показания: {$item['finish']}" . CashHandler::KW . ", итого потреблено: {$item['difference']}" . CashHandler::KW . ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($payUp) . ')' . ($payUp < time() ? ' (платёж просрочен)' : '');
-        }
+            $values .= TimeHandler::getFullFromShotMonth($item['date']).
+                ". Показания на начало периода: {$item['start']}" . CashHandler::KW .
+                ". Показания на конец периода: {$item['finish']}" . CashHandler::KW .
+                ". Итого потреблено: {$item['difference']}" . CashHandler::KW.
+                ". На общую сумму: <b>" . CashHandler::toSmoothRubles($summ). '</b>' .
+                ". В том числе по соц.норме: {$item['inLimitSpend']} " . CashHandler::KW . " * " . CashHandler::toSmoothRubles($item['cost']) . " = " . CashHandler::toSmoothRubles($item['inLimit']);
+            if($item['overLimit'] > 0){
+                $values .= ". Сверх соц.нормы: {$item['overLimitSpend']} " . CashHandler::KW . " * " . CashHandler::toSmoothRubles($item['overCost']) . " = " . CashHandler::toSmoothRubles($item['overLimit']);
+
+            }
+            $values .= ' (срок оплаты: до ' . TimeHandler::getDatetimeFromTimestamp($item['payUp']) . ')';        }
         $values .= 'На сумму: ' . CashHandler::toSmoothRubles($summ);
     }
     $powerText = 'Электроэнергия: ' . $values . ' <br/>';
