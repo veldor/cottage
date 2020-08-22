@@ -171,5 +171,6 @@ return [
     'mail-settings-edit' => 'mail/edit-mail-settings',
     'get-unsended-messages-count' => 'mail/get-unsended-messages-count',
     'search/accruals/<year:\d{4}>' => 'search/accruals',
-    'bank-to-deposit' => 'payments/bank-to-deposit'
+    'bank-to-deposit' => 'payments/bank-to-deposit',
+    'target/more/<year:\d+?>' => 'tariffs/target-more'
 ];

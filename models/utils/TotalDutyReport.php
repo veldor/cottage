@@ -8,13 +8,11 @@ use app\models\Calculator;
 use app\models\CashHandler;
 use app\models\Cottage;
 use app\models\ExceptionWithStatus;
-use app\models\PersonalTariff;
 use app\models\Table_payed_membership;
 use app\models\Table_payed_power;
 use app\models\Table_payed_target;
 use app\models\Table_power_months;
 use app\models\Table_tariffs_membership;
-use app\models\Table_tariffs_target;
 use app\models\TargetHandler;
 use app\models\TimeHandler;
 use RuntimeException;
@@ -148,20 +146,6 @@ class TotalDutyReport extends Model
                     $membershipDutyDetails .= '<членские_взносы_детали>';
                     foreach ($quartersList as $quarter) {
                         // посчитаю, какая сумма должна быть оплачена
-                        if ($cottage->individualTariff) {
-                            $tariff = PersonalTariff::getMembershipRate($cottage, $quarter);
-                            if ($tariff) {
-                                $amount = Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $cottage->cottageSquare);
-                            } else {
-                                // если тарифы на данный квартал не заполнены- считаю по стандартным
-                                $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
-                                if ($tariff !== null) {
-                                    $amount = Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottage->cottageSquare);
-                                } else {
-                                    throw new ExceptionWithStatus("Не найдены данные по тарифу членских взносов за {$quarter}");
-                                }
-                            }
-                        } else {
                             // получу тариф на данный квартал
                             $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
                             if ($tariff !== null) {
@@ -169,7 +153,6 @@ class TotalDutyReport extends Model
                             } else {
                                 throw new ExceptionWithStatus("Не найдены данные по тарифу членских взносов за {$quarter}");
                             }
-                        }
                         // найду оплаты за период
                         $payments = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber, 'quarter' => $quarter])->andWhere(['<', 'paymentDate', $timestamp])->all();
                         if (!empty($payments)) {

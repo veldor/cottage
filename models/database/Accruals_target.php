@@ -4,9 +4,11 @@
 namespace app\models\database;
 
 
+use app\models\Calculator;
 use app\models\Cottage;
 use app\models\interfaces\CottageInterface;
 use app\models\Table_cottages;
+use app\models\Table_payed_target;
 use Exception;
 use yii\db\ActiveRecord;
 
@@ -44,7 +46,7 @@ class Accruals_target extends ActiveRecord
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
                 $square = CottageSquareChanges::getQuarterSquare($cottage, $quarter);
-                (new self(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $quarter, 'fixed_part' => $fixed, 'square_part' => $float, 'counted_square' => $square]))->save();
+                (new self(['cottage_number' => $cottage->getCottageNumber(), 'year' => $quarter, 'fixed_part' => $fixed, 'square_part' => $float, 'counted_square' => $square]))->save();
             }
         }
     }
@@ -52,5 +54,15 @@ class Accruals_target extends ActiveRecord
     public static function getItem(CottageInterface $cottageInfo, string $quarter)
     {
         return self::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'quarter' => $quarter]);
+    }
+
+    public function countAmount()
+    {
+        return Calculator::countFixedFloat($this->fixed_part, $this->square_part, $this->counted_square);
+    }
+
+    public function countPayed()
+    {
+        return Table_payed_target::getPaysAmount($this->cottage_number, $this->year);
     }
 }

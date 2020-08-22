@@ -243,6 +243,46 @@ class TargetHandler extends Model
 
     }
 
+    public static function getYearStatistics($year)
+    {
+        $answer = [];
+        // получу список участков
+        $cottages = Cottage::getRegister();
+        if(!empty($cottages)){
+            foreach ($cottages as $cottage) {
+                if($cottage->getCottageNumber() === '0'){
+                    continue;
+                }
+                $info = new TargetInfo();
+                $info->cottageNumber = $cottage->getCottageNumber();
+                $accrual = Accruals_target::findOne(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year]);
+                if($accrual !== null){
+                    $info->amount = $accrual->countAmount();
+                    $info->payed = $accrual->countPayed();
+                }
+                if($info->amount != 0){
+                    $answer[] = $info;
+                }
+                if($cottage->haveAdditional()){
+                    $cottage = $cottage->getAdditional();
+                    if($cottage->isTarget){
+                        $info = new TargetInfo();
+                        $info->cottageNumber = $cottage->getCottageNumber();
+                        $accrual = Accruals_target::findOne(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year]);
+                        if($accrual !== null){
+                            $info->amount = $accrual->countAmount();
+                            $info->payed = $accrual->countPayed();
+                        }
+                        if($info->amount !== 0){
+                            $answer[] = $info;
+                        }
+                    }
+                }
+            }
+        }
+        return $answer;
+    }
+
 
     public function scenarios(): array
     {

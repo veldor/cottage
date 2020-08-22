@@ -6,8 +6,10 @@ use app\models\Calculator;
 use app\models\CashHandler;
 use app\models\Cottage;
 use app\models\database\Accruals_target;
+use app\models\selections\TargetInfo;
 use app\models\Table_additional_payed_target;
 use app\models\Table_payed_target;
+use app\models\TargetHandler;
 use yii\base\Widget;
 
 class TargetStatisticWidget extends Widget
@@ -20,42 +22,27 @@ class TargetStatisticWidget extends Widget
     {
         if (!empty($this->yearInfo)) {
             $year = $this->yearInfo->year;
+            $statistics = TargetHandler::getYearStatistics($year);
             // получу данные по начислениям
-            $accrualsData = Accruals_target::findAll(['year' => $year]);
             $accrualTotal = 0;
             $payedTotal = 0;
             $fullPayedCounter = 0;
             $partialPayedCounter = 0;
             $noPayedCounter = 0;
-            if (!empty($accrualsData)) {
-                foreach ($accrualsData as $item) {
-                    $accrued = Calculator::countFixedFloat($item->fixed_part, $item->square_part, $item->counted_square);
-                    $accrualTotal += $accrued;
-                    // проверю оплату
-                    $cottageInfo = Cottage::getCottageByLiteral($item->cottage_number);
-                    $payed = 0;
-                    if ($cottageInfo->isMain()) {
-                        $pays = Table_payed_target::findAll(['year' => $year, 'cottageId' => $cottageInfo->getBaseCottageNumber()]);
-
-                    } else {
-                        $pays = Table_additional_payed_target::findAll(['year' => $year, 'cottageId' => $cottageInfo->getBaseCottageNumber()]);
-
-                    }
-                    if (!empty($pays)) {
-                        foreach ($pays as $pay) {
-                            $payed += $pay->summ;
-                        }
-                    }
-                    if($payed === 0){
-                        $noPayedCounter++;
-                    }
-                    elseif ($payed === $accrued){
+            if(!empty($statistics)){
+                /** @var TargetInfo $item */
+                foreach ($statistics as $item) {
+                    $accrualTotal += $item->amount;
+                    $payedTotal += $item->payed;
+                    if($item->amount === $item->payed){
                         $fullPayedCounter++;
+                    }
+                    else if(CashHandler::toRubles($item->payed) == 0){
+                        $noPayedCounter++;
                     }
                     else{
                         $partialPayedCounter++;
                     }
-                    $payedTotal += $payed;
                 }
             }
             $payedPercent = CashHandler::countPartialPercent($accrualTotal, $payedTotal);
@@ -95,6 +82,10 @@ class TargetStatisticWidget extends Widget
                         <td><b class="text-info"> <?= $noPayedCounter ?></b></td>
                     </tr>
                 </table>
+            </div>
+            <div class="clearfix"></div>
+            <div class="col-lg-6 text-center">
+                <button class="btn btn-default activator" data-action="/target/more/<?=$this->yearInfo->year?>"><span class="text-success">Подробности</span></button>
             </div>
             <div class="clearfix"></div>
             <?php

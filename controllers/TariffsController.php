@@ -52,6 +52,7 @@ class TariffsController extends Controller
                             'disable-personal',
                             'disable-personal-additional',
                             'create-target',
+                            'target-more',
                             'change'
                         ],
                         'roles' => ['writer'],
@@ -415,5 +416,16 @@ class TariffsController extends Controller
             return PowerHandler::changeTariff($period);
         }
         throw new NotFoundHttpException();
+    }
+
+    public function actionTargetMore($year){
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        // получу данные по тарифу
+        $accruals = TargetHandler::getYearStatistics($year);
+        $view = $this->renderAjax('target', ['data' => $accruals]);
+        return ['status' => 1,
+            'header' => 'Подробности по целевым за ' . $year,
+            'data' => $view,
+        ];
     }
 }

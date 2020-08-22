@@ -3,6 +3,7 @@ $(function () {
 });
 
 function handle() {
+    handleAjaxActivators();
     const createTargetPayBtn = $('button#createTargetPayment');
     createTargetPayBtn.on('click.create', function () {
       sendAjax('get', '/tariffs/create-target', callback);
