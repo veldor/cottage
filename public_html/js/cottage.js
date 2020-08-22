@@ -1505,21 +1505,20 @@ function addHotkeys() {
     $('body').on('keypress', function (event) {
         console.log(event);
         // хоткей shift + n: переход к следующему участку
-        if((event.keyCode === 78 || event.keyCode === 1058) && event.shiftKey === true){
+        if((event.keyCode === 78 || event.keyCode === 1058) && event.shiftKey === true && event.ctrlKey === true){
             // перейду к следующему участку
             location.assign('/cottage/next');
         }
         // хоткей shift + n: переход к предыдущему участку
-        else if((event.keyCode === 80 || event.keyCode === 1047) && event.shiftKey === true){
+        else if((event.keyCode === 80 || event.keyCode === 1047) && event.shiftKey === true && event.ctrlKey === true){
             // перейду к предыдущему участку
             location.assign('/cottage/previous');
         }
         // хоткей shift + n: переход к предыдущему участку
-        else if((event.keyCode === 66 || event.keyCode === 1048) && event.shiftKey === true){
+        else if((event.keyCode === 66 || event.keyCode === 1048) && event.ctrlKey === true && event.ctrlKey === true){
             // открою окно создания счёта
             $('button#payForCottageButton').trigger('click');
         }
-
     });
 }
 
