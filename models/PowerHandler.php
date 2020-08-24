@@ -354,19 +354,20 @@ class PowerHandler extends Model
     private static function countDuty(array $duties): float
     {
         $duty = 0;
+        $payed = 0;
         if (!empty($duties)) {
             foreach ($duties as $dutyItem) {
-                $duty += $dutyItem->totalPay;
-                // поищу все оплаты по данному счёту и вычту их из суммы долга
-                $pays = Table_payed_power::getPayed($dutyItem);
-                if ($pays !== null) {
-                    foreach ($pays as $pay) {
-                        $duty = CashHandler::rublesMath($duty - $pay->summ);
+                    $duty += $dutyItem->totalPay;
+                    // поищу все оплаты по данному счёту и вычту их из суммы долга
+                    $pays = Table_payed_power::getPayed($dutyItem);
+                    if ($pays !== null) {
+                        foreach ($pays as $pay) {
+                            $payed += CashHandler::toRubles($pay->summ);
+                        }
                     }
-                }
             }
         }
-        return CashHandler::toRubles($duty);
+        return CashHandler::toRubles($duty - $payed);
     }
 
     public static function getCottagePowerData(Table_cottages $cottage)
@@ -1175,7 +1176,7 @@ class PowerHandler extends Model
     /**
      * @param $bill Table_payment_bills|Table_payment_bills_double
      * @param $paymentSumm double
-     * @param $cottageInfo Table_cottages|Table_additional_cottages
+     * @param $cottageInfo CottageInterface
      * @param $transaction Table_transactions|Table_transactions_double
      */
     public static function handlePartialPayment($bill, $paymentSumm, $cottageInfo, $transaction)
@@ -1242,12 +1243,21 @@ class PowerHandler extends Model
                     } else {
                         $requiredAmount = $data->totalPay;
                     }
-                    self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
-                    $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
-                    if ($requiredAmount - $payed - $summ == 0) {
-                        // отмечу месяц последним оплаченным для участка
-                        $cottageInfo->powerPayFor = $date;
-                        $cottageInfo->partialPayedPower = null;
+
+                    if($requiredAmount === $payed){
+                        // счёт полностью оплачен ранее, зачислю разницу на депозит
+                        (new Deposit_io(['summ' => $summ, 'cottageNumber' => $cottageInfo->getCottageNumber(), 'destination' => 'in', 'summBefore' => $cottageInfo->deposit, 'summAfter' => CashHandler::toRubles($cottageInfo->deposit + $summ), 'actionDate' => time(), 'billId' => $bill->id]))->save();
+                        $cottageInfo->deposit = CashHandler::toRubles($cottageInfo->deposit + $summ);
+                        $cottageInfo->save();
+                    }
+                    else{
+                        self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
+                        $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
+                        if ($requiredAmount - $payed - $summ === 0) {
+                            // отмечу месяц последним оплаченным для участка
+                            $cottageInfo->powerPayFor = $date;
+                            $cottageInfo->partialPayedPower = null;
+                        }
                     }
                     $cottageInfo->save();
                 }

@@ -101,9 +101,9 @@ if (!empty($model->billInfo['paymentContent']['power'])) {
     $previousPayedPower = 0;
     if (!empty($payedBefore)) {
         foreach ($payedBefore as $item) {
-            $previousPayedPower += CashHandler::toRubles($item->summ);
+            $previousPayedPower += $item->summ;
         }
-        $powerSummToPay = $fullPowerSumm - $previousPayedPower;
+        $powerSummToPay = CashHandler::toRubles($fullPowerSumm) - CashHandler::toRubles($previousPayedPower);
         $hint = 'Оплачено ранее ' . CashHandler::toShortSmoothRubles($previousPayedPower) . ',осталось оплатить ' . CashHandler::toSmoothRubles($powerSummToPay);
     } else {
         $powerSummToPay = $fullPowerSumm;

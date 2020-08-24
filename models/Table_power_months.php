@@ -63,4 +63,12 @@ class Table_power_months extends ActiveRecord
     {
         return self::find()->where(['cottageNumber' => $cottage->getCottageNumber(), 'payed' => 'no'])->orderBy('month')->one();
     }
+
+    public static function getData(CottageInterface $cottageInfo, $date)
+    {
+        if($cottageInfo->isMain()){
+            return self::findOne(['cottageNumber' => $cottageInfo->getCottageNumber(), 'month' => $date]);
+        }
+        return Table_additional_power_months::findOne(['cottageNumber' => $cottageInfo->getBaseCottageNumber(), 'month' => $date]);
+    }
 }
