@@ -367,7 +367,7 @@ class PowerHandler extends Model
                     }
             }
         }
-        return CashHandler::toRubles($duty - $payed);
+        return CashHandler::toRubles(CashHandler::toRubles($duty) - CashHandler::toRubles($payed));
     }
 
     public static function getCottagePowerData(Table_cottages $cottage)
