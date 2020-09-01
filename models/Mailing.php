@@ -15,7 +15,6 @@ use Exception;
 use Throwable;
 use Yii;
 use yii\db\StaleObjectException;
-use yii\web\Controller;
 
 class Mailing
 {
@@ -147,7 +146,7 @@ class Mailing
                 $mail = new Email();
                 $mail->setFrom($mailSettings->address);
                 $mail->setAddress($mailSettings->is_test ? $mailSettings->test_mail : $mailInfo->email);
-                $mail->setSubject(urldecode($singleMail->title));
+                $mail->setSubject(urldecode($singleMail->subject));
                 $mail->setBody($body);
                 $mail->setReceiverName($mailInfo->fio);
                 try {
