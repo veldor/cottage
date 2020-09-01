@@ -304,7 +304,7 @@ class MembershipHandler extends Model
         $debt = 0;
         if (!empty($cottageDebt)) {
             foreach ($cottageDebt as $item) {
-                $debt += $item->amount;
+                $debt += $item->amount - $item->partialPayed;
             }
         }
         return $debt;
