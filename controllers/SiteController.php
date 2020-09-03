@@ -61,7 +61,7 @@ class SiteController extends Controller
      *
      * @return string
      */
-    public function actionIndex(): ?string
+    public function actionIndex()
     {
         // запущу обновление данных
         Utils::startRefreshMainData();
