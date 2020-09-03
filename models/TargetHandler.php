@@ -268,6 +268,7 @@ class TargetHandler extends Model
                     if($cottage->isTarget){
                         $info = new TargetInfo();
                         $info->cottageNumber = $cottage->getCottageNumber();
+
                         $accrual = Accruals_target::findOne(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year]);
                         if($accrual !== null){
                             $info->amount = $accrual->countAmount();

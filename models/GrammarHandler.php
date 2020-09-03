@@ -168,7 +168,7 @@ class GrammarHandler extends Model
     {
         if (is_string($id)) {
             $strlen = strlen($id);
-            if ($strlen > 3 && substr($id, $strlen - 3, 2) === '-a') {
+            if ($strlen !== strlen((int) $id) ) {
                 return false;
             }
         }

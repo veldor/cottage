@@ -7,7 +7,6 @@ namespace app\models\database;
 use app\models\Calculator;
 use app\models\Cottage;
 use app\models\interfaces\CottageInterface;
-use app\models\Table_cottages;
 use app\models\Table_payed_target;
 use Exception;
 use yii\db\ActiveRecord;
