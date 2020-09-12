@@ -11,8 +11,6 @@ namespace app\controllers;
 use app\models\Cottage;
 use app\models\database\MailingSchedule;
 use app\models\ExceptionWithStatus;
-use app\models\GrammarHandler;
-use app\models\Notifier;
 use app\models\Reminder;
 use app\models\Report;
 use app\models\Table_cottages;
@@ -38,7 +36,14 @@ class ReportController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['debt-details', 'send', 'remind-membership', 'send-membership-remind', 'membership-remind-finished', 'choose-date'],
+                        'actions' => [
+                            'debt-details',
+                            'send',
+                            'remind-membership',
+                            'send-membership-remind',
+                            'membership-remind-finished',
+                            'choose-date'
+                        ],
                         'roles' => ['writer'],
                     ],
                 ],

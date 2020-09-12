@@ -64,4 +64,13 @@ class Accruals_target extends ActiveRecord
     {
         return Table_payed_target::getPaysAmount($this->cottage_number, $this->year);
     }
+
+
+    /**
+     * @return float
+     */
+    public function getAccrual(): float
+    {
+        return Calculator::countFixedFloat($this->fixed_part, $this->square_part, $this->counted_square);
+    }
 }

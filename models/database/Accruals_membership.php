@@ -54,7 +54,10 @@ class Accruals_membership extends ActiveRecord
         return self::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'quarter' => $quarter]);
     }
 
-    public function getAccrual()
+    /**
+     * @return float
+     */
+    public function getAccrual(): float
     {
         return Calculator::countFixedFloat($this->fixed_part, $this->square_part, $this->counted_square);
     }

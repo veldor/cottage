@@ -4,15 +4,16 @@
 namespace app\models\utils;
 
 
-use app\models\Calculator;
 use app\models\CashHandler;
 use app\models\Cottage;
+use app\models\database\Accruals_membership;
+use app\models\database\Accruals_target;
 use app\models\ExceptionWithStatus;
+use app\models\MembershipHandler;
 use app\models\Table_payed_membership;
 use app\models\Table_payed_power;
 use app\models\Table_payed_target;
 use app\models\Table_power_months;
-use app\models\Table_tariffs_membership;
 use app\models\TargetHandler;
 use app\models\TimeHandler;
 use RuntimeException;
@@ -79,7 +80,6 @@ class TotalDutyReport extends Model
 
     /**
      * Создам отчёт
-     * @throws ExceptionWithStatus
      */
     public function createReport(): void
     {
@@ -95,11 +95,16 @@ class TotalDutyReport extends Model
         }
         // получу данные по задолженностям на это число
         $cottages = Cottage::getRegister();
+        $additionalCottages = Cottage::getRegister(true);
+        $cottages = array_merge($cottages, $additionalCottages);
         if (!empty($cottages) && count($cottages) > 0) {
             foreach ($cottages as $cottage) {
+                if ($cottage->getCottageNumber() === '0') {
+                    continue;
+                }
                 $powerDetailsXml .= '<участок><номер>' . $cottage->cottageNumber . '</номер>';
-                $membershipDetailsXml .= '<участок><номер>' . $cottage->cottageNumber . '</номер>';
-                $targetDetailsXml .= '<участок><номер>' . $cottage->cottageNumber . '</номер>';
+                $membershipCottageDetails = '<участок><номер>' . $cottage->cottageNumber . '</номер>';
+                $targetCottageDetails = '<участок><номер>' . $cottage->cottageNumber . '</номер>';
                 $totalPowerDuty = 0;
                 $powerDutyDetails = '';
                 // тут раскладка по задолженностям на данный период
@@ -132,103 +137,92 @@ class TotalDutyReport extends Model
                 // ЧЛЕНСКИЕ ВЗНОСЫ =====================================================================================
                 $totalMembershipDuty = 0;
                 $membershipDutyDetails = '';
-                // нужно получить значение квартала, с которого начинается оплата
-                // перенесу данные по членским взносам
-                $payedMembership = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber])->orderBy('quarter')->all();
-                if (empty($payedMembership)) {
-                    // оплаты членских взносов не было- считаю долг с последнего оплаченного месяца по данным участка
-                    $firstCountedQuarter = TimeHandler::getNextQuarter($cottage->membershipPayFor);
-                } else {
-                    $firstCountedQuarter = $payedMembership[0]->quarter;
-                }
-                $quartersList = TimeHandler::getQuartersList($firstCountedQuarter, TimeHandler::quarterFromYearMonth(TimeHandler::getShortMonthFromTimestamp($timestamp)));
-                if (!empty($quartersList)) {
+
+                //новый расчёт.
+                // посчитаю квартал, по который считается задолженность
+                $lastQuarter = TimeHandler::quarterFromYearMonth(TimeHandler::getShortMonthFromTimestamp($timestamp));
+                // получу начисления включая данный квартал
+                /** @var Accruals_membership[] $accruals */
+                $accruals = Accruals_membership::find()->where(['cottage_number' => $cottage->getCottageNumber()])->andWhere(['<=', 'quarter', $lastQuarter])->all();
+                // посчитаю оплаты по каждому периоду
+                if ($accruals !== null) {
                     $membershipDutyDetails .= '<членские_взносы_детали>';
-                    foreach ($quartersList as $quarter) {
-                        // посчитаю, какая сумма должна быть оплачена
-                            // получу тариф на данный квартал
-                            $tariff = Table_tariffs_membership::findOne(['quarter' => $quarter]);
-                            if ($tariff !== null) {
-                                $amount = Calculator::countFixedFloat($tariff->fixed_part, $tariff->changed_part, $cottage->cottageSquare);
-                            } else {
-                                throw new ExceptionWithStatus("Не найдены данные по тарифу членских взносов за {$quarter}");
+                    foreach ($accruals as $accrual) {
+                        $accrualTotal = $accrual->getAccrual();
+                        if ($accrualTotal > 0) {
+                            $payedTotal = MembershipHandler::getPeriodPaysAmount($cottage->getCottageNumber(), $accrual->quarter);
+                            if ($payedTotal < $accrualTotal) {
+                                $duty = $accrualTotal - $payedTotal;
+                                $totalMembershipDuty += $duty;
+                                $membershipDutyDetails .= $accrual->quarter . ': ' . CashHandler::toRubles($duty) . " \r\n";
                             }
-                        // найду оплаты за период
-                        $payments = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber, 'quarter' => $quarter])->andWhere(['<', 'paymentDate', $timestamp])->all();
-                        if (!empty($payments)) {
-                            foreach ($payments as $payment) {
-                                $amount = CashHandler::toRubles($amount - $payment->summ, true);
-                            }
-                        }
-                        if ($amount > 0) {
-                            $membershipDutyDetails .= $quarter . ': ' . CashHandler::toRubles($amount) . " \r\n";
-                            $totalMembershipDuty += $amount;
                         }
                     }
                     $membershipDutyDetails .= '</членские_взносы_детали>';
-                    if ($totalMembershipDuty > 0) {
-                        $membershipDetailsXml .= '<членские_взносы_общая_задолженность>' . CashHandler::toRubles($totalMembershipDuty, true) . '</членские_взносы_общая_задолженность>' . $membershipDutyDetails;
+                }
+                if ($totalMembershipDuty > 0) {
+                    $membershipCottageDetails .= '<членские_взносы_общая_задолженность>' . CashHandler::toRubles($totalMembershipDuty, true) . '</членские_взносы_общая_задолженность>' . $membershipDutyDetails;
+                }
+                // посчитаю переплаты
+                $overpays = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber])->andWhere(['<', 'paymentDate', $timestamp])->all();
+                $thisQuarter = TimeHandler::quarterFromYearMonth(TimeHandler::getShortMonthFromTimestamp($timestamp));
+                if (!empty($overpays)) {
+                    $overpayDetails = '';
+                    $overpayAmount = 0;
+                    foreach ($overpays as $overpay) {
+                        if ($overpay->quarter > $thisQuarter) {
+                            $overpayAmount += $overpay->summ;
+                            $overpayDetails .= $overpay->quarter . ': ' . CashHandler::toRubles($overpay->summ) . "\r\n";
+                        }
                     }
-                    // посчитаю переплаты
-                    $overpays = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber])->andWhere(['<', 'paymentDate', $timestamp])->all();
-                    $thisQuarter = TimeHandler::quarterFromYearMonth(TimeHandler::getShortMonthFromTimestamp($timestamp));
-                    if (!empty($overpays)) {
-                        $overpayDetails = '';
-                        $overpayAmount = 0;
-                        foreach ($overpays as $overpay) {
-                            if ($overpay->quarter > $thisQuarter) {
-                                $overpayAmount += $overpay->summ;
-                                $overpayDetails .= $overpay->quarter . ': ' . CashHandler::toRubles($overpay->summ) . "\r\n";
-                            }
-                        }
-                        if ($overpayAmount > 0) {
-                            $membershipDetailsXml .= '<членские_взносы_переплата>' . CashHandler::toRubles($overpayAmount) . '</членские_взносы_переплата>' . '<членские_взносы_делали_переплаты>' . $overpayDetails . '</членские_взносы_делали_переплаты>';
-                        }
+                    if ($overpayAmount > 0) {
+                        $membershipCottageDetails .= '<членские_взносы_переплата>' . CashHandler::toRubles($overpayAmount) . '</членские_взносы_переплата>' . '<членские_взносы_делали_переплаты>' . $overpayDetails . '</членские_взносы_делали_переплаты>';
                     }
                 }
-                $membershipDetailsXml .= '</участок>';
+                $membershipCottageDetails .= '</участок>';
+                if ($totalMembershipDuty > 0 || $overpayAmount > 0) {
+                    $membershipDetailsXml .= $membershipCottageDetails;
+                }
                 // ЦЕЛЕВЫЕ ВЗНОСЫ ======================================================================================
-                $details = [];
-                $currentYear = TimeHandler::getYearFromTimestamp($timestamp);
                 $totalTargetDuty = 0;
                 $targetDutyDetails = '';
-                // получу текущие долги участка
-                $duties = TargetHandler::getDebt($cottage);
-                // получу оплаченные счета по членским по участку, которые были оплачены позже, чем дата выборки
-                $payed = Table_payed_target::find()->where(['cottageId' => $cottage->cottageNumber])->andWhere(['>', 'paymentDate', $timestamp])->all();
-                // текущие задолженности считаются задолженностями участка, если год выставления задолженности не больше, чем текущий
-                foreach ($duties as $duty) {
-                    if ($duty->year <= $currentYear) {
-                        $details[$duty->year] = CashHandler::toRubles($duty->amount - $duty->partialPayed);
-                    }
-                }
-                // суммы всех платежей, что были после даты выборки, плюсую к текущим задолженностям, так как они не были оплачены на тот момент
-                if (!empty($payed)) {
-                    foreach ($payed as $item) {
-                        if (!empty($details[$item->year])) {
-                            $details[$item->year] += $item->summ;
-                        } else {
-                            $details[$item->year] = $item->summ;
+
+                //новый расчёт.
+                // получу год
+                $lastYear = TimeHandler::getYearFromTimestamp($timestamp);
+                // получу начисления включая данный год
+                /** @var Accruals_target[] $accruals */
+                $accruals = Accruals_target::find()->where(['cottage_number' => $cottage->getCottageNumber()])->andWhere(['<=', 'year', $lastQuarter])->all();
+                // посчитаю оплаты по каждому периоду
+                if ($accruals !== null) {
+                    $targetDutyDetails .= '<целевые_взносы_детали>';
+                    foreach ($accruals as $accrual) {
+                        $accrualTotal = $accrual->getAccrual();
+                        if ($accrualTotal > 0) {
+                            $payedTotal = TargetHandler::getPeriodPaysAmount($cottage->getCottageNumber(), $accrual->year) + $accrual->payed_outside;
+                            if ($payedTotal < $accrualTotal) {
+                                $duty = $accrualTotal - $payedTotal;
+                                $totalTargetDuty += $duty;
+                                $targetDutyDetails .= $accrual->year . ': ' . CashHandler::toRubles($duty) . " \r\n";
+                            }
                         }
                     }
-                }
-                if(!empty($details)){
-                    foreach ($details as $key => $detail) {
-                        $targetDutyDetails .= $key . ': ' . CashHandler::toRubles($detail) . " \r\n";
-                        $totalTargetDuty += $detail;
-                    }
+                    $targetDutyDetails .= '</целевые_взносы_детали>';
                 }
                 if ($totalTargetDuty > 0) {
-                    $targetDetailsXml .= '<целевые_взносы_общая_задолженность>' . CashHandler::toRubles($totalTargetDuty, true) . '</целевые_взносы_общая_задолженность>' . $targetDutyDetails;
+                    $targetCottageDetails .= '<целевые_взносы_общая_задолженность>' . CashHandler::toRubles($totalTargetDuty, true) . '</целевые_взносы_общая_задолженность>' . $targetDutyDetails;
                 }
-                $targetDetailsXml .= '</участок>';
+                $targetCottageDetails .= '</участок>';
+                if ($totalTargetDuty > 0) {
+                    $targetDetailsXml .= $targetCottageDetails;
+                }
             }
-            $powerDetailsXml .= '</задолженность>';
-            $membershipDetailsXml .= '</задолженность>';
-            $targetDetailsXml .= '</задолженность>';
-            file_put_contents(self::getPowerFileName(), $powerDetailsXml);
-            file_put_contents(self::getMembershipFileName(), $membershipDetailsXml);
-            file_put_contents(self::getTargetFileName(), $targetDetailsXml);
         }
+        $powerDetailsXml .= '</задолженность>';
+        $membershipDetailsXml .= '</задолженность>';
+        $targetDetailsXml .= '</задолженность>';
+        file_put_contents(self::getPowerFileName(), $powerDetailsXml);
+        file_put_contents(self::getMembershipFileName(), $membershipDetailsXml);
+        file_put_contents(self::getTargetFileName(), $targetDetailsXml);
     }
 }

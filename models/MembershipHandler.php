@@ -406,8 +406,10 @@ class MembershipHandler extends Model
     {
         if ($additional) {
             $cottage = AdditionalCottage::getCottage($cottageNumber);
+            $type = 'additionalMembership';
         } else {
             $cottage = Cottage::getCottageInfo($cottageNumber);
+            $type = 'membership';
         }
         // получу список тарифов на данный период
         try {
@@ -438,23 +440,8 @@ class MembershipHandler extends Model
                 $toPay = Calculator::countFixedFloat($accrual->fixed_part, $accrual->square_part, $accrual->counted_square);
                 $summToPay = $toPay - $payedYet;
                 if ($summToPay > 0) {
-                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][{$key}][value]' name='ComplexPayment[$type][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
                 }
-                /*$summToPay = Calculator::countFixedFloatPlus($value['fixed'], $value['float'], $cottage->cottageSquare);
-                if ($additional) {
-                    $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottage->masterId, 'quarter' => $key])->all();
-                } else {
-                    $payed = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber, 'quarter' => $key])->all();
-                }
-                $payedBefore = 0;
-                if (!empty($payed)) {
-                    foreach ($payed as $item) {
-                        $payedBefore += $item->summ;
-                    }
-                }
-                $summToPay = $summToPay['total'] - $payedBefore;
-                if ($summToPay > 0) {
-                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[membership][{$key}][value]' name='ComplexPayment[membership][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";*/
             }
         }
         $content .= '</table>';

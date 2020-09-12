@@ -284,6 +284,23 @@ class TargetHandler extends Model
         return $answer;
     }
 
+    /**
+     * @param $cottage_number
+     * @param $year
+     * @return float
+     */
+    public static function getPeriodPaysAmount($cottage_number, $year): float
+    {
+        $pays = self::getPaysForPeriod(Cottage::getCottageByLiteral($cottage_number), $year);
+        $payed = 0;
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                $payed += $pay->summ;
+            }
+        }
+        return CashHandler::toRubles($payed);
+    }
+
 
     public function scenarios(): array
     {

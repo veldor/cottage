@@ -39,8 +39,19 @@ class FillingController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['view', 'fill', 'create', 'future-quarters', 'cancel-power', 'fill-current', 'get-serial-cottages', 'confirm-serial-payments', 'fill-missing-individuals', 'fill-counters'],
-                        'roles' => ['writer'],
+                        'actions' => [
+                            'view',
+                            'fill',
+                            'create',
+                            'future-quarters',
+                            'cancel-power',
+                            'fill-current',
+                            'get-serial-cottages',
+                            'confirm-serial-payments',
+                            'fill-missing-individuals',
+                            'fill-counters'],
+                        'roles' => ['writer'
+                        ],
                     ],
                 ],
             ],
