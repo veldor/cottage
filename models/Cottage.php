@@ -70,7 +70,7 @@ class Cottage extends Model
                     $this->membershipDebts += CashHandler::toRubles($item->amount - $item->partialPayed);
                 }
             }
-            $this->targetDebts = $this->globalInfo->targetDebt;
+            $this->targetDebts = TargetHandler::getDebtAmount($this->globalInfo);
             $this->totalDebt = CashHandler::toRubles($this->membershipDebts) + CashHandler::toRubles($this->targetDebts) + CashHandler::toRubles($this->powerDebts) + CashHandler::toRubles($this->globalInfo->singleDebt);
 
             // проверю, не привязан ли дополнительный участок

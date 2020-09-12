@@ -25,6 +25,9 @@ use yii\web\View;
 ShowLoadingAsset::register($this);
 CottageAsset::register($this);
 
+$finesTotal = 0;
+$finesAddTotal = 0;
+
 if (Reminder::requreRemind()) {
     Yii::$app->session->addFlash('info', 'Пора напомнить о членских взносах! <a href="' . Url::toRoute('report/remind-membership') . '" target="_blank" class="btn btn-default"><span class="text-info">Напомнить</span></a>');
 }
@@ -165,6 +168,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             }
             echo "<tr><td>Пени</td><td><button id='finesSumm' class='btn btn-danger'>" . CashHandler::toSmoothRubles($total) . "</button> <button class='btn btn-default activator' data-action='/fines/recount/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-warning'>пересчитать</span></button> <button class='btn btn-default activator' data-action='/fines/recount-total/{$cottageInfo->globalInfo->cottageNumber}'><span class='text-danger'>пересчитать всё</span></button></td></tr>";
             $totalDebt += $total;
+            $finesTotal = $total;
             $totalDebt += TargetHandler::getDebtAmount($cottageInfo->globalInfo);
             $totalDebt += SingleHandler::getDebtAmount($cottageInfo->globalInfo);
             ?>
@@ -341,7 +345,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     }
                     $totalDebt += $total;
                 }
-                $fullDuty = CashHandler::toRubles($cottageInfo->additionalCottageInfo['totalDebt']) + CashHandler::toRubles($cottageInfo->totalDebt);
+                $fullDuty = CashHandler::toRubles($cottageInfo->additionalCottageInfo['totalDebt']) +  + CashHandler::toRubles($cottageInfo->totalDebt) + CashHandler::toRubles($finesTotal);
                 ?>
                 </tbody>
                 <tr class="info">
