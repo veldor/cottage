@@ -117,7 +117,7 @@ class PowerStatisticWidget extends Widget {
 				</tr>
 				<tr>
 					<td>Не оплачено счетов</td>
-					<td><b class="text-info"> <?=$partialPayedCounter?></b></td>
+					<td><b class="text-info"> <?=$noPayedCounter?></b></td>
 				</tr>
 			</table>
 		</div>
