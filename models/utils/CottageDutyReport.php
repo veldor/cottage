@@ -172,30 +172,35 @@ class CottageDutyReport
                 // определю срок оплаты
                 // если месяц не оплачен и прошел срок выплат- считаю пени
                 if (($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
-                    // посчитаю сумму пени
-                    // посчитаю количество дней задолженности
-                    try {
-                        $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
-                        if ($dayDifference > 0) {
-                            // тут посчитаю общую сумму задолженности.
-                            //Если платежей по счёту не было- это просто 5% в день
-                            if (empty($payed)) {
-                                $finesPerDay = CashHandler::countPercent($total, FinesHandler::PERCENT);
-                                $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                $this->fineDetails .= 'Ч* ' . $item . ' : ' . $totalFines . "<br/>\n";
-                                $this->fineAmount += $totalFines;
-                            } else {
-                                // тут уже сложнее, придётся считать оплаты
-                                $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
-                                if ($fineAmount > 0) {
-                                    $this->fineDetails .= 'Ч* ' . $item . ' : ' . $fineAmount . "<br/>\n";
-                                    $this->fineAmount += $fineAmount;
+                    if($savedFine->locked){
+                        $this->fineDetails .= 'Ч* ' . $item . ' : ' . $savedFine->summ . "<br/>\n";
+                    }
+                    else{
+                        // посчитаю сумму пени
+                        // посчитаю количество дней задолженности
+                        try {
+                            $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
+                            if ($dayDifference > 0) {
+                                // тут посчитаю общую сумму задолженности.
+                                //Если платежей по счёту не было- это просто 5% в день
+                                if (empty($payed)) {
+                                    $finesPerDay = CashHandler::countPercent($total, FinesHandler::PERCENT);
+                                    $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
+                                    $this->fineDetails .= 'Ч* ' . $item . ' : ' . $totalFines . "<br/>\n";
+                                    $this->fineAmount += $totalFines;
+                                } else {
+                                    // тут уже сложнее, придётся считать оплаты
+                                    $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
+                                    if ($fineAmount > 0) {
+                                        $this->fineDetails .= 'Ч* ' . $item . ' : ' . $fineAmount . "<br/>\n";
+                                        $this->fineAmount += $fineAmount;
+                                    }
                                 }
                             }
+                        } catch (Exception $e) {
+                            echo $e->getMessage();
+                            die();
                         }
-                    } catch (Exception $e) {
-                        echo $e->getMessage();
-                        die();
                     }
                 }
             }
@@ -255,28 +260,33 @@ class CottageDutyReport
                 // определю срок оплаты
                 // если месяц не оплачен и прошел срок выплат- считаю пени
                 if (($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
-                    // посчитаю сумму пени
-                    // посчитаю количество дней задолженности
-                    try {
-                        $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
-                        if ($dayDifference > 0) {
-                            // тут посчитаю общую сумму задолженности.
-                            //Если платежей по счёту не было- это просто 5% в день
-                            if (empty($payed)) {
-                                $finesPerDay = CashHandler::countPercent($thisDuty->getAccrual(), FinesHandler::PERCENT);
-                                $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                $this->fineDetails .= 'Ц* ' . $year . ' : ' . $totalFines . "<br/>\n";
-                                $this->fineAmount += $totalFines;
-                            } else {
-                                // тут уже сложнее, придётся считать оплаты
-                                $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
-                                if ($fineAmount > 0) {
-                                    $this->fineDetails .= 'Ц* ' . $year . ' : ' . $fineAmount . "<br/>\n";
-                                    $this->fineAmount += $fineAmount;
+                    if($savedFine->locked){
+                        $this->fineDetails .= 'Ц* ' . $year . ' : ' . $savedFine->summ . "<br/>\n";
+                    }
+                    else{
+                        // посчитаю сумму пени
+                        // посчитаю количество дней задолженности
+                        try {
+                            $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
+                            if ($dayDifference > 0) {
+                                // тут посчитаю общую сумму задолженности.
+                                //Если платежей по счёту не было- это просто 5% в день
+                                if (empty($payed)) {
+                                    $finesPerDay = CashHandler::countPercent($thisDuty->getAccrual(), FinesHandler::PERCENT);
+                                    $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
+                                    $this->fineDetails .= 'Ц* ' . $year . ' : ' . $totalFines . "<br/>\n";
+                                    $this->fineAmount += $totalFines;
+                                } else {
+                                    // тут уже сложнее, придётся считать оплаты
+                                    $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
+                                    if ($fineAmount > 0) {
+                                        $this->fineDetails .= 'Ц* ' . $year . ' : ' . $fineAmount . "<br/>\n";
+                                        $this->fineAmount += $fineAmount;
+                                    }
                                 }
                             }
+                        } catch (Exception $e) {
                         }
-                    } catch (Exception $e) {
                     }
                 }
             }
