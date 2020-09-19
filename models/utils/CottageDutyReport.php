@@ -264,7 +264,6 @@ class CottageDutyReport
                             //Если платежей по счёту не было- это просто 5% в день
                             if (empty($payed)) {
                                 $finesPerDay = CashHandler::countPercent($thisDuty->getAccrual(), FinesHandler::PERCENT);
-                                echo $finesPerDay;
                                 $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
                                 $this->fineDetails .= 'Ц* ' . $year . ' : ' . $totalFines . "<br/>\n";
                                 $this->fineAmount += $totalFines;
