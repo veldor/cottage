@@ -54,7 +54,7 @@ class CottagesShowWidget extends Widget
                 $additional = "<span class='glyphicon glyphicon-plus'></span>";
             }
 
-            if ($cottagesFastInfo->power_debt > 0 || $cottagesFastInfo->membership_debt > 0 || $cottagesFastInfo->target_debt > 0 || $cottagesFastInfo->single_debt > 0 || $cottagesFastInfo->fines > 0) {
+            if ($cottagesFastInfo->power_debt > 0 || $cottagesFastInfo->membership_debt > 0 || $cottagesFastInfo->target_debt > 0 || $cottagesFastInfo->single_debt > 0) {
                 $content = '';
                 if ($cottagesFastInfo->power_debt > 0) {
                     $content .= '<p>Электричество: <b class="text-danger">' . CashHandler::toSmoothRubles($cottagesFastInfo->power_debt) . '</b></p>';
@@ -67,9 +67,6 @@ class CottagesShowWidget extends Widget
                 }
                 if ($cottagesFastInfo->single_debt > 0) {
                     $content .= '<p>Разовые: <b class="text-danger">' . CashHandler::toSmoothRubles($cottagesFastInfo->single_debt) . '</b></p>';
-                }
-                if ($cottagesFastInfo->fines > 0) {
-                    $content .= '<p>Пени: <b class="text-danger">' . CashHandler::toSmoothRubles($cottagesFastInfo->fines) . '</b></p>';
                 }
 
                 if ($cottage->deposit > 0) {

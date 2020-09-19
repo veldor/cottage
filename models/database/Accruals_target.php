@@ -50,9 +50,9 @@ class Accruals_target extends ActiveRecord
         }
     }
 
-    public static function getItem(CottageInterface $cottageInfo, string $quarter)
+    public static function getItem(CottageInterface $cottageInfo, string $year)
     {
-        return self::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'quarter' => $quarter]);
+        return self::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'year' => $year]);
     }
 
     public function countAmount()
