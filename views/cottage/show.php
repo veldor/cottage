@@ -87,7 +87,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             <tr>
                 <td>Электроэнергия- последний оплаченный месяц</td>
                 <td>
-                    <b class="text-info"><?= TimeHandler::getFullFromShotMonth($cottageInfo->globalInfo->powerPayFor) ?></b> <?= $cottageInfo->powerPayDifference ?>
+                    <b class="text-info"><?= TimeHandler::getFullFromShotMonth(PowerHandler::getLastPayedMonth($cottageInfo->globalInfo->cottageNumber)) ?></b> <?= $cottageInfo->powerPayDifference ?>
                     <?php
 
                     // проверю частично оплаченные счета

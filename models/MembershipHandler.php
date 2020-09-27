@@ -424,7 +424,6 @@ class MembershipHandler extends Model
             if ($accrual !== null) {
                 $existentTariff = Table_tariffs_membership::findOne(['quarter' => $key]);
                 // получу значение начисления по кварталу
-
                 $payedYet = 0;
                 // если квартал частично оплачен- вычту сумму частичной оплаты из цены
                 if ($cottage->isMain()) {
@@ -442,6 +441,12 @@ class MembershipHandler extends Model
                 if ($summToPay > 0) {
                     $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][{$key}][value]' name='ComplexPayment[$type][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
                 }
+            }
+            else{
+                // Добавлю новое начисление
+                (new Accruals_membership(['quarter' => $key, 'cottage_number' => $cottage->getCottageNumber(), 'fixed_part' => $value['fixed'], 'square_part' => $value['float'], 'counted_square' => $cottage->cottageSquare]))->save();
+                $summToPay = Calculator::countFixedFloat($value['fixed'], $value['float'], $cottage->cottageSquare);
+                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][{$key}][value]' name='ComplexPayment[$type][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
             }
         }
         $content .= '</table>';

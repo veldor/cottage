@@ -453,6 +453,14 @@ class PowerHandler extends Model
         return $payed;
     }
 
+    public static function getLastPayedMonth(string $cottageNumber)
+    {
+        if(GrammarHandler::isMain($cottageNumber)){
+            return (Table_power_months::find()->where(['cottageNumber' => $cottageNumber, 'payed' => 'yes'])->orderBy('month DESC')->one())->month;
+        }
+        return (Table_additional_power_months::find()->where(['cottageNumber' => $cottageNumber, 'payed' => 'yes'])->orderBy('month DESC')->one())->month;
+    }
+
     public function scenarios(): array
     {
         return [
@@ -747,7 +755,7 @@ class PowerHandler extends Model
      * @param $cottageInfo Table_cottages
      * @return array
      */
-    public static function getCottageStatus($cottageInfo): array
+    public static function getCottageStatus(CottageInterface $cottageInfo): array
     {
         // проверю, выставлен ли счет на электроэнергию за предыдущий месяц
         $filledPower = Table_power_months::find()->where(['cottageNumber' => $cottageInfo->cottageNumber])->orderBy('month DESC')->one();
@@ -758,7 +766,7 @@ class PowerHandler extends Model
             $filled = false;
         }
         // проверю, как давно оплачено электричество
-        $difference = TimeHandler::checkMonthDifference($cottageInfo->powerPayFor);
+        $difference = TimeHandler::checkMonthDifference(self::getLastPayedMonth($cottageInfo->getCottageNumber()));
         $powerPayDifference = '';
         if ($difference > 1) {
             $powerPayDifference = '(' . GrammarHandler::handleMonthsDifference(--$difference) . ' назад)';

@@ -49,6 +49,10 @@ class GrammarHandler extends Model
         return null;
     }
 
+    /**
+     * @param $string
+     * @return array|string
+     */
     public static function personalsToArray($string)
     {
         // извлекаю имя и отчество из персональных данных
@@ -88,14 +92,13 @@ class GrammarHandler extends Model
         return false;
     }
 
-    public static function handlePersonals($name): string
+    public static function handlePersonals($name)
     {
         if ($data = self::personalsToArray($name)) {
             if (is_array($data)) {
                 return "{$data['name']} {$data['fname']}";
-            } else {
-                return $data;
             }
+            return $data;
 
         }
         return $name;
@@ -106,9 +109,9 @@ class GrammarHandler extends Model
         $personalsArray = self::personalsToArray($cottageOwnerPersonals);
         if (is_array($personalsArray)) {
             return $personalsArray['lname'] . ' ' . substr($personalsArray['name'], 0, 2) . '. ' . substr($personalsArray['fname'], 0, 2) . '.';
-        } else {
-            return $personalsArray;
         }
+
+        return $personalsArray;
     }
 
     public static function insertPersonalAppeal($text, $fullPersonals)

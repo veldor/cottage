@@ -11,6 +11,9 @@ namespace app\models;
 use app\models\database\Mail;
 use app\models\interfaces\CottageInterface;
 use app\models\tables\Table_penalties;
+use DOMDocument;
+use DOMElement;
+use DOMXpath;
 use Exception;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
@@ -89,20 +92,20 @@ class Cottage extends Model
     /**
      * @param $cottageInfo Table_cottages
      */
-    public static function recalculateTargetDebt($cottageInfo)
+    public static function recalculateTargetDebt(Table_cottages $cottageInfo): void
     {
         $targetDuty = 0;
         // проверю, есть ли долги
         $targetsInfo = $cottageInfo->targetPaysDuty;
         if (!empty($targetsInfo)) {
             // загружу сведения в DOM
-            $targetsDom = new \DOMDocument('1.0', 'UTF-8');
+            $targetsDom = new DOMDocument('1.0', 'UTF-8');
             $targetsDom->loadXML($cottageInfo->targetPaysDuty);
-            $targetsXpath = new \DOMXpath($targetsDom);
+            $targetsXpath = new DOMXpath($targetsDom);
             $targets = $targetsXpath->query('/targets/target');
             if ($targets->length > 0) {
                 /**
-                 * @var $target \DOMElement
+                 * @var $target DOMElement
                  */
                 foreach ($targets as $target) {
                     $summ = CashHandler::toRubles($target->getAttribute('summ'));
@@ -118,19 +121,19 @@ class Cottage extends Model
     /**
      * @param $cottageInfo Table_cottages
      */
-    public static function recalculateSingleDebt($cottageInfo)
+    public static function recalculateSingleDebt(Table_cottages $cottageInfo): void
     {
         $singleDuty = 0;
         // проверю, есть ли долги
         if (!empty($cottageInfo->singlePaysDuty)) {
             // загружу сведения в DOM
-            $targetsDom = new \DOMDocument('1.0', 'UTF-8');
+            $targetsDom = new DOMDocument('1.0', 'UTF-8');
             $targetsDom->loadXML($cottageInfo->singlePaysDuty);
-            $targetsXpath = new \DOMXpath($targetsDom);
+            $targetsXpath = new DOMXpath($targetsDom);
             $targets = $targetsXpath->query('/singlePayments/singlePayment');
             if ($targets->length > 0) {
                 /**
-                 * @var $target \DOMElement
+                 * @var $target DOMElement
                  */
                 foreach ($targets as $target) {
                     $summ = CashHandler::toRubles($target->getAttribute('summ'));
@@ -144,11 +147,11 @@ class Cottage extends Model
     }
 
     /**
-     * @param $cottageNumber int
+     * @param $cottageNumber string
      * @param bool $double
      * @return Table_cottages|Table_additional_cottages
      */
-    public static function getCottageInfo($cottageNumber, $double = false)
+    public static function getCottageInfo(string $cottageNumber, $double = false)
     {
         if (is_int((int)$cottageNumber)) {
             if ($double) {
@@ -178,13 +181,14 @@ class Cottage extends Model
     /**
      * @return array
      */
-    public static function getRegistredList(): array
+    public static function getRegisteredList(): array
     {
         $answer = [];
         $data = Table_cottages::find()->orderBy('cottageNumber')->all();
         if (!empty($data)) {
+            /** @var CottageInterface $item */
             foreach ($data as $item) {
-                $answer[$item->cottageNumber] = $item;
+                $answer[$item->getCottageNumber()] = $item;
             }
         }
         return $answer;
@@ -214,7 +218,7 @@ class Cottage extends Model
      * @param $cottage CottageInterface
      * @return bool
      */
-    public static function hasMail($cottage): bool
+    public static function hasMail(CottageInterface $cottage): bool
     {
         return Mail::find()->where(['cottage' => $cottage->getCottageNumber()])->count();
     }

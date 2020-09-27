@@ -304,7 +304,7 @@ class Filling extends Model
      */
     public static function getFillingInfo(): array
     {
-        $cottages = Cottage::getRegistredList();
+        $cottages = Cottage::getRegisteredList();
         $additionalCottages = AdditionalCottage::getRegistredList();
         return PowerHandler::getInserted($cottages, $additionalCottages, TimeHandler::getPreviousShortMonth());
     }
