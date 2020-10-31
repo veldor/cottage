@@ -143,11 +143,9 @@ class CottageDutyReport
 // обработаю список
         if (!empty($list)) {
             foreach ($list as $item) {
-                // получу площадь участка на данный момент времени
-                $cottageSquare = CottageSquareChanges::getQuarterSquare($this->cottage, $item);
                 // получу начисление за квартал
                 $accrued = Accruals_membership::getItem($this->cottage, $item);
-                if($accrued !== null){
+                if ($accrued !== null) {
                     // найду оплаты за данный период
                     $payed = MembershipHandler::getPaysBefore($item, $this->cottage, $this->periodEnd);
                     if (empty($payed)) {
@@ -172,10 +170,9 @@ class CottageDutyReport
                     // определю срок оплаты
                     // если месяц не оплачен и прошел срок выплат- считаю пени
                     if (($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
-                        if($savedFine->locked){
+                        if ($savedFine->locked) {
                             $this->fineDetails .= 'Ч* ' . $item . ' : ' . $savedFine->summ . "<br/>\n";
-                        }
-                        else{
+                        } else {
                             // посчитаю сумму пени
                             // посчитаю количество дней задолженности
                             try {
@@ -190,7 +187,7 @@ class CottageDutyReport
                                         $this->fineAmount += $totalFines;
                                     } else {
                                         // тут уже сложнее, придётся считать оплаты
-                                        $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
+                                        $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $accrued->getAccrual(), $this->periodEnd));
                                         if ($fineAmount > 0) {
                                             $this->fineDetails .= 'Ч* ' . $item . ' : ' . $fineAmount . "<br/>\n";
                                             $this->fineAmount += $fineAmount;
@@ -199,6 +196,7 @@ class CottageDutyReport
                                 }
                             } catch (Exception $e) {
                                 echo $e->getMessage();
+                                echo $e->getTraceAsString();
                                 die();
                             }
                         }
@@ -220,7 +218,7 @@ class CottageDutyReport
             // получу данные
             // получу начисление за год
             $thisDuty = Accruals_target::getItem($this->cottage, $year);
-            if($thisDuty !== null){
+            if ($thisDuty !== null) {
                 $accrued = $thisDuty->countAmount();
             }
             if (!empty($accrued)) {
@@ -261,10 +259,9 @@ class CottageDutyReport
                 // определю срок оплаты
                 // если месяц не оплачен и прошел срок выплат- считаю пени
                 if (($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
-                    if($savedFine->locked){
+                    if ($savedFine->locked) {
                         $this->fineDetails .= 'Ц* ' . $year . ' : ' . $savedFine->summ . "<br/>\n";
-                    }
-                    else{
+                    } else {
                         // посчитаю сумму пени
                         // посчитаю количество дней задолженности
                         try {
