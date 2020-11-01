@@ -781,6 +781,9 @@ class PaymentDetailsWidget extends Widget
                         foreach ($this->info['fines'] as $item) {
                             $summ += $item->start_summ;
                             $daysLeft = $item->start_days;
+                            if($daysLeft === 0){
+                                continue;
+                            }
                             $forDay = CashHandler::toSmoothRubles($item->start_summ / $daysLeft);
                             ?>
                             <tr>
