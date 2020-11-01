@@ -369,7 +369,14 @@ class ComplexPayment extends Model
                 if (!empty($item->paymentTime)) {
                     $pt = TimeHandler::getDateFromTimestamp($item->paymentTime);
                 } else {
-                    $pt = '';
+                    // попробую найти дату исходя из последней транзакции по этому счёту
+                    $lastTransaction = TransactionsHandler::getLastTransaction($cottageNumber, $item);
+                    if($lastTransaction !== null){
+                        $pt = TimeHandler::getDateFromTimestamp($lastTransaction->bankDate);
+                    }
+                    else{
+                        $pt = '';
+                    }
                 }
                 if (!empty($item->payedSumm)) {
                     $payedSumm = CashHandler::rublesMath(CashHandler::toRubles($item->payedSumm) + CashHandler::toRubles($item->depositUsed) + CashHandler::toRubles($item->discount));

@@ -31,6 +31,18 @@ class TransactionsHandler extends Model
         return Table_transactions_double::find()->where(['cottageNumber' => $cottage->getBaseCottageNumber()])->andWhere(['>=', 'transactionDate', $start])->andWhere(['<=', 'transactionDate', $end])->all();
     }
 
+    /**
+     * @param string $cottageNumber
+     * @param $item Table_payment_bills|Table_payment_bills_double
+     */
+    public static function getLastTransaction(string $cottageNumber, $item)
+    {
+        if(GrammarHandler::isMain($cottageNumber)){
+            return Table_transactions::find()->where(['billId' => $item->id])->orderBy('bankDate')->one();
+        }
+        return Table_transactions_double::find()->where(['billId' => $item->id])->orderBy('bankDate')->one();
+    }
+
     public function scenarios(): array
     {
         return [
