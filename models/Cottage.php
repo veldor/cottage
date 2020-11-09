@@ -28,7 +28,7 @@ class Cottage extends Model
     public $targetDebts = 0;
     public $powerDebts = 0;
     public $unpayedBills = 0;
-    public $counterChanged = false;
+    public $counterChanged = null;
     public $totalDebt = 0;
     public array $additionalCottageInfo;
     public array $fines;

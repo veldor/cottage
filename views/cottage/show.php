@@ -7,7 +7,6 @@ use app\models\database\Mail;
 use app\models\DOMHandler;
 use app\models\GrammarHandler;
 use app\models\MembershipHandler;
-use app\models\PowerHandler;
 use app\models\Reminder;
 use app\models\SingleHandler;
 use app\models\Table_payed_power;
@@ -94,6 +93,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     $months = Table_power_months::find()->where(['cottageNumber' => $cottageInfo->globalInfo->cottageNumber])->all();
                     if (!empty($months)) {
                         foreach ($months as $month) {
+                            /** @var Table_power_months $month */
                             if ($month->totalPay > 0) {
                                 // найду платежи по счёту
                                 $payedAmount = 0;
@@ -134,7 +134,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             <tr>
                 <td>Членские взносы- последний оплаченный квартал</td>
                 <td>
-                    <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->globalInfo)); ?></b>
+                    <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->globalInfo)) ?></b>
                     <?php
                     if ($cottageInfo->globalInfo->partialPayedMembership) {
                         // получу данные о неполном платеже
@@ -161,6 +161,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             // просмотрю пени
             if (!empty($cottageInfo->fines)) {
                 foreach ($cottageInfo->fines as $fine) {
+                    /** @var Table_penalties $fine */
                     if ($fine->is_enabled) {
                         $total += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
                     }
@@ -261,7 +262,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     <tr class="info">
                         <td>Членские взносы- последний оплаченный квартал</td>
                         <td>
-                            <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->additionalCottageInfo['cottageInfo'])); ?></b>
+                            <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->additionalCottageInfo['cottageInfo'])) ?></b>
                             <?php
                             if ($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedMembership) {
                                 // получу данные о неполном платеже
@@ -573,6 +574,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     <button id='payForCottageButton' class='btn btn-success'>Оплатить</button>
                     <button id="buttonShowPaymentsStory" class="btn btn-default">История платежей</button>
                     <button id="changeInfoButton" class="btn btn-info">Изменить данные</button>
+                    <button class="btn btn-info activator" data-action="/pays/<?=$cottageInfo->globalInfo->cottageNumber?>">Входящие платежи</button>
                 </div>
             </div>
 

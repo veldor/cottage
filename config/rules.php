@@ -155,6 +155,7 @@ return [
 
 // NEW FUNCTIONS
     'download/<file:.+>' => 'download/download',
+    'pays/<cottage:[0-9]+(-a)?>' => 'payments/show-incoming-pays',
     'change-tariff/<type:power>/<period:[\d-]+>' => 'tariffs/change',
 
 // FORM
