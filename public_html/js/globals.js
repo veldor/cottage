@@ -285,9 +285,12 @@ function handleUnsended(e) {
 // Функция вызова пустого модального окна
 function makeModal(header, text, delayed) {
     if (delayed) {
+        console.log('make delayed');
         // открытие модали поверх другой модали
-        let modal = $("#myModal");
-        if (modal.length == 1) {
+        let modal = $("div.modal");
+        modal.off('hidden.bs.modal');
+        if (modal.length === 1) {
+            console.log('deleting old modal');
             modal.modal('hide');
             let newModal = $('<div id="myModal" class="modal fade mode-choose"><div class="modal-dialog  modal-lg"><div class="modal-content"><div class="modal-header">' + header + '</div><div class="modal-body">' + text + '</div><div class="modal-footer"><button class="btn btn-danger"  data-dismiss="modal" type="button" id="cancelActionButton">Отмена</button></div></div></div>');
             modal.on('hidden.bs.modal', function () {
@@ -300,9 +303,15 @@ function makeModal(header, text, delayed) {
                     keyboard: true,
                     show: true
                 });
+                newModal.on('shown.bs.modal', function (){
+                    console.log('modal showed');
+                    $('body').css({'overflow' : 'hidden'});
+                    $('div.wrap div.container, div.wrap nav').addClass('blured');
+                });
                 newModal.on('hidden.bs.modal', function () {
                     normalReload();
                     newModal.remove();
+                    $('body').css({'overflow' : 'auto'});
                     $('div.wrap div.container, div.wrap nav').removeClass('blured');
                 });
                 $('div.wrap div.container, div.wrap nav').addClass('blured');
@@ -323,6 +332,7 @@ function makeModal(header, text, delayed) {
         normalReload();
         modal.remove();
         $('div.wrap div.container, div.wrap nav').removeClass('blured');
+        console.log('modal deleted');
     });
     $('div.wrap div.container, div.wrap nav').addClass('blured');
     return modal;
@@ -790,7 +800,7 @@ function simpleAnswerInformerHandler(data) {
 function simpleModalHandler(data) {
     if (data.status) {
         if (data.status === 1) {
-            return makeModal(data.header, data.view);
+            return makeModal(data.header, data.view, data.delay);
         } else {
             makeInformer('info', 'Ошибка, статус: ' + data['status'], stringify(data['message']));
         }

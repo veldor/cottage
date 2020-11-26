@@ -114,7 +114,7 @@ class TargetHandler extends Model
                 $data = CashHandler::toRubles(CashHandler::toRubles($data) + CashHandler::toRubles($pay->summ));
             }
         }
-        return 0;
+        return $data;
     }
 
     /**
@@ -126,9 +126,11 @@ class TargetHandler extends Model
     private static function getYearDuty($cottage, string $year)
     {
         $duties = self::getDebt($cottage);
-        foreach ($duties as $duty) {
-            if ($duty->year === $year) {
-                return CashHandler::toRubles(CashHandler::toRubles($duty->amount) - CashHandler::toRubles($duty->partialPayed));
+        if(!empty($duties)){
+            foreach ($duties as $duty) {
+                if ($duty->year == $year) {
+                    return CashHandler::toRubles(CashHandler::toRubles($duty->amount) - CashHandler::toRubles($duty->partialPayed));
+                }
             }
         }
         return 0;

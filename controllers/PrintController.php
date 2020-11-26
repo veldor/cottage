@@ -10,11 +10,10 @@ namespace app\controllers;
 
 
 use app\models\Cottage;
-use app\models\Cottages;
 use app\models\PDFHandler;
 use app\models\Report;
-use yii\web\Controller;
 use yii\filters\AccessControl;
+use yii\web\Controller;
 
 class PrintController extends Controller
 {

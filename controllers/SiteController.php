@@ -98,9 +98,9 @@ class SiteController extends Controller
     /**
      *
      */
-    public function actionTest(): void
+    public function actionTest(): string
     {
-        echo Cottage::hasPayUpDuty(Cottage::getCottageByLiteral('94'));
+        return $this->render('test');
     }
 
     /**

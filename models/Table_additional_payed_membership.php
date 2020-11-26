@@ -23,9 +23,9 @@ use yii\db\ActiveRecord;
  * @property int $transactionId [int(10) unsigned]
  */
 
-class Table_additional_payed_membership extends ActiveRecord
+class Table_additional_payed_membership extends Table_payed_membership
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'additional_payed_membership';
     }

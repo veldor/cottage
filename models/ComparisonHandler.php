@@ -7,6 +7,7 @@ namespace app\models;
 use app\models\database\MailingSchedule;
 use app\models\tables\Table_bill_fines;
 use app\models\tables\Table_payed_fines;
+use app\models\utils\BillContent;
 use app\models\utils\DbTransaction;
 use Exception;
 use Yii;
@@ -40,16 +41,16 @@ class ComparisonHandler extends Model
                 $bankTransaction->save();
                 // создам платёжную транзакцию
                 $payTransaction = new Table_transactions([
-                        'cottageNumber' => $cottage->getCottageNumber(),
-                        'bankDate' => time(),
-                        'payDate' => time(),
-                        'transactionDate' => time(),
-                        'transactionSumm' => CashHandler::toRubles($bankTransaction->payment_summ),
-                        'gainedDeposit' => CashHandler::toRubles($bankTransaction->payment_summ),
-                        'transactionType' => 'cash',
-                        'transactionWay' => 'in',
-                        'usedDeposit' => 0
-                    ]);
+                    'cottageNumber' => $cottage->getCottageNumber(),
+                    'bankDate' => time(),
+                    'payDate' => time(),
+                    'transactionDate' => time(),
+                    'transactionSumm' => CashHandler::toRubles($bankTransaction->payment_summ),
+                    'gainedDeposit' => CashHandler::toRubles($bankTransaction->payment_summ),
+                    'transactionType' => 'cash',
+                    'transactionWay' => 'in',
+                    'usedDeposit' => 0
+                ]);
                 $payTransaction->save();
                 // зачислю на депозит
                 $depositIo = new Table_deposit_io([
@@ -95,8 +96,10 @@ class ComparisonHandler extends Model
         if ($billInfo === null || $transactionInfo === null) {
             throw new ExceptionWithStatus('Не найден элемент транзакции', 2);
         }
+        // разберу платёж
+        $billContentInfo = new BillContent($billInfo);
         // получу необходимую для оплаты сумму
-        $requiredAmount = CashHandler::toRubles(CashHandler::toRubles($billInfo->totalSumm) - CashHandler::toRubles($billInfo->depositUsed) - CashHandler::toRubles($billInfo->discount) - CashHandler::toRubles($billInfo->payedSumm));
+        $requiredAmount = $billContentInfo->getRequiredSum();
         $cottageInfo = Cottage::getCottageInfo($billInfo->cottageNumber, $isDouble);
         $additionalCottageInfo = null;
         if (!$isDouble && $cottageInfo->haveAdditional) {
@@ -118,146 +121,10 @@ class ComparisonHandler extends Model
             if ($isDouble) {
                 // создам транзакцию
                 $t = new Table_transactions_double();
-                $t->cottageNumber = $billInfo->cottageNumber;
-                $t->billId = $billInfo->id;
-                $t->transactionDate = $billInfo->paymentTime;
-                $t->transactionType = 'no-cash';
-                $t->transactionSumm = $transactionSumm;
-                if ($difference > 0) {
-                    $t->gainedDeposit = $difference;
-                } else {
-                    $t->gainedDeposit = 0;
-                }
-                $t->usedDeposit = $billInfo->depositUsed;
-                $t->transactionWay = 'in';
-                // заполню даты
-                $paymentTime = TimeHandler::getCustomTimestamp($transactionInfo->real_pay_date, $transactionInfo->pay_time);
-                $bankTime = TimeHandler::getCustomTimestamp($transactionInfo->pay_date);
-                $t->transactionDate = time();
-                $t->bankDate = $bankTime;
-                $t->payDate = $paymentTime;
-                $t->partial = 0;
-                if ($billInfo->payedSumm > 0) {
-                    $t->transactionReason = 'Завершающая оплата по счёту ' . $billInfo->id;
-                } else {
-                    $t->transactionReason = 'Полная оплата по счёту ' . $billInfo->id;
-                }
-                $t->save();
-                $billInfo->paymentTime = TimeHandler::getTimestampFromBank($transactionInfo->pay_date, $transactionInfo->pay_time);
-                $billInfo->isPayed = true;
-                $billInfo->payedSumm = $transactionSumm;
-
-                // обработаю отдельные категории
-                // разберу категории
-                $dom = new DOMHandler($billInfo->bill_content);
-                // электричество
-                $power = $dom->query('//additional_power/month');
-                if ($power->length > 0) {
-                    $totalAmount = 0;
-                    foreach ($power as $item) {
-                        $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
-                    }
-                    // вычту оплаченное
-                    $payedPower = Table_additional_payed_power::find()->where(['billId' => $billInfo->id])->all();
-                    if (!empty($payedPower)) {
-                        foreach ($payedPower as $item) {
-                            $totalAmount -= $item->summ;
-                        }
-                    }
-                    PowerHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
-                }
-                // членские
-                $membership = $dom->query('//additional_membership/quarter');
-                if ($membership->length > 0) {
-                    $totalAmount = 0;
-                    foreach ($membership as $item) {
-                        $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
-                    }
-                    // вычту оплаченное
-                    $payedMembership = Table_additional_payed_membership::find()->where(['billId' => $billInfo->id])->all();
-                    if (!empty($payedMembership)) {
-                        foreach ($payedMembership as $item) {
-                            $totalAmount -= $item->summ;
-                        }
-                    }
-                    MembershipHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
-                }
-                // целевые
-                $target = $dom->query('//additional_target/pay');
-                if ($target->length > 0) {
-                    $totalAmount = [];
-                    foreach ($target as $item) {
-                        $year = $item->getAttribute('year');
-                        $amount = DOMHandler::getFloatAttribute($item, 'summ');
-                        // вычту оплаченное
-                        $payedTarget = Table_payed_target::find()->where(['billId' => $billInfo->id, 'year' => $year])->all();
-                        if (!empty($payedTarget)) {
-                            foreach ($payedTarget as $targetItem) {
-                                $amount -= $targetItem->summ;
-                            }
-                        }
-                        $totalAmount[$year] = $amount;
-                    }
-                    TargetHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
-                }
-                // разовые
-                $single = $dom->query('//additional_single/pay');
-                if ($single->length > 0) {
-                    $totalAmount = [];
-                    foreach ($single as $item) {
-                        $time = $item->getAttribute('timestamp');
-                        $amount = DOMHandler::getFloatAttribute($item, 'summ');
-                        // вычту оплаченное
-                        $payedSingle = Table_payed_single::find()->where(['billId' => $billInfo->id, 'time' => $time])->all();
-                        if (!empty($payedSingle)) {
-                            foreach ($payedSingle as $singleItem) {
-                                $amount -= $singleItem->summ;
-                            }
-                        }
-                        $totalAmount[$time] = $amount;
-                    }
-                    SingleHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
-                }
-                $fines = Table_bill_fines::find()->where(['bill_id' => $billInfo])->all();
-                if (!empty($fines)) {
-                    $totalAmount = 0;
-                    foreach ($fines as $item) {
-                        $totalAmount += $item->start_summ;
-                    }
-                    // вычту оплаченное
-                    $payedFines = Table_payed_fines::find()->where(['transaction_id' => $t->id])->all();
-                    if (!empty($payedFines)) {
-                        foreach ($payedFines as $item) {
-                            $totalAmount -= $item->summ;
-                        }
-                    }
-                    FinesHandler::handlePartialPayment($billInfo, $totalAmount, $t);
-                }
-
-                if ($billInfo->depositUsed > 0) {
-                    DepositHandler::registerDeposit($billInfo, $cottageInfo, 'out', $t);
-                }
-                if ($billInfo->discount > 0) {
-                    DiscountHandler::registerDiscount($billInfo, $t);
-                }
-                if ($difference > 0) {
-                    $billInfo->toDeposit = CashHandler::toRubles($difference);
-                    DepositHandler::registerDeposit($billInfo, $cottageInfo, 'in', $t);
-                }
-
-                $transactionInfo->bounded_bill_id = $billInfo->id;
-                $transactionInfo->save();
-                $billInfo->save();
-                $cottageInfo->save();
-                $transaction->commitTransaction();
-                if ($this->sendConfirmation === 'true') {
-                    return MailingSchedule::addSingleMailing($cottageInfo, 'Получен платёж', 'Получен платёж на сумму ' . CashHandler::toSmoothRubles($t->transactionSumm) . '. Благодарим за оплату.');
-                }
-                return ['status' => 1];
-            }
-
+            } else {
 // создам транзакцию
-            $t = new Table_transactions();
+                $t = new Table_transactions();
+            }
             $t->cottageNumber = $billInfo->cottageNumber;
             $t->billId = $billInfo->id;
             $t->transactionDate = $billInfo->paymentTime;
@@ -284,129 +151,96 @@ class ComparisonHandler extends Model
             }
             $t->save();
 
+
             $billInfo->paymentTime = TimeHandler::getTimestampFromBank($transactionInfo->pay_date, $transactionInfo->pay_time);
             $billInfo->isPayed = true;
             $billInfo->payedSumm = $transactionSumm;
 
             // обработаю отдельные категории
-
-            $additionalCottageInfo = null;
-            if (!empty($cottageInfo->haveAdditional)) {
-                $additionalCottageInfo = Cottage::getCottageInfo($cottageInfo->cottageNumber, true);
-            }
-
-            // разберу категории
-            $dom = new DOMHandler($billInfo->bill_content);
-
             // электричество
-            $power = $dom->query('//power/month');
-            if ($power->length > 0) {
-                $totalAmount = 0;
-                foreach ($power as $item) {
-                    $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
-                }
-                // вычту оплаченное
-                $payedPower = Table_payed_power::find()->where(['billId' => $billInfo->id])->all();
-                if (!empty($payedPower)) {
-                    foreach ($payedPower as $item) {
-                        $totalAmount -= $item->summ;
+            if (!empty($billContentInfo->powerEntities)) {
+                foreach ($billContentInfo->powerEntities as $powerEntity) {
+                    // проверю, оплачивалась ли раньше часть суммы.
+                    $leftToPay = CashHandler::sumFromInt($powerEntity->sum) - $powerEntity->getPayedOutside();
+                    if ($leftToPay > 0) {
+                        // зарегистрирую оплату
+                        PowerHandler::insertSinglePayment(
+                            ($powerEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                            $billInfo,
+                            $t,
+                            $powerEntity->date,
+                            $leftToPay
+                        );
                     }
                 }
-                PowerHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
             }
-            // электричество
-            $power = $dom->query('//additional_power/month');
-            if ($power->length > 0) {
-                $totalAmount = 0;
-                foreach ($power as $item) {
-                    $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
-                }
-                // вычту оплаченное
-                $payedPower = Table_additional_payed_power::find()->where(['billId' => $billInfo->id])->all();
-                if (!empty($payedPower)) {
-                    foreach ($payedPower as $item) {
-                        $totalAmount -= $item->summ;
-                    }
-                }
-                PowerHandler::handlePartialPayment($billInfo, $totalAmount, $additionalCottageInfo, $t);
-            }
+
             // членские
-            $membership = $dom->query('//membership/quarter');
-            if ($membership->length > 0) {
-                $totalAmount = 0;
-                foreach ($membership as $item) {
-                    $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
-                }
-                // вычту оплаченное
-                $payedMembership = Table_payed_membership::find()->where(['billId' => $billInfo->id])->all();
-                if (!empty($payedMembership)) {
-                    foreach ($payedMembership as $item) {
-                        $totalAmount -= $item->summ;
+            if (!empty($billContentInfo->membershipEntities)) {
+                foreach ($billContentInfo->membershipEntities as $membershipEntity) {
+                    // проверю, оплачивалась ли раньше часть суммы.
+                    $leftToPay = CashHandler::sumFromInt($membershipEntity->sum) - $membershipEntity->getPayedOutside() - $membershipEntity->getPayedInside();
+                    if ($leftToPay > 0) {
+                        // зарегистрирую оплату
+                        MembershipHandler::insertSinglePayment(
+                            ($membershipEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                            $billInfo,
+                            $t,
+                            $membershipEntity->date,
+                            $leftToPay
+                        );
                     }
                 }
-                MembershipHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
             }
-            // членские
-            $membership = $dom->query('//additional_membership/quarter');
-            if ($membership->length > 0) {
-                $totalAmount = 0;
-                foreach ($membership as $item) {
-                    $totalAmount += DOMHandler::getFloatAttribute($item, 'summ');
-                }
-                // вычту оплаченное
-                $payedMembership = Table_additional_payed_membership::find()->where(['billId' => $billInfo->id])->all();
-                if (!empty($payedMembership)) {
-                    foreach ($payedMembership as $item) {
-                        $totalAmount -= $item->summ;
-                    }
-                }
-                MembershipHandler::handlePartialPayment($billInfo, $totalAmount, $additionalCottageInfo, $t);
-            }
+
+
             // целевые
-            $target = $dom->query('//target/pay');
-            if ($target->length > 0) {
-                $totalAmount = [];
-                foreach ($target as $item) {
-                    $year = $item->getAttribute('year');
-                    $amount = DOMHandler::getFloatAttribute($item, 'summ');
-                    // вычту оплаченное
-                    $payedTarget = Table_payed_target::find()->where(['billId' => $billInfo->id, 'year' => $year])->all();
-                    if (!empty($payedTarget)) {
-                        foreach ($payedTarget as $targetItem) {
-                            $amount -= $targetItem->summ;
-                        }
+            if (!empty($billContentInfo->targetEntities)) {
+                foreach ($billContentInfo->targetEntities as $targetEntity) {
+                    // проверю, оплачивалась ли раньше часть суммы.
+                    $shift = $targetEntity->totalSum - $targetEntity->sum;
+                    $leftToPay = CashHandler::sumFromInt($targetEntity->sum) - $targetEntity->getPayedOutside() - $targetEntity->getPayedInside() + CashHandler::sumFromInt($shift);
+                    if ($leftToPay > 0) {
+                        // зарегистрирую оплату
+                        TargetHandler::insertSinglePayment(
+                            ($targetEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                            $billInfo,
+                            $targetEntity->date,
+                            $leftToPay,
+                            $t
+                        );
                     }
-                    $totalAmount[$year] = $amount;
                 }
-                TargetHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
             }
             // разовые
-            $single = $dom->query('//single/pay');
-            if ($single->length > 0) {
-                $totalAmount = [];
-                foreach ($single as $item) {
-                    $time = $item->getAttribute('timestamp');
-                    $amount = DOMHandler::getFloatAttribute($item, 'summ');
-                    // вычту оплаченное
-                    $payedSingle = Table_payed_single::find()->where(['billId' => $billInfo->id, 'time' => $time])->all();
-                    if (!empty($payedSingle)) {
-                        foreach ($payedSingle as $singleItem) {
-                            $amount -= $singleItem->summ;
-                        }
+            if (!empty($billContentInfo->singleEntities)) {
+                foreach ($billContentInfo->singleEntities as $singleEntity) {
+                    // проверю, оплачивалась ли раньше часть суммы.
+                    $leftToPay = CashHandler::sumFromInt($singleEntity->sum) - $singleEntity->getPayedOutside() - $singleEntity->getPayedInside();
+                    if ($leftToPay > 0) {
+                        // зарегистрирую оплату
+                        SingleHandler::insertSinglePayment(
+                            ($singleEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                            $billInfo,
+                            $singleEntity->date,
+                            $leftToPay,
+                            $t
+                        );
                     }
-                    $totalAmount[$time] = $amount;
                 }
-                SingleHandler::handlePartialPayment($billInfo, $totalAmount, $cottageInfo, $t);
             }
-            $fines = Table_bill_fines::find()->where(['bill_id' => $billInfo])->all();
+
+            $fines = Table_bill_fines::find()->where(['bill_id' => $billInfo->id])->all();
             if (!empty($fines)) {
                 $totalAmount = 0;
+                /** @var Table_bill_fines $item */
                 foreach ($fines as $item) {
                     $totalAmount += $item->start_summ;
                 }
                 // вычту оплаченное
                 $payedFines = Table_payed_fines::find()->where(['transaction_id' => $t->id])->all();
                 if (!empty($payedFines)) {
+                    /** @var Table_payed_fines $item */
                     foreach ($payedFines as $item) {
                         $totalAmount -= $item->summ;
                     }

@@ -74,6 +74,20 @@ class SingleHandler extends Model
         return $debt;
     }
 
+    public static function getAmount(Table_cottages $cottage, string $date)
+    {
+        // получу все задолженности
+        $pays = self::getDebtReport($cottage);
+        if(!empty($pays)){
+            foreach ($pays as $pay) {
+                if((int)$pay->time === (int) $date){
+                    return $pay->amount;
+                }
+            }
+        }
+        return 0;
+    }
+
     public function scenarios(): array
     {
         return [

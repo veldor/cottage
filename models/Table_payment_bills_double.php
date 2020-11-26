@@ -31,7 +31,7 @@ use yii\db\ActiveRecord;
  * @property string $payer_personals [varchar(255)]  Имя плательщика
  */
 
-class Table_payment_bills_double extends ActiveRecord
+class Table_payment_bills_double extends Table_payment_bills
 {
     public static function tableName():string
     {
