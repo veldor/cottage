@@ -20,6 +20,7 @@ $billContentText = $billContentInfo->getTextContent();
 
 $leftToPay = $billContentInfo->getRequiredSum();
 
+
 echo "<h3 class='text-center'>Осталось оплатить по счёту: <b class='text-success'>{$leftToPay}</b></h3>";
 
 ?>
@@ -76,7 +77,7 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
     <?php
 
     if ($transactionSumm >= $leftToPay) {
-        $difference = CashHandler::toRubles($transactionSumm - $leftToPay);
+        $difference = CashHandler::toRubles(CashHandler::toRubles($transactionSumm) - CashHandler::toRubles($leftToPay));
         ?>
         <h2 class="text-center text-success">Платёж будет оплачен полностью и закрыт</h2>
     <?php

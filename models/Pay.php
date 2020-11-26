@@ -185,7 +185,7 @@ class Pay extends Model
             throw new ExceptionWithStatus('Счёт уже оплачен!', 3);
         }
         $this->billIdentificator = $identificator;
-        $this->totalSumm = $billInfo->totalSumm;
+        $this->totalSumm = CashHandler::toRubles($billInfo->totalSumm);
         $this->fromDeposit = $billInfo->depositUsed;
         $this->discount = $billInfo->discount;
         $this->payedBefore = $billInfo->payedSumm;

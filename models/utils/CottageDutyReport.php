@@ -188,7 +188,8 @@ class CottageDutyReport
                                     } else {
                                         // тут уже сложнее, придётся считать оплаты
                                         $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $accrued->getAccrual(), $this->periodEnd));
-                                        if ($fineAmount > 0) {
+                                        // проверю, не оплачены ли пени, если оплачены- не выношу в задолженность
+                                        if (($fineAmount > 0) && !$savedFine->is_full_payed) {
                                             $this->fineDetails .= 'Ч* ' . $item . ' : ' . $fineAmount . "<br/>\n";
                                             $this->fineAmount += $fineAmount;
                                         }

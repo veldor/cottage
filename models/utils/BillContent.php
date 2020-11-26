@@ -234,7 +234,7 @@ class BillContent
         // возьму сумму счёта, вычту из неё то, что было оплачено по этому счёту ранее и то,
         // что, что должно быть оплачено в этом счёте, но оплачено ранее
 
-        $result = $this->info->totalSumm - $this->info->payedSumm - $this->info->depositUsed - $this->info->discount;
+        $result = CashHandler::toRubles($this->info->totalSumm) - CashHandler::toRubles($this->info->payedSumm) - CashHandler::toRubles($this->info->depositUsed) - CashHandler::toRubles($this->info->discount);
         $payedOutside = 0;
         if (!empty($this->powerEntities)) {
             foreach ($this->powerEntities as $powerEntity) {

@@ -31,10 +31,10 @@ class Table_additional_payed_power extends Table_payed_power
 
     /**
      * Проверю оплату данного периода
-     * @param Table_additional_power_months $powerData <p>Экземпляр сведений об потраченной электроэнергии</p>
+     * @param Table_power_months $powerData <p>Экземпляр сведений об потраченной электроэнергии</p>
      * @return int <p>Верну количество оплат</p>
      */
-    public static function isPayed(Table_additional_power_months $powerData): int
+    public static function isPayed(Table_power_months $powerData): int
     {
         return self::find()->where(['cottageId' => $powerData->cottageNumber, 'month' => $powerData->month])->count();
     }
