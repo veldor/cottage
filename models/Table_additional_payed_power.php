@@ -22,7 +22,7 @@ use yii\db\ActiveRecord;
  * @property int $transactionId [int(10) unsigned]
  */
 
-class Table_additional_payed_power extends ActiveRecord
+class Table_additional_payed_power extends Table_payed_power
 {
     public static function tableName():string
     {

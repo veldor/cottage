@@ -146,4 +146,14 @@ class CashHandler extends Model
     {
         return round($payedWhole / $plannedTotal, 4) * 100;
     }
+
+    public static function floatToInt(string $float)
+    {
+        return round(self::toRubles($float) * 100);
+    }
+
+    public static function sumFromInt(int $intValue)
+    {
+        return round($intValue / 100, 2);
+    }
 }

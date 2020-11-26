@@ -182,7 +182,6 @@ function handleMailing() {
     let selectNoneActivator = $('#selectNoneActivator');
     let selectInvertActivator = $('#selectInvertActivator');
     let destination = $('input.mail-target[type="checkbox"]');
-    console.log(destination);
 
     selectAllActivator.on('click.change', function (e) {
         e.preventDefault();

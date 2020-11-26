@@ -9,44 +9,43 @@
 namespace app\models;
 
 use app\models\database\MailingSchedule;
+use app\models\utils\BillContent;
 use app\models\utils\DbTransaction;
 use app\validators\CashValidator;
 use Exception;
+use yii\base\InvalidArgumentException;
 use yii\base\Model;
 
 
 class Pay extends Model
 {
-    public $billIdentificator; // Идентификатор платежа
-    public $rawSumm = 0; // фактическое количество наличных
-    public $totalSumm; // Общая сумма оплаты
-    public $fromDeposit = 0;
-    public $toDeposit = 0; // Начисление средств на депозит
-    public $realSumm; // Фактическая сумма поступившив в кассу средств
-    public $changeToDeposit = 0; // зачислить сдачу на депозин
-    public $change = 0;
-    public $discount = 0;
-    public $double;
-    public $customDate;
-    public $getCustomDate;
-    public $sendConfirmation = true;
+    public string $billIdentificator; // Идентификатор платежа
+    public float $rawSumm = 0; // фактическое количество наличных
+    public float $totalSumm; // Общая сумма оплаты
+    public float $fromDeposit = 0;
+    public float $toDeposit = 0; // Начисление средств на депозит
+    public float $realSumm = 0; // Фактическая сумма поступившив в кассу средств
+    public int $changeToDeposit = 0; // зачислить сдачу на депозит
+    public float $discount = 0;
+    public bool $double = false;
+    public int $customDate;
+    public float $change = 0;
+    public int $getCustomDate;
+    public bool $sendConfirmation = true;
 
-    public $power = 0;
-    public $additionalPower = 0;
-    public $membership = 0;
-    public $additionalMembership = 0;
-    public $target;
-    public $additionalTarget;
-    public $single;
-    public $fines = 0;
+    public float $power = 0;
+    public float $additionalPower = 0;
+    public float $membership = 0;
+    public float $additionalMembership = 0;
+    public array $target;
+    public array $additionalTarget;
+    public array $single;
+    public float $fines = 0;
 
-    public $payedBefore;
-    /**
-     * @var $billInfo Table_payment_bills
-     */
+    public float $payedBefore;
     public $billInfo;
 
-    const SCENARIO_PAY = 'pay';
+    public const SCENARIO_PAY = 'pay';
     /**
      * @var Table_additional_cottages|Table_cottages
      */
@@ -54,13 +53,13 @@ class Pay extends Model
     /**
      * @var Table_additional_cottages
      */
-    public $additionalCottageInfo;
+    public Table_additional_cottages $additionalCottageInfo;
     /**
      * @var Table_bank_invoices
      */
-    public $bankTransaction;
+    public Table_bank_invoices $bankTransaction;
 
-    public $bankTransactionId;
+    public string $bankTransactionId;
 
     /**
      * @param $payId
@@ -68,7 +67,7 @@ class Pay extends Model
      * @return array
      * @throws ExceptionWithStatus
      */
-    public static function closeBill($payId, $double)
+    public static function closeBill(string $payId, bool $double): array
     {
         // найду платёж
         if ($double) {
@@ -100,7 +99,7 @@ class Pay extends Model
         if ($billInfo !== null) {
             // если используется сумма с депозита и счёт не оплачивался- спишу её
             // заморожу средства на депозите
-            if ($billInfo->depositUsed > 0 && $billInfo->payedSumm == 0) {
+            if ($billInfo->depositUsed > 0 && $billInfo->payedSumm === 0) {
                 $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . ($double ? '-a' : ''));
                 $cottageInfo->deposit = CashHandler::toRubles(CashHandler::toRubles($cottageInfo->deposit) - $billInfo->depositUsed);
                 $cottageInfo->save();
@@ -166,6 +165,13 @@ class Pay extends Model
         ];
     }
 
+    /**
+     * @param $identificator
+     * @param null $bankTransaction
+     * @param false $double
+     * @return bool
+     * @throws ExceptionWithStatus
+     */
     public function fillInfo($identificator, $bankTransaction = null, $double = false): bool
     {
         if (!$this->double) {
@@ -235,6 +241,8 @@ class Pay extends Model
                     $additionalCottageInfo = Cottage::getCottageByLiteral($cottageInfo->cottageNumber . '-a');
                 }
             }
+
+            $billContentInfo = new BillContent($billInfo);
 
             // проверю тип оплаты
             $payType = null;
@@ -380,24 +388,125 @@ class Pay extends Model
                 }
             }
             if ($this->power > 0) {
-                PowerHandler::handlePartialPayment($billInfo, $this->power, $cottageInfo, $billTransaction);
+                // есть бюджет на оплату электроэнергии, распределю его по периодам
+                $sum = $this->power;
+                if(!empty($billContentInfo->powerEntities)){
+                    foreach ($billContentInfo->powerEntities as $powerEntity) {
+                        $leftToPay = $powerEntity->getLeftToPay();
+                        // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
+                        if(!$powerEntity->isAdditional && $leftToPay > 0 && $sum > 0){
+                            if($sum < $leftToPay){
+                                $leftToPay = $sum;
+                                $sum = 0;
+                            }
+                            else{
+                                $sum -= $leftToPay;
+                            }
+                            // зарегистрирую платёж
+                            PowerHandler::insertSinglePayment(
+                                ($powerEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                                $billInfo,
+                                $billTransaction,
+                                $powerEntity->date,
+                                $leftToPay
+                            );
+                        }
+                    }
+                    if($sum > 0){
+                        // проверю, должен остаться 0, если нет- вызову ошибку
+                        throw new InvalidArgumentException("Не сходится сумма платежа за электроэнергию");
+                    }
+                }
             }
             if ($this->additionalPower > 0) {
-                if ($this->double) {
-                    PowerHandler::handlePartialPayment($billInfo, $this->additionalPower, $cottageInfo, $billTransaction);
-                } else {
-                    PowerHandler::handlePartialPayment($billInfo, $this->additionalPower, $additionalCottageInfo, $billTransaction);
+                $sum = $this->additionalPower;
+                if(!empty($billContentInfo->powerEntities)){
+                    foreach ($billContentInfo->powerEntities as $powerEntity) {
+                        $leftToPay = $powerEntity->getLeftToPay();
+                        // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
+                        if($powerEntity->isAdditional && $leftToPay > 0 && $sum > 0){
+                            if($sum < $leftToPay){
+                                $leftToPay = $sum;
+                                $sum = 0;
+                            }
+                            else{
+                                $sum -= $leftToPay;
+                            }
+                            // зарегистрирую платёж
+                            PowerHandler::insertSinglePayment(
+                                ($powerEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                                $billInfo,
+                                $billTransaction,
+                                $powerEntity->date,
+                                $leftToPay
+                            );
+                        }
+                    }
+                    // проверю, должен остаться 0, если нет- вызову ошибку
+                    if($sum > 0){
+                        // проверю, должен остаться 0, если нет- вызову ошибку
+                        throw new InvalidArgumentException("Не сходится сумма платежа за электроэнергию");
+                    }
                 }
-
             }
             if ($this->membership > 0) {
-                MembershipHandler::handlePartialPayment($billInfo, $this->membership, $cottageInfo, $billTransaction);
+                // есть бюджет на оплату электроэнергии, распределю его по периодам
+                $sum = $this->membership;
+                if(!empty($billContentInfo->membershipEntities)){
+                    foreach ($billContentInfo->membershipEntities as $membershipEntity) {
+                        $leftToPay = $membershipEntity->getLeftToPay();
+                        // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
+                        if(!$membershipEntity->isAdditional && $leftToPay > 0 && $sum > 0){
+                            if($sum < $leftToPay){
+                                $leftToPay = $sum;
+                                $sum = 0;
+                            }
+                            else{
+                                $sum -= $leftToPay;
+                            }
+                            // зарегистрирую платёж
+                            MembershipHandler::insertSinglePayment(
+                                ($membershipEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                                $billInfo,
+                                $billTransaction,
+                                $membershipEntity->date,
+                                $leftToPay
+                            );
+                        }
+                    }
+                    if($sum > 0){
+                        // проверю, должен остаться 0, если нет- вызову ошибку
+                        throw new InvalidArgumentException("Не сходится сумма платежа за членские");
+                    }
+                }
             }
             if ($this->additionalMembership > 0) {
-                if ($this->double) {
-                    MembershipHandler::handlePartialPayment($billInfo, $this->additionalMembership, $cottageInfo, $billTransaction);
-                } else {
-                    MembershipHandler::handlePartialPayment($billInfo, $this->additionalMembership, $additionalCottageInfo, $billTransaction);
+                // есть бюджет на оплату электроэнергии, распределю его по периодам
+                $sum = $this->additionalMembership;
+                if(!empty($billContentInfo->membershipEntities)){
+                    foreach ($billContentInfo->membershipEntities as $membershipEntity) {
+                        $leftToPay = $membershipEntity->getLeftToPay();
+                        // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
+                        if($membershipEntity->isAdditional && $leftToPay > 0 && $sum > 0){
+                            if($sum < $leftToPay){
+                                $leftToPay = $sum;
+                                $sum = 0;
+                            }
+                            else{
+                                $sum -= $leftToPay;
+                            }
+                            // зарегистрирую платёж
+                            MembershipHandler::insertSinglePayment(
+                                ($membershipEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                                $billInfo,
+                                $billTransaction,
+                                $membershipEntity->date,
+                                $leftToPay
+                            );
+                        }
+                    }
+                    // проверю, должен остаться 0, если нет- вызову ошибку
+                    throw new InvalidArgumentException("Не сходится сумма платежа за членские");
                 }
 
             }
@@ -430,14 +539,16 @@ class Pay extends Model
             $cottageInfo->save();
             if (!empty($this->bankTransactionId)) {
                 $bankTransaction = Table_bank_invoices::findOne($this->bankTransactionId);
-                $billTransaction->bankDate = TimeHandler::getTimestampFromBank($bankTransaction->pay_date, $bankTransaction->pay_time);
-                if (!empty($bankTransaction->real_pay_date)) {
-                    $billTransaction->payDate = TimeHandler::getTimestampFromBank($bankTransaction->real_pay_date, $bankTransaction->pay_time);
-                } else {
-                    $billTransaction->payDate = $billTransaction->bankDate;
+                if($bankTransaction !== null){
+                    $billTransaction->bankDate = TimeHandler::getTimestampFromBank($bankTransaction->pay_date, $bankTransaction->pay_time);
+                    if (!empty($bankTransaction->real_pay_date)) {
+                        $billTransaction->payDate = TimeHandler::getTimestampFromBank($bankTransaction->real_pay_date, $bankTransaction->pay_time);
+                    } else {
+                        $billTransaction->payDate = $billTransaction->bankDate;
+                    }
+                    $bankTransaction->bounded_bill_id = $billInfo->id;
+                    $bankTransaction->save();
                 }
-                $bankTransaction->bounded_bill_id = $billInfo->id;
-                $bankTransaction->save();
             }
             if ($additionalCottageInfo !== null) {
                 $additionalCottageInfo->save();
@@ -456,8 +567,7 @@ class Pay extends Model
 
     public static function getUnpayedBillId($cottageNumber)
     {
-        $info = Table_payment_bills::find()->where(['cottageNumber' => $cottageNumber, 'isPayed' => false])->select('id')->one();
-        return $info;
+        return Table_payment_bills::find()->where(['cottageNumber' => $cottageNumber, 'isPayed' => false])->select('id')->one();
     }
 
     /**
@@ -468,9 +578,9 @@ class Pay extends Model
     {
         if (Cottage::isMain($cottage)) {
             return Table_payment_bills::find()->where(['cottageNumber' => $cottage->cottageNumber, 'isPayed' => false])->select('creationTime')->one();
-        } else {
-            return Table_payment_bills_double::find()->where(['cottageNumber' => $cottage->masterId, 'isPayed' => false])->select('creationTime')->one();
         }
+
+        return Table_payment_bills_double::find()->where(['cottageNumber' => $cottage->masterId, 'isPayed' => false])->select('creationTime')->one();
     }
 
 }

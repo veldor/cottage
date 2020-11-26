@@ -100,6 +100,7 @@ if (!empty($model->billInfo['paymentContent']['power'])) {
     $payedBefore = Table_payed_power::find()->where(['billId' => $billInfo->id])->all();
     $previousPayedPower = 0;
     if (!empty($payedBefore)) {
+        /** @var Table_payed_power $item */
         foreach ($payedBefore as $item) {
             $previousPayedPower += $item->summ;
         }
@@ -196,6 +197,7 @@ if (!empty($model->billInfo['paymentContent']['target'])) {
         // получу актуальную информацию о годе
         $payedBefore = Table_payed_target::find()->where(['year' => $item['year'], 'billId' => $billInfo->id])->all();
         if(!empty($payedBefore)){
+            /** @var Table_payed_target $payedItem */
             foreach ($payedBefore as $payedItem) {
                 $summToPay -= CashHandler::toRubles($payedItem->summ);
                 $payed += CashHandler::toRubles($payedItem->summ);
@@ -212,6 +214,7 @@ if (!empty($model->billInfo['paymentContent']['target'])) {
     }
 }
 if (!empty($model->billInfo['paymentContent']['additionalTarget'])) {
+    $payed = 0;
     // получу информацию о задолженностях
     if($model->double){
         $yearInfo = TargetHandler::getDebt($model->cottageInfo);
@@ -269,6 +272,7 @@ if (!empty($fines)) {
     $totalSumm = 0;
     $payedSumm = 0;
     // посчитаю общую сумму пени
+    /** @var Table_view_fines_info $fine */
     foreach ($fines as $fine) {
         $totalSumm += CashHandler::toRubles($fine->start_summ);
         $payedSumm += CashHandler::toRubles($fine->payed_summ);

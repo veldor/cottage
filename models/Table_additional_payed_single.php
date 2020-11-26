@@ -23,9 +23,9 @@ use yii\db\ActiveRecord;
  * @property int $transactionId [int(10) unsigned]
  */
 
-class Table_additional_payed_single extends ActiveRecord
+class Table_additional_payed_single extends Table_payed_single
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'additional_payed_single';
     }

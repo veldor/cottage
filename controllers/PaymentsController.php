@@ -57,19 +57,17 @@ class PaymentsController extends Controller
             $form = null;
             if ($type === 'single') {
                 $form = new SingleHandler(['scenario' => SingleHandler::SCENARIO_NEW_DUTY, 'cottageNumber' => $cottageNumber, 'double' => $double]);
-            }
-            else if ($type === 'complex') {
-            	try{
-		            $form = new ComplexPayment(['scenario' => ComplexPayment::SCENARIO_CREATE]);
-		            $form->loadInfo($cottageNumber, $double);
-	            }
-	            catch (InvalidValueException $e){
-            		$billId = Pay::getUnpayedBillId($cottageNumber);
-            		if($billId){
-            			return ['status' => 2, 'unpayedBillId' => $billId];
-		            }
-		            throw $e;
-	            }
+            } else if ($type === 'complex') {
+                try {
+                    $form = new ComplexPayment(['scenario' => ComplexPayment::SCENARIO_CREATE]);
+                    $form->loadInfo($cottageNumber, $double);
+                } catch (InvalidValueException $e) {
+                    $billId = Pay::getUnpayedBillId($cottageNumber);
+                    if ($billId) {
+                        return ['status' => 2, 'unpayedBillId' => $billId];
+                    }
+                    throw $e;
+                }
             }
             $view = $this->renderAjax($type . 'Form', ['matrix' => $form]);
             return ['status' => 1,
@@ -200,7 +198,7 @@ class PaymentsController extends Controller
         throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionGetPayConfirmForm($identificator,$bankTransaction = null, $double = false): array
+    public function actionGetPayConfirmForm($identificator, $bankTransaction = null, $double = false): array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
@@ -213,17 +211,18 @@ class PaymentsController extends Controller
         }
         throw new NotFoundHttpException('Страница не найдена');
     }
+
     public function actionValidatePayConfirm($identificator): array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $model = new Pay(['scenario' => Pay::SCENARIO_PAY]);
-            try{
-                if ($model->load(Yii::$app->request->post()) && $model->fillInfo($identificator)) {
+            try {
+                $model->load(Yii::$app->request->post());
+                if ($model->fillInfo($identificator)) {
                     return ActiveForm::validate($model);
                 }
-            }
-            catch (ExceptionWithStatus $e){
+            } catch (ExceptionWithStatus $e) {
                 return ['status' => $e->getCode(), 'message' => $e->getMessage()];
             }
         }
@@ -252,60 +251,59 @@ class PaymentsController extends Controller
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
-            try{
+            try {
                 ComplexPayment::deleteBill($identificator, $double);
-                    return ['status' => 1, 'message' => "Счёт успешно закрыт"];
-            }
-            catch (ExceptionWithStatus $e){
+                return ['status' => 1, 'message' => "Счёт успешно закрыт"];
+            } catch (ExceptionWithStatus $e) {
                 return ['status' => $e->getCode(), 'message' => $e->getMessage()];
             }
         }
         throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionEditSingle($type, $cottageNumber, $id){
+    public function actionEditSingle($type, $cottageNumber, $id)
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
-            switch ($type){
+            switch ($type) {
                 case 'delete':
                     return SingleHandler::delete($cottageNumber, $id);
                 case 'delete_double':
                     return SingleHandler::delete($cottageNumber, $id, true);
                 case 'edit':
                     $model = new SingleHandler(['scenario' => SingleHandler::SCENARIO_EDIT]);
-                    if($model->load(Yii::$app->request->post()) && $model->validate()){
+                    $model->load(Yii::$app->request->post());
+                    if ($model->validate()) {
                         return $model->change();
                     }
                     break;
                 case 'edit_double':
                     $model = new SingleHandler(['scenario' => SingleHandler::SCENARIO_EDIT]);
-                    if($model->load(Yii::$app->request->post()) && $model->validate()){
+                    $model->load(Yii::$app->request->post());
+                    if ($model->validate()) {
                         return $model->change();
                     }
             }
-        }
-        elseif (Yii::$app->request->isAjax && Yii::$app->request->isGet){
-            switch ($type){
+        } elseif (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
+            switch ($type) {
                 case 'edit':
                     $model = new SingleHandler(['scenario' => SingleHandler::SCENARIO_EDIT]);
-                        try{
-                            ($model->fill($cottageNumber, $id));
-                        }
-                        catch(ExceptionWithStatus $e){
-                            return ['status' => $e->getCode(), 'message' => $e->getMessage()];
-                        }
-                        $view = $this->renderAjax('editSingle', ['matrix' => $model]);
-                        return ['status' => 1, 'header' => 'Редактирование разового платежа' , 'view' => $view];
+                    try {
+                        ($model->fill($cottageNumber, $id));
+                    } catch (ExceptionWithStatus $e) {
+                        return ['status' => $e->getCode(), 'message' => $e->getMessage()];
+                    }
+                    $view = $this->renderAjax('editSingle', ['matrix' => $model]);
+                    return ['status' => 1, 'header' => 'Редактирование разового платежа', 'view' => $view];
                 case 'edit_double':
                     $model = new SingleHandler(['scenario' => SingleHandler::SCENARIO_EDIT]);
-                        try{
-                            ($model->fill($cottageNumber, $id, true));
-                        }
-                        catch(ExceptionWithStatus $e){
-                            return ['status' => $e->getCode(), 'message' => $e->getMessage()];
-                        }
-                        $view = $this->renderAjax('editSingle', ['matrix' => $model]);
-                        return ['status' => 1, 'header' => 'Редактирование разового платежа' , 'view' => $view];
+                    try {
+                        ($model->fill($cottageNumber, $id, true));
+                    } catch (ExceptionWithStatus $e) {
+                        return ['status' => $e->getCode(), 'message' => $e->getMessage()];
+                    }
+                    $view = $this->renderAjax('editSingle', ['matrix' => $model]);
+                    return ['status' => 1, 'header' => 'Редактирование разового платежа', 'view' => $view];
             }
         }
         throw new NotFoundHttpException('Страница не найдена');
@@ -321,35 +319,35 @@ class PaymentsController extends Controller
             Yii::$app->response->format = Response::FORMAT_JSON;
             // добавлю данные
             $handler = new DepositHandler(['scenario' => DepositHandler::SCENARIO_DIRECT_ADD]);
-            if($handler->load(Yii::$app->request->post()) && $handler->validate()){
-                try{
+            $handler->load(Yii::$app->request->post());
+            if ($handler->validate()) {
+                try {
                     return $handler->save();
-                }
-                catch (ExceptionWithStatus $e){
+                } catch (ExceptionWithStatus $e) {
                     return ['status' => $e->getCode(), 'message' => $e->getMessage()];
                 }
-            }
-            else{
+            } else {
                 return $handler->errors;
             }
         }
         throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionClose($identificator, $double = false){
+    public function actionClose($identificator, $double = false): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
-            try{
+            try {
                 return Pay::closeBill($identificator, $double);
-            }
-            catch (ExceptionWithStatus $e){
+            } catch (ExceptionWithStatus $e) {
                 return ['status' => $e->getCode(), 'message' => $e->getMessage()];
             }
         }
-            throw new NotFoundHttpException('Страница не найдена');
+        throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionShowAllBills(){
+    public function actionShowAllBills(): string
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $info = GlobalActions::showAllBills();
@@ -358,19 +356,25 @@ class PaymentsController extends Controller
         throw new NotFoundHttpException('Страница не найдена');
     }
 
-    public function actionChain($billId, $transactionId){
+    /**
+     * @param $billId
+     * @param $transactionId
+     * @return array|null
+     */
+    public function actionChain($billId, $transactionId): ?array
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
-        try{
+        try {
             $info = TransactionsHandler::handle($billId, $transactionId);
             $view = $this->renderPartial('transactionComparison', ['info' => $info]);
-            return ['status' => 1, 'header' => 'Связывание счёта' ,'view' => $view];
-        }
-        catch (ExceptionWithStatus $e){
+            return ['status' => 1, 'header' => 'Связывание счёта', 'view' => $view, 'delay' => true];
+        } catch (ExceptionWithStatus $e) {
             return ['status' => 2, 'message' => $e->getMessage(), 'code' => $e->getCode()];
         }
     }
 
-    public function actionChainConfirm(){
+    public function actionChainConfirm()
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $handler = new ComparisonHandler(['scenario' => ComparisonHandler::SCENARIO_COMPARISON]);
@@ -390,7 +394,9 @@ class PaymentsController extends Controller
         }
         throw new NotFoundHttpException('Страница не найдена');
     }
-    public function actionChangeTransactionDate($id = null){
+
+    public function actionChangeTransactionDate($id = null)
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
             // todo разработать обработку платежей дополнительных участков с отдельными хозяевами
@@ -404,6 +410,7 @@ class PaymentsController extends Controller
             $model->load(Yii::$app->request->post());
             return $model->changeDate();
         }
+        return null;
     }
 
     /**
@@ -424,14 +431,17 @@ class PaymentsController extends Controller
      * @return array
      * @throws NotFoundHttpException
      */
-    public function actionBillReopen($billId, $double = false){
+    public function actionBillReopen($billId, $double = false): array
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             return Pay::reopenBill($billId, $double);
         }
         throw new NotFoundHttpException('Страница не найдена');
     }
-    public function actionConfirmPayment(){
+
+    public function actionConfirmPayment()
+    {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
             $model = new Pay(['scenario' => Pay::SCENARIO_PAY]);

@@ -99,6 +99,7 @@ class TransactionsHandler extends Model
         // верну сравнение транзакции и счёта
         $comparsion = new TransactionComparison();
         $comparsion->billId = $billId;
+        $comparsion->bill = $billInfo;
         $comparsion->transactionId = $transactionId;
         if ($isDouble)
             $comparsion->billCottageNumber = $billInfo->cottageNumber . '-A';

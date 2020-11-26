@@ -9,9 +9,6 @@
 namespace app\models;
 
 
-use app\models\interfaces\CottageInterface;
-use yii\db\ActiveRecord;
-
 /**
  * Class Table_additional_cottages
  * @package app\models
@@ -49,9 +46,10 @@ use yii\db\ActiveRecord;
  * @property string $bill_payers
  * @property bool $cottageHaveRights [tinyint(1)]
  * @property string $cottageRegisterData
+ * @property-read int $baseCottageNumber
  * @property bool $is_mail [tinyint(1)]  Наличие электронной почты
  */
-class Table_additional_cottages extends ActiveRecord implements CottageInterface
+class Table_additional_cottages extends Table_cottages
 {
     public static function tableName():string
     {
@@ -80,11 +78,6 @@ class Table_additional_cottages extends ActiveRecord implements CottageInterface
     public function isMain():bool
     {
         return false;
-    }
-
-    public function isIndividualTariff():bool
-    {
-        return (bool) $this->individualTariff;
     }
 
     /**
