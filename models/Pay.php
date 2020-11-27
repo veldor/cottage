@@ -20,30 +20,30 @@ use yii\base\Model;
 class Pay extends Model
 {
     public string $billIdentificator; // Идентификатор платежа
-    public float $rawSumm = 0; // фактическое количество наличных
-    public float $totalSumm; // Общая сумма оплаты
-    public float $fromDeposit = 0;
-    public float $toDeposit = 0; // Начисление средств на депозит
-    public float $realSumm = 0; // Фактическая сумма поступившив в кассу средств
+    public string $rawSumm = '0'; // фактическое количество наличных
+    public string $totalSumm; // Общая сумма оплаты
+    public string $fromDeposit = '0';
+    public string $toDeposit = '0'; // Начисление средств на депозит
+    public string $realSumm = '0'; // Фактическая сумма поступившив в кассу средств
     public int $changeToDeposit = 0; // зачислить сдачу на депозит
-    public float $discount = 0;
+    public string $discount = '0';
     public bool $double = false;
-    public int $customDate;
-    public float $change = 0;
-    public int $getCustomDate;
+    public string $customDate = '0';
+    public string $change = '0';
+    public string $getCustomDate = '0';
     public bool $sendConfirmation = true;
 
-    public float $power = 0;
-    public float $additionalPower = 0;
-    public float $membership = 0;
-    public float $additionalMembership = 0;
+    public string $power = '0';
+    public string $additionalPower = '0';
+    public string $membership = '0';
+    public string $additionalMembership = '0';
     public array $target;
     public array $additionalTarget;
     public array $single;
-    public float $fines = 0;
+    public string $fines = '0';
 
     public float $payedBefore;
-    public $billInfo;
+    public ?Table_payment_bills $billInfo;
 
     public const SCENARIO_PAY = 'pay';
     /**
@@ -57,7 +57,7 @@ class Pay extends Model
     /**
      * @var Table_bank_invoices
      */
-    public Table_bank_invoices $bankTransaction;
+    public ?Table_bank_invoices $bankTransaction;
 
     public string $bankTransactionId;
 
@@ -186,9 +186,9 @@ class Pay extends Model
         }
         $this->billIdentificator = $identificator;
         $this->totalSumm = CashHandler::toRubles($billInfo->totalSumm);
-        $this->fromDeposit = $billInfo->depositUsed;
-        $this->discount = $billInfo->discount;
-        $this->payedBefore = $billInfo->payedSumm;
+        $this->fromDeposit = CashHandler::toRubles($billInfo->depositUsed);
+        $this->discount = CashHandler::toRubles($billInfo->discount);
+        $this->payedBefore = CashHandler::toRubles($billInfo->payedSumm);
         if ($double) {
             $this->cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
         } else {
@@ -203,6 +203,8 @@ class Pay extends Model
             if (empty($this->bankTransaction)) {
                 throw new ExceptionWithStatus('Транзакция #' . $bankTransaction . ' не найдена.');
             }
+            $this->customDate = TimeHandler::getCustomTimestamp($this->bankTransaction->pay_date);
+            $this->getCustomDate = TimeHandler::getCustomTimestamp($this->bankTransaction->real_pay_date);
         }
         return true;
     }
@@ -249,14 +251,14 @@ class Pay extends Model
             // Расчитаю необходимую для оплаты сумму
             if ($billInfo->isPartialPayed) {
                 $neededSumm = CashHandler::toRubles($billInfo->totalSumm - $billInfo->discount - $billInfo->depositUsed - $billInfo->payedSumm);
-                if ($this->rawSumm >= $neededSumm) {
+                if (CashHandler::toRubles($this->rawSumm) >= $neededSumm) {
                     $payType = 'partial-finish';
                 } else {
                     $payType = 'partial';
                 }
             } else {
                 $neededSumm = CashHandler::toRubles(CashHandler::toRubles($billInfo->totalSumm) - CashHandler::toRubles($billInfo->discount) - CashHandler::toRubles($billInfo->depositUsed));
-                if ($this->rawSumm >= $neededSumm) {
+                if (CashHandler::toRubles($this->rawSumm) >= $neededSumm) {
                     $payType = 'full';
                 } else {
                     $payType = 'partial';
@@ -387,9 +389,9 @@ class Pay extends Model
                     DiscountHandler::registerDiscount($billInfo, $billTransaction);
                 }
             }
-            if ($this->power > 0) {
+            if (CashHandler::toRubles($this->power) > 0) {
                 // есть бюджет на оплату электроэнергии, распределю его по периодам
-                $sum = $this->power;
+                $sum = CashHandler::toRubles($this->power);
                 if(!empty($billContentInfo->powerEntities)){
                     foreach ($billContentInfo->powerEntities as $powerEntity) {
                         $leftToPay = $powerEntity->getLeftToPay();
@@ -418,8 +420,8 @@ class Pay extends Model
                     }
                 }
             }
-            if ($this->additionalPower > 0) {
-                $sum = $this->additionalPower;
+            if (CashHandler::toRubles($this->additionalPower) > 0) {
+                $sum = CashHandler::toRubles($this->additionalPower);
                 if(!empty($billContentInfo->powerEntities)){
                     foreach ($billContentInfo->powerEntities as $powerEntity) {
                         $leftToPay = $powerEntity->getLeftToPay();
@@ -449,9 +451,9 @@ class Pay extends Model
                     }
                 }
             }
-            if ($this->membership > 0) {
+            if (CashHandler::toRubles($this->membership) > 0) {
                 // есть бюджет на оплату электроэнергии, распределю его по периодам
-                $sum = $this->membership;
+                $sum = CashHandler::toRubles($this->membership);
                 if(!empty($billContentInfo->membershipEntities)){
                     foreach ($billContentInfo->membershipEntities as $membershipEntity) {
                         $leftToPay = $membershipEntity->getLeftToPay();
@@ -480,9 +482,9 @@ class Pay extends Model
                     }
                 }
             }
-            if ($this->additionalMembership > 0) {
+            if (CashHandler::toRubles($this->additionalMembership) > 0) {
                 // есть бюджет на оплату электроэнергии, распределю его по периодам
-                $sum = $this->additionalMembership;
+                $sum = CashHandler::toRubles($this->additionalMembership);
                 if(!empty($billContentInfo->membershipEntities)){
                     foreach ($billContentInfo->membershipEntities as $membershipEntity) {
                         $leftToPay = $membershipEntity->getLeftToPay();
@@ -523,8 +525,8 @@ class Pay extends Model
             if (!empty($this->single)) {
                 SingleHandler::handlePartialPayment($billInfo, $this->single, $cottageInfo, $billTransaction);
             }
-            if ($this->fines > 0) {
-                FinesHandler::handlePartialPayment($billInfo, $this->fines, $billTransaction);
+            if (CashHandler::toRubles($this->fines) > 0) {
+                FinesHandler::handlePartialPayment($billInfo, CashHandler::toRubles($this->fines), $billTransaction);
             }
             // регистрирую транзакцию
             $billTransaction->transactionSumm = CashHandler::toRubles($this->rawSumm);

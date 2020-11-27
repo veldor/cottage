@@ -3,6 +3,7 @@
 
 use app\models\CashHandler;
 use app\models\small_classes\TransactionComparison;
+use app\models\TimeHandler;
 use app\models\utils\BillContent;
 use yii\web\View;
 
@@ -59,6 +60,8 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
             </tr>
             </tbody>
         </table>
+        <h3 class="text-center">Дата платежа: <b class="text-success"><?= !empty($info->realPayDate) ? $info->realPayDate : ' не определена'?></b></h3>
+        <h3 class="text-center">Дата поступления на счёт: <b class="text-success"><?= $info->payDate?></b></h3>
         <h3 class="text-center">Состав счёта</h3>
         <table class="table table-condensed">
             <tr>
@@ -130,8 +133,11 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
                 button.on('click.getForm', function () {
                     let modal = $('.modal');
                     modal.modal('hide');
-                    let url = 'get-form/pay/' + <?=$info->billId?> + '/' + <?=$info->transactionId?>;
-                    sendAjax('get', url, simpleModalHandler);
+                    modal.on('hidden.bs.modal', function (){
+                        let url = 'get-form/pay/' + <?=$info->billId?> + '/' + <?=$info->transactionId?>;
+                        sendAjax('get', url, simpleModalHandler);
+                    })
+
                 });
             }
 

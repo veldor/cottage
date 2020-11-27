@@ -20,4 +20,6 @@ class TransactionComparison
     public $billCottageNumber;
     public $transactionFio;
     public $billFio;
+    public string $payDate;
+    public string $realPayDate = '0';
 }
