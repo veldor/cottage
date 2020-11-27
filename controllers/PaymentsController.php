@@ -205,7 +205,7 @@ class PaymentsController extends Controller
             $model = new Pay(['scenario' => Pay::SCENARIO_PAY]);
             if ($model->fillInfo($identificator, $bankTransaction, $double)) {
                 $view = $this->renderAjax('payConfirmForm', ['model' => $model]);
-                return ['status' => 1, 'view' => $view];
+                return ['status' => 1, 'view' => $view, 'header' => 'Распределение средств'];
             }
             return ['status' => 2, 'errors' => $model->errors];
         }
