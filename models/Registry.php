@@ -49,14 +49,15 @@ class Registry extends Model
             $oldBillsCount = 0;
 
             $transaction = new DbTransaction();
+
+            $newBills = null;
             foreach ($this->file as $item) {
                 $file = $item->tempName;
                 $handle = fopen($file, 'rb');
                 while (($buffer = fgets($handle, 4096)) !== false) {
-                    try{
+                    try {
                         $billInfo = $this->handleBill($buffer);
-                    }
-                    catch (ExceptionWithStatus $e){
+                    } catch (ExceptionWithStatus $e) {
                         Yii::$app->session->addFlash('danger', $e->getMessage());
                         $transaction->rollbackTransaction();
                         return null;
@@ -68,6 +69,7 @@ class Registry extends Model
                         $registerDate = $this->getRegisterDate($buffer);
                         if (!empty($registerDate)) {
                             $date = $registerDate;
+                            echo $date;
                         }
                     }
                 }
@@ -75,39 +77,36 @@ class Registry extends Model
                     throw new ExceptionWithStatus('Ошибка чтения файла',);
                 }
                 fclose($handle);
-            }
-            $newBills = null;
-
-            if (!empty($billsList)) {
-                /** @var RegistryInfo $bill */
-                foreach ($billsList as $bill) {
-                    // если в базе данных платежей от сбербанка ещё нет данного- внесу.
-                    if (!Table_bank_invoices::findOne(['bank_operation_id' => $bill->sberBillId])) {
-                        $invoice = new Table_bank_invoices();
-                        $invoice->bank_operation_id = $bill->sberBillId;
-                        $invoice->pay_date = $date;
-                        $invoice->pay_time = $bill->payTime;
-                        $invoice->filial_number = $bill->departmentNumber;
-                        $invoice->handler_number = $bill->handlerNumber;
-                        $invoice->account_number = str_replace('№', '', $bill->personalAcc);
-                        $invoice->fio = $bill->fio;
-                        $invoice->address = $bill->address;
-                        $invoice->payment_period = $bill->period;
-                        $invoice->payment_summ = $bill->operationSumm;
-                        $invoice->transaction_summ = $bill->transactionSumm;
-                        $invoice->commission_summ = $bill->commissionSumm;
-                        $invoice->real_pay_date = $bill->payDate;
-                        $invoice->save();
-                        $newBills[] = $bill;
-                        $newBillsCount++;
-                    } else {
-                        $oldBillsCount++;
+                if (!empty($billsList)) {
+                    /** @var RegistryInfo $bill */
+                    foreach ($billsList as $bill) {
+                        // если в базе данных платежей от сбербанка ещё нет данного- внесу.
+                        if (!Table_bank_invoices::findOne(['bank_operation_id' => $bill->sberBillId])) {
+                            $invoice = new Table_bank_invoices();
+                            $invoice->bank_operation_id = $bill->sberBillId;
+                            $invoice->pay_date = $date;
+                            $invoice->pay_time = $bill->payTime;
+                            $invoice->filial_number = $bill->departmentNumber;
+                            $invoice->handler_number = $bill->handlerNumber;
+                            $invoice->account_number = str_replace('№', '', $bill->personalAcc);
+                            $invoice->fio = $bill->fio;
+                            $invoice->address = $bill->address;
+                            $invoice->payment_period = $bill->period;
+                            $invoice->payment_summ = $bill->operationSumm;
+                            $invoice->transaction_summ = $bill->transactionSumm;
+                            $invoice->commission_summ = $bill->commissionSumm;
+                            $invoice->real_pay_date = $bill->payDate;
+                            $invoice->save();
+                            $newBills[] = $bill;
+                            $newBillsCount++;
+                        } else {
+                            $oldBillsCount++;
+                        }
                     }
                 }
-                $transaction->commitTransaction();
-                return ['billsList' => $newBills, 'newBillsCount' => $newBillsCount, 'oldBillsCount' => $oldBillsCount];
             }
-            throw new ExceptionWithStatus('Не удалось прочитать содержимое файла', 3);
+            $transaction->commitTransaction();
+            return ['billsList' => $newBills, 'newBillsCount' => $newBillsCount, 'oldBillsCount' => $oldBillsCount];
         }
         throw new ExceptionWithStatus('Не могу обработать файл, проверьте, что он правильный', 2);
     }
@@ -134,7 +133,7 @@ class Registry extends Model
                 $registryInfo->handlerNumber = $details[3];
                 $registryInfo->sberBillId = $details[4];
                 $registryInfo->personalAcc = $details[5];
-                $registryInfo->fio =  $details[6];
+                $registryInfo->fio = $details[6];
                 $registryInfo->address = $details[7];
                 $registryInfo->operationSumm = $details[8];
                 $registryInfo->transactionSumm = $details[9];

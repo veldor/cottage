@@ -110,6 +110,8 @@ class TransactionsHandler extends Model
         $comparsion->transactionFio = $transactionInfo->fio;
         $comparsion->billSumm = $fullSumm;
         $comparsion->transactionSumm = $transactionInfo->payment_summ;
+        $comparsion->payDate = $transactionInfo->pay_date;
+        $comparsion->realPayDate = $transactionInfo->real_pay_date;
         return $comparsion;
     }
 
