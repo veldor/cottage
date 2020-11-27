@@ -54,6 +54,9 @@ $summToPay = CashHandler::toRubles($fullSumm - $fromDeposit - $discount - $payed
 echo '
     <h2>К оплате: <b id="paySumm" class="text-info" data-full-summ="' . $fullSumm . '" data-summ="' . $summToPay . '" data-deposit="' . $fromDeposit . '" data-discount="' . $discount . '" data-payed-before="' . $payedBefore . '">' . CashHandler::toSmoothRubles($summToPay) . '</b></h2>';
 
+if(!empty($model->bankTransaction) && $fullSumm !== $model->bankTransaction->payment_summ){
+    echo '<h2>Не распределено: <b id="undistributedSummCopy">' . CashHandler::toRubles($model->bankTransaction->payment_summ) . '</b>' . CashHandler::RUB . '</h2>';
+}
 if ($fullSumm !== $summToPay) {
     $text = '<p> <b class="text-danger"> ' . CashHandler::toSmoothRubles($fullSumm) . ' (Полная сумма)</b><br/>';
     if ($fromDeposit) {
@@ -344,6 +347,7 @@ ActiveForm::end();
         let paymentDetailsParts = newModal.find('div.payment-details');
 
         let undistributedSummContainer;
+        let undistributedSummContainerCopy;
 
         // обработаю ввод распределённой суммы в поле ввода
         let distributeInputs = $('.distributed-summ-input');
@@ -402,6 +406,7 @@ ActiveForm::end();
                 undistributedWindow.remove();
             });
             undistributedSummContainer = undistributedWindow.find('#undistributedSumm');
+            undistributedSummContainerCopy = newModal.find('#undistributedSummCopy');
             undistributedSummContainer.html(undistributedSumm);
         }
 
@@ -428,6 +433,7 @@ ActiveForm::end();
                 targetInput.attr('data-previous-value', summ);
             }
             undistributedSummContainer.html(toRubles(undistributedSumm));
+            undistributedSummContainerCopy.html(toRubles(undistributedSumm));
         });
         distributeInputs.on('change.pay', function () {
             // если есть предыдущее значение- выведу его в консоль
@@ -454,6 +460,7 @@ ActiveForm::end();
             $(this).attr('data-previous-value', toRubles($(this).val()));
             undistributedSumm -= toRubles($(this).val());
             undistributedSummContainer.html(toRubles(undistributedSumm));
+            undistributedSummContainerCopy.html(toRubles(undistributedSumm));
 
         });
 

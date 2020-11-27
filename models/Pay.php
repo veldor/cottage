@@ -43,7 +43,7 @@ class Pay extends Model
     public string $fines = '0';
 
     public float $payedBefore;
-    public ?Table_payment_bills $billInfo;
+    public ?array $billInfo;
 
     public const SCENARIO_PAY = 'pay';
     /**
