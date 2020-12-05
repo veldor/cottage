@@ -373,8 +373,8 @@ class Pay extends Model
             if ($payType === 'full') {
                 // проверю сумму начисления на депозит
                 $neededDeposit = CashHandler::toRubles(CashHandler::toRubles($this->rawSumm) - CashHandler::toRubles($neededSumm));
-                if ($neededDeposit !== $this->toDeposit) {
-                    throw new ExceptionWithStatus('Не сходится сумма начисления на депозит');
+                if (CashHandler::toRubles($neededDeposit) !== CashHandler::toRubles($this->toDeposit)) {
+                    throw new ExceptionWithStatus("Не сходится сумма начисления на депозит ({$neededDeposit}) ({$this->toDeposit})");
                 }
 
                 // обработаю депозит и скидки
