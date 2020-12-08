@@ -9,7 +9,6 @@ use app\models\database\Mail;
 use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\FinesHandler;
-use app\models\PersonalTariff;
 use ErrorException;
 use Yii;
 use yii\filters\AccessControl;

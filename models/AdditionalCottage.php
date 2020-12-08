@@ -251,7 +251,7 @@ class AdditionalCottage extends Model
                 }
                 $membershipDebt = 0;
                 if ($cottageInfo->isMembership) {
-                    $membershipDebt = MembershipHandler::getCottageStatus($cottageInfo);
+                    $membershipDebt = MembershipHandler::getDebtAmount($cottageInfo);
                     $totalDebt += $membershipDebt;
                 }
                 $targetDebt = 0;
