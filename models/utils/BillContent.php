@@ -238,7 +238,8 @@ class BillContent
         $payedOutside = 0;
         if (!empty($this->powerEntities)) {
             foreach ($this->powerEntities as $powerEntity) {
-                $payedOutside += $powerEntity->getPayedOutside();
+                $shift = $powerEntity->totalAccrued - CashHandler::sumFromInt($powerEntity->sum);
+                $payedOutside += $powerEntity->getPayedOutside() - $shift;
             }
         }
         if (!empty($this->membershipEntities)) {
