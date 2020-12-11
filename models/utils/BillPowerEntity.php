@@ -27,7 +27,7 @@ class BillPowerEntity extends BillContentEntity
         // найду стоимость периода
         $payedInBillCount = $this->getPayedInside();
         $payedOutBillCount = $this->getPayedOutside();
-        $leftToPay = CashHandler::toRubles(CashHandler::sumFromInt($this->sum) - $payedInBillCount - $payedOutBillCount);
+        $leftToPay = CashHandler::toRubles(CashHandler::toRubles($this->totalAccrued) - $payedInBillCount - $payedOutBillCount);
         return "<tr><td>Электроэнергия" . ($this->isAdditional ? '(доп)' : '') . "</td><td>{$this->date}</td><td>" . CashHandler::sumFromInt($this->sum) . "</td><td>" . CashHandler::sumFromInt($this->sum) . "</td><td>" . CashHandler::toRubles($payedInBillCount) . "</td><td>" . CashHandler::toRubles($payedOutBillCount) . "</td><td>$leftToPay</td></tr>";
     }
 
