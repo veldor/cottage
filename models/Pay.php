@@ -233,7 +233,7 @@ class Pay extends Model
             // найду информацию о счёте
             if ($this->double) {
                 $billInfo = Table_payment_bills_double::findOne($this->billIdentificator);
-                if($billInfo !== null){
+                if ($billInfo !== null) {
                     $cottageInfo = Cottage::getCottageByLiteral($billInfo->cottageNumber . '-a');
                 }
             } else {
@@ -373,7 +373,7 @@ class Pay extends Model
             if ($payType === 'full') {
                 // проверю сумму начисления на депозит
                 $neededDeposit = CashHandler::toRubles(CashHandler::toRubles($this->rawSumm) - CashHandler::toRubles($neededSumm));
-                if (CashHandler::toRubles($neededDeposit) !== CashHandler::toRubles($this->toDeposit))  {
+                if (CashHandler::toRubles($neededDeposit) !== CashHandler::toRubles($this->toDeposit)) {
                     throw new ExceptionWithStatus("Не сходится сумма начисления на депозит ({$neededDeposit}) ({$this->toDeposit})");
                 }
 
@@ -392,16 +392,15 @@ class Pay extends Model
             if (CashHandler::toRubles($this->power) > 0) {
                 // есть бюджет на оплату электроэнергии, распределю его по периодам
                 $sum = CashHandler::toRubles($this->power);
-                if(!empty($billContentInfo->powerEntities)){
+                if (!empty($billContentInfo->powerEntities)) {
                     foreach ($billContentInfo->powerEntities as $powerEntity) {
                         $leftToPay = $powerEntity->getLeftToPay();
                         // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
-                        if(!$powerEntity->isAdditional && $leftToPay > 0 && $sum > 0){
-                            if($sum < $leftToPay){
+                        if (!$powerEntity->isAdditional && $leftToPay > 0 && $sum > 0) {
+                            if ($sum < $leftToPay) {
                                 $leftToPay = $sum;
                                 $sum = 0;
-                            }
-                            else{
+                            } else {
                                 $sum -= $leftToPay;
                             }
                             // зарегистрирую платёж
@@ -414,7 +413,7 @@ class Pay extends Model
                             );
                         }
                     }
-                    if($sum > 0){
+                    if ($sum > 0) {
                         // проверю, должен остаться 0, если нет- вызову ошибку
                         throw new InvalidArgumentException("Не сходится сумма платежа за электроэнергию");
                     }
@@ -422,16 +421,15 @@ class Pay extends Model
             }
             if (CashHandler::toRubles($this->additionalPower) > 0) {
                 $sum = CashHandler::toRubles($this->additionalPower);
-                if(!empty($billContentInfo->powerEntities)){
+                if (!empty($billContentInfo->powerEntities)) {
                     foreach ($billContentInfo->powerEntities as $powerEntity) {
                         $leftToPay = $powerEntity->getLeftToPay();
                         // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
-                        if($powerEntity->isAdditional && $leftToPay > 0 && $sum > 0){
-                            if($sum < $leftToPay){
+                        if ($powerEntity->isAdditional && $leftToPay > 0 && $sum > 0) {
+                            if ($sum < $leftToPay) {
                                 $leftToPay = $sum;
                                 $sum = 0;
-                            }
-                            else{
+                            } else {
                                 $sum -= $leftToPay;
                             }
                             // зарегистрирую платёж
@@ -445,7 +443,7 @@ class Pay extends Model
                         }
                     }
                     // проверю, должен остаться 0, если нет- вызову ошибку
-                    if($sum > 0){
+                    if ($sum > 0) {
                         // проверю, должен остаться 0, если нет- вызову ошибку
                         throw new InvalidArgumentException("Не сходится сумма платежа за электроэнергию");
                     }
@@ -454,16 +452,15 @@ class Pay extends Model
             if (CashHandler::toRubles($this->membership) > 0) {
                 // есть бюджет на оплату электроэнергии, распределю его по периодам
                 $sum = CashHandler::toRubles($this->membership);
-                if(!empty($billContentInfo->membershipEntities)){
+                if (!empty($billContentInfo->membershipEntities)) {
                     foreach ($billContentInfo->membershipEntities as $membershipEntity) {
                         $leftToPay = $membershipEntity->getLeftToPay();
                         // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
-                        if(!$membershipEntity->isAdditional && $leftToPay > 0 && $sum > 0){
-                            if($sum < $leftToPay){
+                        if (!$membershipEntity->isAdditional && $leftToPay > 0 && $sum > 0) {
+                            if ($sum < $leftToPay) {
                                 $leftToPay = $sum;
                                 $sum = 0;
-                            }
-                            else{
+                            } else {
                                 $sum -= $leftToPay;
                             }
                             // зарегистрирую платёж
@@ -476,7 +473,7 @@ class Pay extends Model
                             );
                         }
                     }
-                    if($sum > 0){
+                    if ($sum > 0) {
                         // проверю, должен остаться 0, если нет- вызову ошибку
                         throw new InvalidArgumentException("Не сходится сумма платежа за членские");
                     }
@@ -485,16 +482,15 @@ class Pay extends Model
             if (CashHandler::toRubles($this->additionalMembership) > 0) {
                 // есть бюджет на оплату электроэнергии, распределю его по периодам
                 $sum = CashHandler::toRubles($this->additionalMembership);
-                if(!empty($billContentInfo->membershipEntities)){
+                if (!empty($billContentInfo->membershipEntities)) {
                     foreach ($billContentInfo->membershipEntities as $membershipEntity) {
                         $leftToPay = $membershipEntity->getLeftToPay();
                         // оплачу счёт с учётом того, что ранее он уже мог быть оплачен
-                        if($membershipEntity->isAdditional && $leftToPay > 0 && $sum > 0){
-                            if($sum < $leftToPay){
+                        if ($membershipEntity->isAdditional && $leftToPay > 0 && $sum > 0) {
+                            if ($sum < $leftToPay) {
                                 $leftToPay = $sum;
                                 $sum = 0;
-                            }
-                            else{
+                            } else {
                                 $sum -= $leftToPay;
                             }
                             // зарегистрирую платёж
@@ -541,7 +537,7 @@ class Pay extends Model
             $cottageInfo->save();
             if (!empty($this->bankTransactionId)) {
                 $bankTransaction = Table_bank_invoices::findOne($this->bankTransactionId);
-                if($bankTransaction !== null){
+                if ($bankTransaction !== null) {
                     $billTransaction->bankDate = TimeHandler::getTimestampFromBank($bankTransaction->pay_date, $bankTransaction->pay_time);
                     if (!empty($bankTransaction->real_pay_date)) {
                         $billTransaction->payDate = TimeHandler::getTimestampFromBank($bankTransaction->real_pay_date, $bankTransaction->pay_time);

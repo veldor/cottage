@@ -26,7 +26,7 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
 
 ?>
 <div class="row">
-    <div class="col-sm-12">
+    <div class="col-sm-12" id="accordion">
         <table class="table table-condensed table-hover">
             <thead>
             <tr>
@@ -61,21 +61,25 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
             </tr>
             </tbody>
         </table>
-        <h3 class="text-center">Дата платежа: <b class="text-success"><?= !empty($info->realPayDate) ? $info->realPayDate : ' не определена'?></b></h3>
-        <h3 class="text-center">Дата поступления на счёт: <b class="text-success"><?= $info->payDate?></b></h3>
-        <h3 class="text-center">Состав счёта</h3>
-        <table class="table table-condensed">
-            <tr>
-                <th>Тип</th>
-                <th>Период</th>
-                <th>К оплате</th>
-                <th>Оплачивается в счёте</th>
-                <th>Оплачено в счёте</th>
-                <th>Оплачено вне счёта</th>
-                <th>Осталось оплатить</th>
-            </tr>
-            <?= $billContentText ?>
-        </table>
+        <h3 class="text-center">Дата платежа: <b
+                    class="text-success"><?= !empty($info->realPayDate) ? $info->realPayDate : ' не определена' ?></b>
+        </h3>
+        <h3 class="text-center">Дата поступления на счёт: <b class="text-success"><?= $info->payDate ?></b></h3>
+        <a href="#"><h3 class="text-center" data-toggle="collapse" data-parent="#accordion" href="#collapseDetails">Состав счёта</h3></a>
+        <div id="collapseDetails" class="panel-collapse collapse">
+            <table class="table table-condensed">
+                <tr>
+                    <th>Тип</th>
+                    <th>Период</th>
+                    <th>К оплате</th>
+                    <th>Оплачивается в счёте</th>
+                    <th>Оплачено в счёте</th>
+                    <th>Оплачено вне счёта</th>
+                    <th>Осталось оплатить</th>
+                </tr>
+                <?= $billContentText ?>
+            </table>
+        </div>
     </div>
     <?php
 
@@ -134,7 +138,7 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
                 button.on('click.getForm', function () {
                     let modal = $('.modal');
                     modal.modal('hide');
-                    modal.on('hidden.bs.modal', function (){
+                    modal.on('hidden.bs.modal', function () {
                         let url = 'get-form/pay/' + <?=$info->billId?> + '/' + <?=$info->transactionId?>;
                         sendAjax('get', url, simpleModalHandler);
                     })
