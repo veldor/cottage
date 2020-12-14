@@ -21,7 +21,8 @@ $billContentText = $billContentInfo->getTextContent();
 
 $leftToPay = $billContentInfo->getRequiredSum();
 
-echo "<h3 class='text-center'>Осталось оплатить по счёту: <b class='text-success'>{$leftToPay}</b></h3>";
+
+echo "<h4 class='text-center'>Осталось оплатить по счёту: <b class='text-success'>{$leftToPay}</b></h4>";
 
 ?>
 <div class="row">
@@ -60,12 +61,12 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
             </tr>
             </tbody>
         </table>
-        <h3 class="text-center">Дата платежа: <b
-                    class="text-success"><?= !empty($info->realPayDate) ? $info->realPayDate : ' не определена' ?></b>
-        </h3>
-        <h3 class="text-center">Дата поступления на счёт: <b class="text-success"><?= $info->payDate ?></b></h3>
-        <a href="#"><h3 class="text-center" data-toggle="collapse" data-parent="#accordion" href="#collapseDetails">Состав счёта</h3></a>
+        <a href="#"><h5 class="text-center" data-toggle="collapse" data-parent="#accordion" href="#collapseDetails">Состав счёта</h5></a>
         <div id="collapseDetails" class="panel-collapse collapse">
+            <h3 class="text-center">Дата платежа: <b
+                        class="text-success"><?= !empty($info->realPayDate) ? $info->realPayDate : ' не определена' ?></b>
+            </h3>
+            <h3 class="text-center">Дата поступления на счёт: <b class="text-success"><?= $info->payDate ?></b></h3>
             <table class="table table-condensed">
                 <tr>
                     <th>Тип</th>
@@ -83,12 +84,12 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
     <?php
 
     if ($transactionSumm >= $leftToPay) {
-        $difference = CashHandler::toRubles($transactionSumm - $leftToPay);
+        $difference = CashHandler::toRubles(CashHandler::toRubles($transactionSumm) - CashHandler::toRubles($leftToPay));
         ?>
-        <h2 class="text-center text-success">Платёж будет оплачен полностью и закрыт</h2>
+        <h4 class="text-center text-success">Платёж будет оплачен полностью и закрыт</h4>
     <?php
     if ($difference > 0) {
-        echo "<h3 class='text-info text-center'>" . CashHandler::toSmoothRubles($difference) . " будет зачислено на депозит участка</h3>";
+        echo "<h4 class='text-info text-center'>" . CashHandler::toSmoothRubles($difference) . " будет зачислено на депозит участка</h4>";
     }
 
     ?>
@@ -125,7 +126,7 @@ echo "<h3 class='text-center'>Осталось оплатить по счёту:
     }
     else{
     ?>
-        <h3 class="text-center text-success">Частичная оплата счёта,нужно разнести платёж по категориям</h3>
+        <h4 class="text-center text-success">Частичная оплата счёта,нужно разнести платёж по категориям</h4>
         <div class="col-sm-12">
             <button id="submitComparisonButton" class="btn btn-success" data-bill-id="<?= $info->billId ?>"
                     data-transaction-id="<?= $info->transactionId ?>">Распределить платёж
