@@ -183,7 +183,7 @@ class MailingSchedule extends ActiveRecord
                             $text = GrammarHandler::insertLexemes('
 Для сверки расчетов Вам направляется отчет по платежам за участок №%COTTAGENUMBER%, произведенным на расчетный счет СНТ «Облепиха».  В отчете указаны даты поступления средств на расчетный счет.  Поскольку при оплате через Сбербанк средства зачисляются на следующий банковский день после платежа, даты фактической оплаты и даты в отчете могут различаться на 1-3 дня.', $item['mail'], $cottageInfo);
                             // сгенерирую PDF
-                            $info = Report::cottageReport($start, $finish, $cottageInfo->cottageNumber);
+                            $info = Report::cottageReport($start, $finish, $cottageInfo);
                             $reportPdf = Yii::$app->controller->renderPartial('/print/cottage-report-pdf', ['transactionsInfo' => $info, 'start' => $start, 'end' => $finish, 'cottageInfo' => $cottageInfo]);
                             PDFHandler::renderPDF($reportPdf, 'report.pdf', 'landscape');
                             $email = new Email();
