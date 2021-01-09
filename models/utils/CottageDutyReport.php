@@ -221,70 +221,70 @@ class CottageDutyReport
             $thisDuty = Accruals_target::getItem($this->cottage, $year);
             if ($thisDuty !== null) {
                 $accrued = $thisDuty->countAmount();
-            }
-            if (!empty($accrued)) {
-                // найду оплаты за данный период
-                $payed = TargetHandler::getPaysBefore($year, $this->cottage, $this->periodEnd);
-                if (empty($payed)) {
-                    // возможно, оплата была до введения системы
-                    // проверю, если год присутствует в задолженностях участка- значит он не оплачен, если нет- значит, оплачен ранее
-                    if ($accrued - $thisDuty->payed_outside - $thisDuty->countPayed() > 0) {
-                        $payed = $thisDuty->countPayed();
-                        $unpayed = CashHandler::toRubles($accrued - $payed - $thisDuty->payed_outside);
-                        if ($unpayed > 0) {
-                            $this->targetDetails .= $year . ' : ' . $unpayed . "<br/>\n";
-                            $total += $unpayed;
+                if (!empty($accrued)) {
+                    // найду оплаты за данный период
+                    $payed = TargetHandler::getPaysBefore($year, $this->cottage, $this->periodEnd);
+                    if (empty($payed)) {
+                        // возможно, оплата была до введения системы
+                        // проверю, если год присутствует в задолженностях участка- значит он не оплачен, если нет- значит, оплачен ранее
+                        if ($accrued - $thisDuty->payed_outside - $thisDuty->countPayed() > 0) {
+                            $payed = $thisDuty->countPayed();
+                            $unpayed = CashHandler::toRubles($accrued - $payed - $thisDuty->payed_outside);
+                            if ($unpayed > 0) {
+                                $this->targetDetails .= $year . ' : ' . $unpayed . "<br/>\n";
+                                $total += $unpayed;
+                            }
                         }
-                    }
-                } else {
-                    $payedAmount = 0;
-                    // если сумма оплаченного меньше суммы начисленного - добавляю месяц в детализацию
-                    foreach ($payed as $pay) {
-                        $payedAmount += CashHandler::toRubles($pay->summ);
-                    }
-                    $payedAmount = CashHandler::toRubles($payedAmount);
-                    if ($payedAmount < $accrued) {
-                        // проверю, есть ли задолженность в таблице, если нет- пропущу
-                        $dutyInTable = TargetHandler::getDebt($this->cottage);
-                        if (!empty($dutyInTable[$year])) {
-                            $difference = CashHandler::toRubles($accrued - $payedAmount);
-                            $this->targetDetails .= $year . ' : ' . $difference . "<br/>\n";
-                            $total += $difference;
-                        }
-                    }
-                }
-                $this->targetAmount = CashHandler::toRubles($total);
-                // проверю, не начислялись ли пени
-                $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'target', 'period' => $year]);
-                // ага, платёж просрочен. подсчитаю количество дней просрочки на момент конца периода
-                // определю срок оплаты
-                // если месяц не оплачен и прошел срок выплат- считаю пени
-                if (($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
-                    if ($savedFine->locked) {
-                        $this->fineDetails .= 'Ц* ' . $year . ' : ' . $savedFine->summ . "<br/>\n";
                     } else {
-                        // посчитаю сумму пени
-                        // посчитаю количество дней задолженности
-                        try {
-                            $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
-                            if ($dayDifference > 0) {
-                                // тут посчитаю общую сумму задолженности.
-                                //Если платежей по счёту не было- это просто 5% в день
-                                if (empty($payed)) {
-                                    $finesPerDay = CashHandler::countPercent($thisDuty->getAccrual(), FinesHandler::PERCENT);
-                                    $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
-                                    $this->fineDetails .= 'Ц* ' . $year . ' : ' . $totalFines . "<br/>\n";
-                                    $this->fineAmount += $totalFines;
-                                } else {
-                                    // тут уже сложнее, придётся считать оплаты
-                                    $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
-                                    if ($fineAmount > 0) {
-                                        $this->fineDetails .= 'Ц* ' . $year . ' : ' . $fineAmount . "<br/>\n";
-                                        $this->fineAmount += $fineAmount;
+                        $payedAmount = 0;
+                        // если сумма оплаченного меньше суммы начисленного - добавляю месяц в детализацию
+                        foreach ($payed as $pay) {
+                            $payedAmount += CashHandler::toRubles($pay->summ);
+                        }
+                        $payedAmount = CashHandler::toRubles($payedAmount);
+                        if ($payedAmount < $accrued) {
+                            // проверю, есть ли задолженность в таблице, если нет- пропущу
+                            $dutyInTable = TargetHandler::getDebt($this->cottage);
+                            if (!empty($dutyInTable[$year])) {
+                                $difference = CashHandler::toRubles($accrued - $payedAmount);
+                                $this->targetDetails .= $year . ' : ' . $difference . "<br/>\n";
+                                $total += $difference;
+                            }
+                        }
+                    }
+                    $this->targetAmount = CashHandler::toRubles($total);
+                    // проверю, не начислялись ли пени
+                    $savedFine = Table_penalties::findOne(['cottage_number' => $this->cottage->cottageNumber, 'pay_type' => 'target', 'period' => $year]);
+                    // ага, платёж просрочен. подсчитаю количество дней просрочки на момент конца периода
+                    // определю срок оплаты
+                    // если месяц не оплачен и прошел срок выплат- считаю пени
+                    if (($savedFine !== null) && $savedFine->payUpLimit < $this->periodEnd && $savedFine->is_enabled) {
+                        if ($savedFine->locked) {
+                            $this->fineDetails .= 'Ц* ' . $year . ' : ' . $savedFine->summ . "<br/>\n";
+                        } else {
+                            // посчитаю сумму пени
+                            // посчитаю количество дней задолженности
+                            try {
+                                $dayDifference = TimeHandler::checkDayDifference($savedFine->payUpLimit, $this->periodEnd);
+                                if ($dayDifference > 0) {
+                                    // тут посчитаю общую сумму задолженности.
+                                    //Если платежей по счёту не было- это просто 5% в день
+                                    if (empty($payed)) {
+                                        $finesPerDay = CashHandler::countPercent($thisDuty->getAccrual(), FinesHandler::PERCENT);
+                                        $totalFines = CashHandler::toRubles($finesPerDay * $dayDifference);
+                                        $this->fineDetails .= 'Ц* ' . $year . ' : ' . $totalFines . "<br/>\n";
+                                        $this->fineAmount += $totalFines;
+                                    } else {
+                                        // тут уже сложнее, придётся считать оплаты
+                                        $fineAmount = CashHandler::toRubles($this->handlePeriodPayments($payed, $savedFine->payUpLimit, $total, $this->periodEnd));
+                                        if ($fineAmount > 0) {
+                                            $this->fineDetails .= 'Ц* ' . $year . ' : ' . $fineAmount . "<br/>\n";
+                                            $this->fineAmount += $fineAmount;
+                                        }
                                     }
                                 }
+                            } catch (Exception $e) {
                             }
-                        } catch (Exception $e) {
                         }
                     }
                 }
