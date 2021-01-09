@@ -161,7 +161,7 @@ class Mailing
                     return ['message' => 'Письмо не найдена'];
                 }
                 // сгенерирую PDF
-                $info = Report::cottageReport($reportInfo->start, $reportInfo->finish, $cottageInfo->cottageNumber);
+                $info = Report::cottageReport($reportInfo->start, $reportInfo->finish, $cottageInfo);
                 $reportPdf = Yii::$app->controller->renderPartial('/print/cottage-report-pdf', ['transactionsInfo' => $info, 'start' => $reportInfo->start, 'end' => $reportInfo->finish, 'cottageInfo' => $cottageInfo]);
                 PDFHandler::renderPDF($reportPdf, 'report.pdf', 'landscape');
                 // отправлю письмо
