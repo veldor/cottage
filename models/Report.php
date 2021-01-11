@@ -1,4 +1,8 @@
 <?php
+/** @noinspection PhpUnused
+ * @noinspection UnknownInspectionInspection
+ */
+
 /**
  * Created by PhpStorm.
  * User: eldor
@@ -9,11 +13,8 @@
 namespace app\models;
 
 use app\models\interfaces\CottageInterface;
-use app\models\selections\MembershipDebt;
-use app\models\selections\TargetDebt;
 use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
-use yii\base\ErrorException;
 use yii\base\InvalidArgumentException;
 use yii\base\Model;
 
@@ -26,7 +27,7 @@ class Report extends Model
      * @param CottageInterface $cottage
      * @return array
      */
-    public static function cottageReport($start, $end, $cottage): array
+    public static function cottageReport($start, $end, CottageInterface $cottage): array
     {
         $content = [];
         $singleDescriptions = [];
@@ -53,7 +54,7 @@ class Report extends Model
                     $targets = array_merge(Table_payed_target::find()->where(['transactionId' => $transaction->id])->all(), Table_additional_payed_target::find()->where(['transactionId' => $transaction->id])->all());
                     $singles = Table_payed_single::find()->where(['transactionId' => $transaction->id])->all();
                     $fines = Table_payed_fines::find()->where(['transaction_id' => $transaction->id])->all();
-                    $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->one();
+                    $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->all();
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'out'])->one();
                     if (!empty($memberships)) {
                         // если были оплаты по членским платежам
@@ -132,6 +133,7 @@ class Report extends Model
                     if (!empty($singles)) {
                         $singleSumm = 0;
                         $singleList = '';
+                        /** @var Table_payed_single $single */
                         foreach ($singles as $single) {
                             $singleSumm += $single->summ;
                             $wholeSingle += $singleSumm;
@@ -159,6 +161,7 @@ class Report extends Model
                     if (!empty($fines)) {
                         $finesSumm = 0;
                         $finesList = '';
+                        /** @var Table_payed_fines $fine */
                         foreach ($fines as $fine) {
                             // найду информацию о пени
                             $fineInfo = Table_penalties::findOne($fine->fine_id);
@@ -176,18 +179,29 @@ class Report extends Model
                         $finesList = '--';
                     }
                     if (!empty($fromDeposit)) {
-                        $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
-                        $wholeDeposit -= CashHandler::toRubles($fromDeposit->summ, true);
+                        // тут нужно проверить, не было ли ранее транзакции на сумму с депозита по этому счёту
+                        $thisBillTransactions = Table_transactions::getBillTransactions($cottage, $transaction->billId);
+                        if(!empty($thisBillTransactions) && count($thisBillTransactions) > 1 && $thisBillTransactions[0]->transactionSumm === 0 && $thisBillTransactions[0]->id !== $transaction->id){
+                            //todo тут надо будет проводить проверку на соответствие суммы потраченного депозита
+                            $fromDepositSumm = 0;
+                        }
+                        else{
+                            $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
+                            $wholeDeposit = CashHandler::toRubles($wholeDeposit - CashHandler::toRubles($fromDeposit->summ, true), true);
+                        }
                     } else {
                         $fromDepositSumm = 0;
                     }
-                    if (!empty($toDeposit)) {
-                        $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
-                        $wholeDeposit += CashHandler::toRubles($toDeposit->summ, true);
-                    } else {
-                        $toDepositSumm = 0;
+                    $toDepositComposed = 0;
+                    /** @var Table_deposit_io $toDeposit */
+                    if ($toDeposit !== null) {
+                        /** @var Table_deposit_io $item */
+                        foreach ($toDeposit as $item) {
+                            $toDepositComposed += CashHandler::toRubles($item->summ);
+                        }
+                        $wholeDeposit = CashHandler::toRubles($wholeDeposit + CashHandler::toRubles($toDepositComposed, true), true);
                     }
-                    $totalDeposit = CashHandler::toRubles($toDepositSumm - $fromDepositSumm, true);
+                    $totalDeposit = CashHandler::toRubles($toDepositComposed - $fromDepositSumm, true);
 
                     $content[] = "
                         <tr>
@@ -221,6 +235,7 @@ class Report extends Model
                     if (!empty($memberships)) {
                         $memSumm = 0;
                         $memList = '';
+                        /** @var Table_payed_membership $membership */
                         foreach ($memberships as $membership) {
                             if ($membership instanceof Table_payed_membership) {
                                 $memList .= $membership->quarter . ': <b>' . CashHandler::toRubles($membership->summ) . '</b><br/>';
@@ -239,6 +254,7 @@ class Report extends Model
                         $powCounterValue = '';
                         $powUsed = '';
                         $powSumm = 0;
+                        /** @var Table_payed_power $power */
                         foreach ($powers as $power) {
                             if ($power instanceof Table_payed_power) {
                                 // найду данные о показаниях
@@ -268,6 +284,7 @@ class Report extends Model
                     if (!empty($targets)) {
                         $tarSumm = 0;
                         $tarList = '';
+                        /** @var Table_payed_target $target */
                         foreach ($targets as $target) {
                             if ($target instanceof Table_payed_target) {
                                 $tarList .= $target->year . ': <b>' . CashHandler::toRubles($target->summ) . '</b><br/>';
@@ -285,6 +302,7 @@ class Report extends Model
                     if (!empty($singles)) {
                         $singleSumm = 0;
                         $singleList = '';
+                        /** @var Table_payed_single $single */
                         foreach ($singles as $single) {
                             $singleList .= CashHandler::toRubles($single->summ) . '<br/>';
                             $singleSumm += $single->summ;
@@ -307,6 +325,7 @@ class Report extends Model
                     if (!empty($fines)) {
                         $finesSumm = 0;
                         $finesList = '';
+                        /** @var Table_payed_fines $fine */
                         foreach ($fines as $fine) {
                             // найду информацию о пени
                             $fineInfo = Table_penalties::findOne($fine->fine_id);
@@ -321,13 +340,13 @@ class Report extends Model
                     }
                     if (!empty($fromDeposit)) {
                         $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
-                        $wholeDeposit -= CashHandler::toRubles($fromDeposit->summ, true);
+                        $wholeDeposit = CashHandler::toRubles($wholeDeposit - CashHandler::toRubles($fromDeposit->summ, true), true);
                     } else {
                         $fromDepositSumm = 0;
                     }
                     if (!empty($toDeposit)) {
                         $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
-                        $wholeDeposit += CashHandler::toRubles($toDeposit->summ, true);
+                        $wholeDeposit = CashHandler::toRubles($wholeDeposit +CashHandler::toRubles($toDeposit->summ, true), true);
                     } else {
                         $toDepositSumm = 0;
                     }
@@ -367,7 +386,7 @@ class Report extends Model
                                 <td>$wholeSingle</td>
                                 <td></td>
                                 <td>$wholeFines</td>
-                                <td>$wholeDeposit</td>
+                                <td>" . CashHandler::toRubles($wholeDeposit, true) . "</td>
                                 <td>$wholeSumm</td>
                             </tr>";
         }
@@ -377,7 +396,6 @@ class Report extends Model
     /**
      * @param $cottageNumber
      * @return string
-     * @throws ErrorException
      */
     public static function powerDebtReport($cottageNumber): string
     {
@@ -424,7 +442,7 @@ class Report extends Model
     public static function membershipDebtReport($cottageNumber)
     {
         $cottageInfo = Table_cottages::findOne($cottageNumber);
-        if (!empty($cottageInfo)) {
+        if ($cottageInfo !== null) {
             $content = "<table class='table table-hover table-striped'><thead><tr><th>Квартал</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
             $info = MembershipHandler::getDebt($cottageInfo);
             foreach ($info as $item) {
@@ -443,9 +461,8 @@ class Report extends Model
     public static function membership_additionalDebtReport($cottageNumber)
     {
         $cottageInfo = Table_additional_cottages::findOne($cottageNumber);
-        if (!empty($cottageInfo)) {
+        if ($cottageInfo !== null) {
             $content = "<table class='table table-hover table-striped'><thead><tr><th>Квартал</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
-            /** @var MembershipDebt[] $info */
             $info = MembershipHandler::getDebt($cottageInfo);
             foreach ($info as $key => $item) {
                 $content .= "<tr><td>{$item->quarter}</td><td>{$cottageInfo->cottageSquare}</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->amount}  &#8381;</td></tr>";
@@ -464,7 +481,7 @@ class Report extends Model
     {
         $cottageInfo = Table_cottages::findOne($cottageNumber);
         $content = "<table class='table table-hover table-striped'><thead><tr><th>Год</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th><th>Уже оплачено</th></tr></thead><tbody>";
-        if (!empty($cottageInfo)) {
+        if ($cottageInfo !== null) {
             $years = TargetHandler::getDebt($cottageInfo);
             foreach ($years as $item) {
                 $content .= "<tr><td>{$item->year}</td><td>{$cottageInfo->cottageSquare}</td><td>{$item->tariffFixed} &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->tariffFixed}  &#8381;</td><td>{$item->tariffFloat}  &#8381;</td><td>{$item->amount}&#8381;</td><td>{$item->partialPayed}&#8381;</td></tr>";
@@ -484,8 +501,7 @@ class Report extends Model
     {
         $cottageInfo = Table_additional_cottages::findOne($cottageNumber);
         $content = "<table class='table table-hover table-striped'><thead><tr><th>Год</th><th>Площадь</th><th>С участка</th><th>С сотки</th><th>Цена 1</th><th>Цена 2</th><th>Всего</th></tr></thead><tbody>";
-        if (!empty($cottageInfo)) {
-            /** @var TargetDebt[] $years */
+        if ($cottageInfo !== null) {
             $years = TargetHandler::getDebt($cottageInfo);
             foreach ($years as $key => $year) {
                 $content .= "<tr><td>{$key}</td><td>{$cottageInfo->cottageSquare}</td><td>{$year->tariffFixed} &#8381;</td><td>{$year->tariffFloat}  &#8381;</td><td>{$year->tariffFixed}  &#8381;</td><td>{$year->tariffFloat}  &#8381;</td><td>{$year->amount}  &#8381;</td></tr>";

@@ -9,6 +9,7 @@
 
 use app\assets\printAsset;
 use app\models\CashHandler;
+use app\models\Cottage;
 use app\models\Table_cottages;
 use app\models\TimeHandler;
 use app\models\utils\CottageDutyReport;
@@ -35,6 +36,14 @@ $duty = new CottageDutyReport($cottageInfo, $end);
 <p>
     Участок № <?=
     $transactionsInfo['cottageInfo']->cottageNumber ?>, Площадь: <?= $transactionsInfo['cottageInfo']->cottageSquare ?>м<sup>2</sup>
+    <?php
+    if($cottageInfo->haveAdditional()){
+        $additionalCottageInfo = Cottage::getCottageByLiteral($cottageInfo->cottageNumber . '-a');
+        if(!$additionalCottageInfo->hasDifferentOwner){
+            echo ", участок № {$additionalCottageInfo->cottageNumber}, Площадь: {$additionalCottageInfo->cottageSquare}м<sup>2</sup>";
+        }
+    }
+    ?>
     Владелец: <?= $transactionsInfo['cottageInfo']->cottageOwnerPersonals ?>
 </p>
 <p>
@@ -119,17 +128,19 @@ $duty = new CottageDutyReport($cottageInfo, $end);
 
     <?php
     $counter = 1;
-    if(!empty($transactionsInfo['singleDescriptions']))
+    if (!empty($transactionsInfo['singleDescriptions'])) {
         foreach ($transactionsInfo['singleDescriptions'] as $item) {
             echo "<p class='small-text'>($counter)* : $item</p>";
             $counter++;
+        }
     }
     ?>
 </div>
 
 <div class="row">
     <div class="col-sm-12 text-center">
-        <button id="sendReportButton" class="btn btn-default no-print" data-start="<?=$start?>" data-finish="<?=$end?>"><span class="text-success">Отправить отчёт владельцу</span>
+        <button id="sendReportButton" class="btn btn-default no-print" data-start="<?= $start ?>"
+                data-finish="<?= $end ?>"><span class="text-success">Отправить отчёт владельцу</span>
         </button>
         <a class="btn btn-default no-print" target="_blank" href="/report.pdf"><span
                     class="text-success">Скачать PDF</span></a>

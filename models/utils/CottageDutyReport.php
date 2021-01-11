@@ -145,7 +145,7 @@ class CottageDutyReport
             foreach ($list as $item) {
                 // получу начисление за квартал
                 $accrued = Accruals_membership::getItem($this->cottage, $item);
-                if ($accrued !== null) {
+                if ($accrued !== null && $accrued->getAccrual() > 0) {
                     // найду оплаты за данный период
                     $payed = MembershipHandler::getPaysBefore($item, $this->cottage, $this->periodEnd);
                     if (empty($payed)) {

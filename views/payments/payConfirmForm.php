@@ -43,13 +43,13 @@ $payedBefore = $model->payedBefore ?? 0;
 
 // если платёж не оплачивался ранее, добавлю скидку и оплату с депозита как модификатор суммы для частичного платежа
 if (!$payedBefore) {
-    echo "<span class='hidden' id='partialSummModification' data-summ='" . CashHandler::toRubles($fromDeposit + $discount) . "'></span>";
+    echo "<span class='hidden' id='partialSummModification' data-summ='" . CashHandler::toRubles(CashHandler::toRubles($fromDeposit) + CashHandler::toRubles($discount)) . "'></span>";
 } else {
     echo "<span class='hidden' id='partialSummModification' data-summ='0'></span>";
 }
 
 
-$summToPay = CashHandler::toRubles($fullSumm - $fromDeposit - $discount - $payedBefore);
+$summToPay = CashHandler::toRubles(CashHandler::toRubles($fullSumm) - CashHandler::toRubles($fromDeposit) - CashHandler::toRubles($discount) - CashHandler::toRubles($payedBefore));
 
 echo '
     <h2>К оплате: <b id="paySumm" class="text-info" data-full-summ="' . $fullSumm . '" data-summ="' . $summToPay . '" data-deposit="' . $fromDeposit . '" data-discount="' . $discount . '" data-payed-before="' . $payedBefore . '">' . CashHandler::toSmoothRubles($summToPay) . '</b></h2>';
