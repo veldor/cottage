@@ -82,6 +82,14 @@ $duty = new CottageDutyReport($cottageInfo, $end);
 <p>
     Участок № <?= /** @var $transactionsInfo [] */
     $transactionsInfo['cottageInfo']->cottageNumber ?>, Площадь: <?= $transactionsInfo['cottageInfo']->cottageSquare ?>м<sup>2</sup>
+    <?php
+    if ($cottageInfo->haveAdditional()) {
+        $additionalCottageInfo = Cottage::getCottageByLiteral($cottageInfo->cottageNumber . '-a');
+        if (!$additionalCottageInfo->hasDifferentOwner) {
+            echo ", участок № {$additionalCottageInfo->cottageNumber}, Площадь: {$additionalCottageInfo->cottageSquare}м<sup>2</sup>";
+        }
+    }
+    ?>
     Владелец: <?= $transactionsInfo['cottageInfo']->cottageOwnerPersonals ?>
 </p>
 <p>

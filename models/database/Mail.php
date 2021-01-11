@@ -5,6 +5,7 @@ namespace app\models\database;
 
 
 use app\models\interfaces\CottageInterface;
+use Exception;
 use Throwable;
 use Yii;
 use yii\db\ActiveRecord;
@@ -107,8 +108,9 @@ class Mail extends ActiveRecord
             $mail = self::findOne(['id' => $mailId]);
             if ($mail !== null) {
                 try {
+                    /** @noinspection PhpUnhandledExceptionInspection */
                     $mail->delete();
-                } catch (Throwable $e) {
+                } catch (Exception $e) {
                 }
                 Yii::$app->session->addFlash('success', 'Почта удалёна.');
                 return ['status' => 1];

@@ -100,7 +100,7 @@ if (!empty($tab)) {
                     echo "<tr>
                                 <td>{$item->pay_date}</td>
                                 <td>{$item->pay_time}</td>
-                                <td class='cottage-number'>{$item->account_number}</td>
+                                <td class='cottage-number'><a target='_blank' href='/show-cottage/{$item->account_number}'>{$item->account_number}</a></td>
                                 <td>{$item->transaction_summ}</td>
                                 <td>{$item->fio}</td>
                                 <td>" . Registry::getBillId($item->address) . "</td>

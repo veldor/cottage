@@ -525,10 +525,10 @@ class Filling extends Model
 
                 $socialNorm = CashHandler::toSmoothRubles($value->powerData->inLimitSumm);
 
-                $power .= self::getRow('Тариф соц. нормы', $socialNorm, Colors::COLOR_DATA);
+                $power .= self::getRow('Тариф соц. нормы', $value->tariff->powerCost, Colors::COLOR_DATA, CashHandler::RUB);
                 $socialSumm = CashHandler::toSmoothRubles($value->powerData->inLimitPay);
 
-                $power .= self::getRow('Начислено по соц. норме', "{$socialNorm} * {$value->powerData->inLimitSumm} = <b style='color:#d43f3a;'>{$socialSumm}</b>", '');
+                $power .= self::getRow('Начислено по соц. норме', "{$value->tariff->powerCost} * {$value->powerData->inLimitSumm} = <b style='color:#d43f3a;'>{$socialSumm}</b>", '');
                 if ($value->powerData->difference > $value->tariff->powerLimit) {
                     $power .= self::getRow('Потрачено сверх соц. нормы', $value->powerData->overLimitSumm, Colors::COLOR_INFO, CashHandler::KW);
                     $overSocialNorm = CashHandler::toSmoothRubles($value->powerData->overLimitPay);
@@ -649,7 +649,7 @@ class Filling extends Model
     {
         $membership .= self::getRow('Расчётная площадь участка', $cottageInfo->cottageSquare, Colors::COLOR_INFO, 'м<sup>2</sup>');
         $fromMeter = round($float / 100, 4);
-        $membership .= self::getRow('Взнос с сотки', $floatSumm, Colors::COLOR_INFO);
+        $membership .= self::getRow('Взнос с сотки', $float, Colors::COLOR_INFO, CashHandler::RUB);
         $membership .= self::getRow('Взнос с м<sup>2</sup>', $fromMeter, Colors::COLOR_INFO, CashHandler::RUB);
         $membership .= self::getRow('С общей площади', "{$cottageInfo->cottageSquare} * {$fromMeter} = <b style='color:#d43f3a;'>{$floatSumm}</b>", '');
         return $membership;

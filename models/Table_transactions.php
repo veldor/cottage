@@ -36,4 +36,12 @@ class Table_transactions extends ActiveRecord implements TransactionsInterface
     {
         return 'transactions';
     }
+
+    public static function getBillTransactions(interfaces\CottageInterface $cottage, string $billInfo): array
+    {
+        if($cottage->isMain()){
+            return self::find()->where(['billId' => $billInfo])->all();
+        }
+        return Table_transactions_double::find()->where(['billId' => $billInfo])->all();
+    }
 }
