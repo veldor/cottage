@@ -10,6 +10,7 @@
 /* @var $this View */
 
 /* @var $model Registry */
+/* @var $errorMessage string */
 
 /* @var $countersModel PowerCounters */
 

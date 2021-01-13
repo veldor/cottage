@@ -9,6 +9,7 @@
 
 use app\assets\printAsset;
 use app\models\CashHandler;
+use app\models\Cottage;
 use app\models\Table_cottages;
 use app\models\TimeHandler;
 use app\models\utils\CottageDutyReport;
