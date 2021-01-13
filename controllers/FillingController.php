@@ -7,7 +7,6 @@ use app\models\database\Mail;
 use app\models\ExceptionWithStatus;
 use app\models\Filling;
 use app\models\MembershipHandler;
-use app\models\PersonalTariffFilling;
 use app\models\PowerCounters;
 use app\models\PowerHandler;
 use app\models\Registry;
@@ -206,24 +205,6 @@ class FillingController extends Controller
         throw new NotFoundHttpException('Страница не найдена');
     }
 
-    /**
-     * @return string|Response
-     */
-    public function actionFillMissingIndividuals()
-    {
-        $hasError = false;
-        if (Yii::$app->request->isPost) {
-            $model = new PersonalTariffFilling(['scenario' => PersonalTariffFilling::SCENARIO_FILL]);
-            $model->load(Yii::$app->request->post());
-            if ($model->fill()) {
-                return $this->redirect('/', 301);
-            }
-            $hasError = true;
-        }
-        // получу сведения о незаполненных тарифах
-        $cottagesWithMissing = PersonalTariffFilling::getCottagesWithMissing();
-        return $this->render('fill-missed-individuals', ['items' => $cottagesWithMissing, 'error' => $hasError]);
-    }
 
     /**
      * @return string
