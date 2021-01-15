@@ -201,7 +201,7 @@ class Cottage extends Model
      */
     public static function isMain($cottageInfo): bool
     {
-        return $cottageInfo instanceof Table_cottages;
+        return !$cottageInfo instanceof Table_additional_cottages;
     }
 
     public static function getLiteralInfo($key)

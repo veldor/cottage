@@ -249,7 +249,7 @@ class MembershipHandler extends Model
             while (true) {
                 /** @var Accruals_membership $quarter */
                 $quarter = array_pop($accruals);
-                if (!empty($quarter)) {
+                if ($quarter !== null) {
                     $lastQuarter = $quarter->quarter;
                     $accrued = Calculator::countFixedFloat($quarter->fixed_part, $quarter->square_part, $quarter->counted_square);
                     if ($accrued > 0) {
@@ -279,6 +279,7 @@ class MembershipHandler extends Model
                 }
             }
         }
+        return null;
     }
 
     public static function getPeriodPaysAmount(string $cottage_number, string $quarter)
@@ -367,7 +368,7 @@ class MembershipHandler extends Model
             return $result;
         }
         // получу список кварталов, начиная от первого неоплаченного до текущего
-        $list = TimeHandler::getQuarterList($cottage->membershipPayFor);
+        $list = TimeHandler::getQuarterList(self::getLastPayedQuarter($cottage));
         if (empty($list)) {
             return $result;
         }
