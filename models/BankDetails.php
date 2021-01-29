@@ -8,6 +8,7 @@
 
 namespace app\models;
 
+use app\models\utils\QRImageGenerator;
 use app\priv\Info;
 use chillerlan\QRCode\QRCode;
 use Dompdf\Dompdf;
@@ -34,5 +35,10 @@ class BankDetails extends Model
     {
         $data = "$this->st|Name=$this->name|PersonalAcc=$this->personalAcc|BankName=$this->bankName|BIC=$this->bik|CorrespAcc=$this->correspAcc|PayeeINN=$this->payerInn|KPP=$this->kpp|LASTNAME=$this->lastName|Purpose=$this->purpose|Sum=$this->summ|PersAcc={$this->cottageNumber}";
         return (new QRCode)->render($data);
+    }
+
+    public function saveQR(){
+        $data = "$this->st|Name=$this->name|PersonalAcc=$this->personalAcc|BankName=$this->bankName|BIC=$this->bik|CorrespAcc=$this->correspAcc|PayeeINN=$this->payerInn|KPP=$this->kpp|LASTNAME=$this->lastName|Purpose=$this->purpose|Sum=$this->summ|PersAcc={$this->cottageNumber}";
+        (new QRImageGenerator())->generateQr($data);
     }
 }

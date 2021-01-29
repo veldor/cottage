@@ -123,7 +123,7 @@ echo $form->field($matrix, 'hasContacter', ['template' =>
 									{error}{hint}</div>'])
     ->checkbox()
     ->label('Добавить контактное лицо.');
-if ($matrix->hasContacter === 1) {
+if ($matrix->hasContacter) {
     echo "<fieldset id='contacterInfo' class=''><legend>Сведения о контактном лице</legend>";
 }
 else {

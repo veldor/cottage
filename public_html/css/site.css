@@ -558,3 +558,7 @@ div.switch-container{
 .activator{
     cursor: pointer;
 }
+
+.container-fluid{
+    margin-top: 70px;
+}

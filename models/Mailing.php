@@ -206,6 +206,7 @@ class Mailing
         $info = ComplexPayment::getBankInvoice($waitingMail->billId);
         $text = Yii::$app->controller->renderPartial('/site/mail', ['billInfo' => $payDetails]);
         $text = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
+        $info['bankInfo']->saveQr();
         $invoice = Yii::$app->controller->renderPartial('/payments/bank-invoice-pdf', ['info' => $info]);
         PDFHandler::renderPDF($invoice, 'invoice.pdf', 'portrait');
         // создам и отправлю новое письмо
@@ -216,7 +217,10 @@ class Mailing
         $mail->setBody($text);
         $mail->setReceiverName($mailInfo->fio);
         $pdfUrl = str_replace('\\', '/', Yii::getAlias('@app')) . '/public_html/invoice.pdf';
+        $qrUrl = str_replace('\\', '/', Yii::getAlias('@app')) . '/files/qr.png';
+        //$mail->setAttachments([['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf'], ['url' => $qrUrl, 'name' => 'QR для оплаты.png'] ]);
         $mail->setAttachment(['url' => $pdfUrl, 'name' => 'Квитанция на оплату.pdf']);
+        $mail->setEmbed(['url' => $qrUrl, 'name' => 'QR для оплаты.png']);
         return $mail;
     }
 }

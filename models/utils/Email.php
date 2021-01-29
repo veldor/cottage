@@ -16,6 +16,8 @@ class Email extends Model
     private string $subject;
     private string $body;
     private array $attachment;
+    private array $embed;
+    private array $attachments;
     private const RESERVE_MAIL_ADDRESS = 'oblepiha.reports@gmail.com';
 
     /**
@@ -79,10 +81,23 @@ class Email extends Model
         $mail = Yii::$app->mailer->compose()
             ->setFrom([$this->from => MailSettings::getInstance()->snt_name])
             ->setSubject($this->subject)
-            ->setHtmlBody($this->body)
             ->setTo([$this->address => $this->receiverName]);
         if (!empty($this->attachment)) {
             $mail->attach($this->attachment['url'], ['fileName' => $this->attachment['name']]);
+            $mail->setHtmlBody($this->body);
+        }
+        elseif (!empty($this->attachments)){
+            foreach ($this->attachments as $attachment) {
+                $mail->attach($attachment['url'], ['fileName' => $attachment['name']]);
+            }
+            $mail->setHtmlBody($this->body);
+        }
+        if(!empty($this->embed)){
+            $cid = $mail->embed($this->embed['url'],[
+                'fileName' => "QR код для оплаты",
+                'contentType' => 'image/png'
+            ]);
+            $mail->setHtmlBody(GrammarHandler::attachEmbeddedImage($this->body, $cid));
         }
         // попробую отправить письмо, в случае ошибки- вызову исключение
         $mail->send();
@@ -107,6 +122,16 @@ class Email extends Model
             // попробую отправить письмо, в случае ошибки- вызову исключение
             $mail->send();
         }
+    }
+
+    public function setAttachments(array $attachmentsArray): void
+    {
+        $this->attachments = $attachmentsArray;
+    }
+
+    public function setEmbed(array $embedItem)
+    {
+        $this->embed = $embedItem;
     }
 
 

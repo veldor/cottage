@@ -235,4 +235,10 @@ class GrammarHandler extends Model
             return $dat;
         }
     }
+
+    public static function attachEmbeddedImage(string $body, $cid): string
+    {
+        $body = str_replace('<img alt="QR для оплаты" id="qr-image" src="#" class="hidden">', "<div class='text-center'><h1>QR для оплаты:</h1><img id='qr-image' alt='QR для оплаты' src='{$cid}'></div>", $body);
+        return $body;
+    }
 }

@@ -93,6 +93,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     // проверю частично оплаченные счета
                     $months = Table_power_months::find()->where(['cottageNumber' => $cottageInfo->globalInfo->cottageNumber])->all();
                     if (!empty($months)) {
+                        /** @var Table_power_months $month */
                         foreach ($months as $month) {
                             if ($month->totalPay > 0) {
                                 // найду платежи по счёту
@@ -134,7 +135,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             <tr>
                 <td>Членские взносы- последний оплаченный квартал</td>
                 <td>
-                    <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->globalInfo)); ?></b>
+                    <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->globalInfo)) ?></b>
                     <?php
                     if ($cottageInfo->globalInfo->partialPayedMembership) {
                         // получу данные о неполном платеже
@@ -160,6 +161,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
             $total = 0;
             // просмотрю пени
             if (!empty($cottageInfo->fines)) {
+                /** @var Table_penalties $fine */
                 foreach ($cottageInfo->fines as $fine) {
                     if ($fine->is_enabled) {
                         $total += CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ);
@@ -261,7 +263,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     <tr class="info">
                         <td>Членские взносы- последний оплаченный квартал</td>
                         <td>
-                            <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->additionalCottageInfo['cottageInfo'])); ?></b>
+                            <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->additionalCottageInfo['cottageInfo'])) ?></b>
                             <?php
                             if ($cottageInfo->additionalCottageInfo['cottageInfo']->partialPayedMembership) {
                                 // получу данные о неполном платеже
@@ -581,5 +583,8 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
         }
         ?>
 
+    </div>
+    <div class="text-center">
+        <a href="/additional-actions/<?=$cottageInfo->globalInfo->cottageNumber?>" class='btn btn-info'>Дополнительные действия</a>
     </div>
 </div>

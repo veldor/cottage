@@ -32,6 +32,12 @@ use app\priv\Info;
             width: 50%;
             margin-left: 25%;
         }
+        .hidden{
+            display: none;
+        }
+        img#qr-image{
+            max-width: 300px;
+        }
     </style>
 </head>
 <body>
@@ -51,6 +57,7 @@ use app\priv\Info;
                 Квитанция на оплату прилагается к письму. Вы можете произвести оплату через интернет-банк, мобильное
                 приложение, терминал оплаты.<br/>
                 При оплате взимается комиссия в соответствии с тарифами банка, но не менее 1%.</p>
+                <img alt="QR для оплаты" id="qr-image" src="#" class="hidden">
             <?=$billInfo ?>
         </td>
     </tr>

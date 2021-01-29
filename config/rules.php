@@ -11,6 +11,7 @@ return [
 	'create/additional-cottage/<cottageNumber:[0-9]+>' => 'cottage/additional',
 	'save/additional-cottage/<cottageNumber:[0-9]+>' => 'cottage/additional-save',
 	'change-cottage/<cottageNumber:[0-9]+>' => 'cottage/change',
+	'additional-actions/<cottageNumber:[0-9]+(-a)?>' => 'additional-cottage-actions',
 	'change-cottage' => 'cottage/change',
 	'add-cottage/save/<type:add|change|change-add>' => 'cottage/save',
 	'show-cottage/<cottageNumber:[0-9]+>' => 'cottage/show',

@@ -357,14 +357,14 @@ class PowerHandler extends Model
         $payed = 0;
         if (!empty($duties)) {
             foreach ($duties as $dutyItem) {
-                    $duty += $dutyItem->totalPay;
-                    // поищу все оплаты по данному счёту и вычту их из суммы долга
-                    $pays = Table_payed_power::getPayed($dutyItem);
-                    if ($pays !== null) {
-                        foreach ($pays as $pay) {
-                            $payed += CashHandler::toRubles($pay->summ);
-                        }
+                $duty += $dutyItem->totalPay;
+                // поищу все оплаты по данному счёту и вычту их из суммы долга
+                $pays = Table_payed_power::getPayed($dutyItem);
+                if ($pays !== null) {
+                    foreach ($pays as $pay) {
+                        $payed += CashHandler::toRubles($pay->summ);
                     }
+                }
             }
         }
         return CashHandler::toRubles(CashHandler::toRubles($duty) - CashHandler::toRubles($payed));
@@ -381,17 +381,16 @@ class PowerHandler extends Model
         $monthCounter = 1;
         $consumption = [];
         $consumption[] = [($year - 1) . '-12', 0];
-        while ($monthCounter <= 12){
-            if($monthCounter > 9){
+        while ($monthCounter <= 12) {
+            if ($monthCounter > 9) {
                 $month = "$year-$monthCounter";
-            }
-            else{
+            } else {
                 $month = "$year-0$monthCounter";
             }
             // получу все потребление за месяц
             $consumptionItems = Table_power_months::findAll(['month' => $month]);
             $spend = 0;
-            if(!empty($consumptionItems)){
+            if (!empty($consumptionItems)) {
                 foreach ($consumptionItems as $consumptionItem) {
                     $spend += CashHandler::toRubles($consumptionItem->difference);
                 }
@@ -417,7 +416,7 @@ class PowerHandler extends Model
             // начисления за месяц
             $accruals = Table_power_months::findAll(['month' => $month]);
             $amount = 0;
-            if(!empty($accruals)){
+            if (!empty($accruals)) {
                 foreach ($accruals as $accrualItem) {
                     $amount += CashHandler::toRubles($accrualItem->totalPay);
                 }
@@ -425,7 +424,7 @@ class PowerHandler extends Model
             $accrual[] = [$month, CashHandler::toRubles($amount)];
             $payed = Table_payed_power::findAll(['month' => $month]);
             $totalPayed = 0;
-            if(!empty($payed)){
+            if (!empty($payed)) {
                 foreach ($payed as $payedItem) {
                     $totalPayed += CashHandler::toRubles($payedItem->summ);
                 }
@@ -445,7 +444,7 @@ class PowerHandler extends Model
     {
         $pays = self::getPaysForPeriod($cottage, $month);
         $payed = 0;
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
                 $payed += CashHandler::toRubles($pay->summ);
             }
@@ -455,7 +454,7 @@ class PowerHandler extends Model
 
     public static function getLastPayedMonth(string $cottageNumber)
     {
-        if(GrammarHandler::isMain($cottageNumber)){
+        if (GrammarHandler::isMain($cottageNumber)) {
             return (Table_power_months::find()->where(['cottageNumber' => $cottageNumber, 'payed' => 'yes'])->orderBy('month DESC')->one())->month;
         }
         return (Table_additional_power_months::find()->where(['cottageNumber' => $cottageNumber, 'payed' => 'yes'])->orderBy('month DESC')->one())->month;
@@ -953,15 +952,13 @@ class PowerHandler extends Model
             $realPowerLimit = $cottage->cottageNumber === 88 ? 100 : $tariff->powerLimit;
             // проверю наличие индивидуальных данных
             $personalRate = PersonalPower::findOne(['month' => $key, 'cottage_number' => $cottage->cottageNumber]);
-            if($personalRate !== null){
-                if(!empty($personalRate->fixed_amount)){
+            if ($personalRate !== null) {
+                if (!empty($personalRate->fixed_amount)) {
                     $answer .= "<month date='$key' summ='{$personalRate->fixed_amount}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='0' over-limit='{$data->difference}' in-limit-cost='0' over-limit-cost='{$personalRate->fixed_amount}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
-                }
-                else{
+                } else {
                     $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$personalRate->cost}' powerOvercost='{$personalRate->over_cost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
                 }
-            }
-            else{
+            } else {
                 $answer .= "<month date='$key' summ='{$toPay}' prepayed='$payedSumm' old-data='{$data->oldPowerData}' new-data='{$data->newPowerData}' powerLimit='{$realPowerLimit}' powerCost='{$tariff->powerCost}' powerOvercost='{$tariff->powerOvercost}' difference='{$data->difference}' in-limit='{$data->inLimitSumm}' over-limit='{$data->overLimitSumm}' in-limit-cost='{$data->inLimitPay}' over-limit-cost='{$data->overLimitPay}' corrected='" . (!empty($value['no_limit']) ? '1' : '0') . "'/>";
             }
             $summ += $toPay;
@@ -1029,7 +1026,7 @@ class PowerHandler extends Model
         $paymentMonth = self::getPaymentMonth($cottageId, $date, !Cottage::isMain($cottageInfo));
         // если месяц оплачен полностью- отмечу это
         $pays = self::getPaysForPeriodAmount($cottageInfo, $date);
-        if($pays === $paymentMonth->totalPay){
+        if ($pays === $paymentMonth->totalPay) {
             $paymentMonth->payed = 'yes';
         }
         CottagesFastInfo::recalculatePowerDebt($cottageInfo);
@@ -1252,13 +1249,12 @@ class PowerHandler extends Model
                         $requiredAmount = $data->totalPay;
                     }
 
-                    if($requiredAmount === $payed){
+                    if ($requiredAmount === $payed) {
                         // счёт полностью оплачен ранее, зачислю разницу на депозит
                         (new Deposit_io(['summ' => $summ, 'cottageNumber' => $cottageInfo->getCottageNumber(), 'destination' => 'in', 'summBefore' => $cottageInfo->deposit, 'summAfter' => CashHandler::toRubles($cottageInfo->deposit + $summ), 'actionDate' => time(), 'billId' => $bill->id]))->save();
                         $cottageInfo->deposit = CashHandler::toRubles($cottageInfo->deposit + $summ);
                         $cottageInfo->save();
-                    }
-                    else{
+                    } else {
                         self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
                         $cottageInfo->powerDebt = CashHandler::rublesMath($cottageInfo->powerDebt - $summ);
                         if ($requiredAmount - $payed - $summ === 0) {
@@ -1287,7 +1283,7 @@ class PowerHandler extends Model
                 } else {
                     $monthInfo = $dom->query('//additional_power/month[@date="' . $date . '"]')->item(0);
                 }
-                if($monthInfo !== null){
+                if ($monthInfo !== null) {
                     $fullPaySumm = CashHandler::toRubles($monthInfo->getAttribute('summ'));
                     if ($prevPayment + $summ === $fullPaySumm) {
                         self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ - $prevPayment);
@@ -1388,14 +1384,15 @@ class PowerHandler extends Model
      * @return Table_additional_power_months|Table_power_months
      */
     private static function getMonthInfo($cottage, $period = null)
-    {{
-        $main = Cottage::isMain($cottage);
-        if (empty($period))
-            if ($main) {
-                $data = Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('searchTimestamp DESC')->one();
-            } else {
-                $data = Table_additional_power_months::find()->where(['cottageNumber' => $cottage->masterId])->orderBy('searchTimestamp DESC')->one();
-            }
+    {
+        {
+            $main = Cottage::isMain($cottage);
+            if (empty($period))
+                if ($main) {
+                    $data = Table_power_months::find()->where(['cottageNumber' => $cottage->cottageNumber])->orderBy('searchTimestamp DESC')->one();
+                } else {
+                    $data = Table_additional_power_months::find()->where(['cottageNumber' => $cottage->masterId])->orderBy('searchTimestamp DESC')->one();
+                }
             if (!empty($data)) {
                 return $data;
             }

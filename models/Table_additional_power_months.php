@@ -29,9 +29,9 @@ use yii\db\ActiveRecord;
  * @property string $overLimitPay [float unsigned]
  */
 
-class Table_additional_power_months extends ActiveRecord
+class Table_additional_power_months extends Table_power_months
 {
-    public static function tableName()
+    public static function tableName():string
     {
         return 'additional_months_power';
     }

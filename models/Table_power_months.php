@@ -71,4 +71,46 @@ class Table_power_months extends ActiveRecord
         }
         return Table_additional_power_months::findOne(['cottageNumber' => $cottageInfo->getBaseCottageNumber(), 'month' => $date]);
     }
+
+    /**
+     * Верну все начисления по участку
+     * @param Table_cottages $cottageInfo
+     * @return Table_power_months[]
+     */
+    public static function getCottageAccruals(Table_cottages $cottageInfo): array
+    {
+        if($cottageInfo->isMain()){
+            return self::findAll(['cottageNumber' => $cottageInfo->cottageNumber]);
+        }
+        return Table_additional_power_months::findAll(['cottageNumber' => $cottageInfo->cottageNumber]);
+    }
+
+    /**
+     * Проверка, оплачен ли месяц
+     * @return bool
+     * @throws ExceptionWithStatus
+     */
+    public function isFullPayed(): bool
+    {
+        if($this->totalPay > 0){
+            $pays = Table_payed_power::getPayed($this);
+            if(!empty($pays)){
+                $payedSum = 0;
+                foreach ($pays as $pay) {
+                    $payedSum = CashHandler::toRubles($payedSum + $pay->summ);
+                }
+                if($payedSum < $this->totalPay){
+                    return false;
+                }
+                // а вот если зарегистрировано оплата на большую сумму, чем начислено- это подозрительно, сообщу об этом
+                if($payedSum > $this->totalPay){
+                    throw new ExceptionWithStatus("Оплата за {$this->month} по участку {$this->cottageNumber} : {$payedSum} больше, чем начислено за месяц: {$this->totalPay}");
+                }
+            }
+            else{
+                return false;
+            }
+        }
+            return true;
+    }
 }
