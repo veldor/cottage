@@ -1,12 +1,19 @@
 <?php
 
 use app\assets\AppAsset;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use yii\web\View;
 
 /* @var $this View */
 
 AppAsset::register($this);
 
-$cottageInfo = \app\models\Cottage::getCottageByLiteral("93-a");
-$lastPayedQuarter = \app\models\MembershipHandler::getLastPayedQuarter($cottageInfo);
-echo $lastPayedQuarter;
+
+$options = new QROptions([
+    'outputType' => QRCode::OUTPUT_IMAGE_PNG,
+]);
+
+$data = "hello, world!";
+
+(new \app\models\utils\QRImageGenerator())->generateQr($data);
