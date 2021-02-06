@@ -32,6 +32,7 @@ class Pay extends Model
     public string $change = '0';
     public string $getCustomDate = '0';
     public bool $sendConfirmation = true;
+    public bool $payFromDeposit = false;
 
     public string $power = '0';
     public string $additionalPower = '0';
@@ -372,16 +373,20 @@ class Pay extends Model
             $billTransaction->save();
             if ($payType === 'full') {
                 // проверю сумму начисления на депозит
-                $neededDeposit = CashHandler::toRubles(CashHandler::toRubles($this->rawSumm) - CashHandler::toRubles($neededSumm));
-                if (CashHandler::toRubles($neededDeposit) !== CashHandler::toRubles($this->toDeposit)) {
-                    throw new ExceptionWithStatus("Не сходится сумма начисления на депозит ({$neededDeposit}) ({$this->toDeposit})");
+                if ($this->payFromDeposit) {
+                    $this->fromDeposit = $this->rawSumm;
+                } else {
+                    $neededDeposit = CashHandler::toRubles(CashHandler::toRubles($this->rawSumm) - CashHandler::toRubles($neededSumm));
+                    if (CashHandler::toRubles($neededDeposit) !== CashHandler::toRubles($this->toDeposit)) {
+                        throw new ExceptionWithStatus("Не сходится сумма начисления на депозит ({$neededDeposit}) ({$this->toDeposit})");
+                    }
                 }
 
                 // обработаю депозит и скидки
                 if ($billInfo->depositUsed > 0) {
-                    DepositHandler::registerDeposit($billInfo, $cottageInfo, 'out', $billTransaction);
+                    DepositHandler::registerDeposit($billInfo, $cottageInfo, 'out', $billTransaction, $this->payFromDeposit);
                 }
-                if ($this->toDeposit > 0) {
+                if (CashHandler::toRubles($this->toDeposit) > 0 && !$this->payFromDeposit) {
                     $billInfo->toDeposit = CashHandler::toRubles($this->toDeposit);
                     DepositHandler::registerDeposit($billInfo, $cottageInfo, 'in', $billTransaction);
                 }

@@ -1165,6 +1165,30 @@ function editBill(identificator, double) {
                     }
                 });
             });
+            // открою окно оплаты с депозита
+            let payFromDepositActivator = modal.find('button#payFromDepositActivator');
+            payFromDepositActivator.on('click.save', function () {
+                link.modal('hide');
+                modal.on('hidden.bs.modal', function () {
+                    let url;
+                    if (double) {
+                        url = '/get-form/pay-deposit/double/' + identificator;
+                    } else {
+                        url = '/get-form/pay-deposit/' + identificator;
+                    }
+                    sendAjax('get', url, payConfirmCallback);
+
+                    function payConfirmCallback(answer) {
+                        if (answer.status === 1) {
+                            let newModal = makeModal('Оплата с депозита', answer['view']);
+                            newModal.find('.popovered').popover();
+                        }
+                        else if(answer.status === 2){
+                            makeInformer('danger', 'Невозможно', 'Нет средств на депозите!');
+                        }
+                    }
+                });
+            });
             let payCloseActivator = modal.find('#payClosedActivator');
             payCloseActivator.on('click.closePay', function () {
                 let url;

@@ -9,17 +9,21 @@
 
 namespace app\controllers;
 
+use app\models\CashHandler;
 use app\models\Cloud;
 use app\models\ComparisonHandler;
 use app\models\ComplexPayment;
+use app\models\Cottage;
 use app\models\database\MailingSchedule;
 use app\models\DepositHandler;
 use app\models\ExceptionWithStatus;
 use app\models\FinesHandler;
 use app\models\GlobalActions;
+use app\models\handlers\BillsHandler;
 use app\models\Pay;
 use app\models\Payments;
 use app\models\SingleHandler;
+use app\models\Table_payment_bills;
 use app\models\TransactionsHandler;
 use Yii;
 use yii\base\InvalidValueException;
@@ -42,7 +46,47 @@ class PaymentsController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'form', 'save', 'history', 'invoice-show', 'show-previous', 'validate-payment', 'create-complex', 'bill-info', 'print-invoice', 'print-bank-invoice', 'send-bank-invoice', 'send-invoice', 'use-deposit', 'no-use-deposit', 'save-bill', 'get-bills', 'get-pay-confirm-form', 'validate-pay-confirm', 'validate-cash-double', 'validate-single', 'confirm-pay', 'confirm-cash-double', 'delete-bill', 'edit-single', 'direct-to-deposit', 'close', 'show-all-bills', 'chain', 'chain-confirm', 'change-transaction-date', 'chain-confirm-manual', 'count-fines', 'bill-reopen', 'change-transaction-date', 'confirm-payment', 'bank-to-deposit'],
+                        'actions' => [
+                            'index',
+                            'form',
+                            'save',
+                            'history',
+                            'invoice-show',
+                            'show-previous',
+                            'validate-payment',
+                            'create-complex',
+                            'bill-info',
+                            'print-invoice',
+                            'print-bank-invoice',
+                            'send-bank-invoice',
+                            'send-invoice',
+                            'use-deposit',
+                            'no-use-deposit',
+                            'save-bill',
+                            'get-bills',
+                            'get-pay-confirm-form',
+                            'confirm-deposit-pay',
+                            'get-deposit-pay-confirm-form',
+                            'validate-pay-confirm',
+                            'validate-cash-double',
+                            'validate-single',
+                            'confirm-pay',
+                            'confirm-cash-double',
+                            'delete-bill',
+                            'edit-single',
+                            'direct-to-deposit',
+                            'close',
+                            'show-all-bills',
+                            'chain',
+                            'chain-confirm',
+                            'change-transaction-date',
+                            'chain-confirm-manual',
+                            'count-fines',
+                            'bill-reopen',
+                            'change-transaction-date',
+                            'confirm-payment',
+                            'bank-to-deposit'
+                        ],
                         'roles' => ['writer'],
                     ],
                 ],
@@ -204,6 +248,30 @@ class PaymentsController extends Controller
             Yii::$app->response->format = Response::FORMAT_JSON;
             $model = new Pay(['scenario' => Pay::SCENARIO_PAY]);
             if ($model->fillInfo($identificator, $bankTransaction, $double)) {
+                $view = $this->renderAjax('payConfirmForm', ['model' => $model]);
+                return ['status' => 1, 'view' => $view, 'header' => 'Распределение средств'];
+            }
+            return ['status' => 2, 'errors' => $model->errors];
+        }
+        throw new NotFoundHttpException('Страница не найдена');
+    }
+    public function actionGetDepositPayConfirmForm($identificator, $bankTransaction = null, $double = false): array
+    {
+        if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            // проверю, если средств на депозите хватает для полной оплаты- предложу оплатить всё и закрыть счёт
+            $billInfo = ComplexPayment::getBill($identificator, $double);
+            $cottageInfo = Cottage::getCottageInfo($billInfo->cottageNumber, $double);
+            if(CashHandler::toRubles($cottageInfo->deposit) === 0.0){
+                return ['status' => 2, 'message' => 'Нет средств на депозите'];
+            }
+            $model = new Pay(['scenario' => Pay::SCENARIO_PAY]);
+            $model->payFromDeposit = true;
+            if ($model->fillInfo($identificator, $bankTransaction, $double)) {
+                if(CashHandler::toRubles($cottageInfo->deposit) >= CashHandler::toRubles($model->totalSumm) - CashHandler::toRubles($model->payedBefore)){
+                    $view = $this->renderAjax('fullPayFromDepositConfirmForm', ['model' => $model]);
+                    return ['status' => 1, 'view' => $view, 'header' => 'Распределение средств'];
+                }
                 $view = $this->renderAjax('payConfirmForm', ['model' => $model]);
                 return ['status' => 1, 'view' => $view, 'header' => 'Распределение средств'];
             }
@@ -373,7 +441,7 @@ class PaymentsController extends Controller
         }
     }
 
-    public function actionChainConfirm()
+    public function actionChainConfirm(): ?array
     {
         if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
             Yii::$app->response->format = Response::FORMAT_JSON;
@@ -460,5 +528,26 @@ class PaymentsController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
         return ComparisonHandler::insertToDeposit();
+    }
+
+    public function actionConfirmDepositPay(){
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        if (Yii::$app->request->isAjax && Yii::$app->request->isPost) {
+            $billId = Yii::$app->request->post('billId');
+            if(!empty($billId)){
+                $billInfo = Table_payment_bills::getBill($billId, Yii::$app->request->post('double'));
+                if($billInfo !== null){
+                    $cottageInfo = Cottage::getCottage($billInfo->cottageNumber, Yii::$app->request->post('double'));
+                    // найду сумму, которую осталось оплатить по счёту
+                    $totalBillInfo = ComplexPayment::getBillInfo($billInfo);
+                    if(CashHandler::toRubles($cottageInfo->deposit) >= CashHandler::toRubles($totalBillInfo['summToPay'])){
+                        // проведу оплату с депозита
+                        $billInfo->acceptFullPayFromDeposit($cottageInfo);
+                    }
+                    die;
+                }
+            }
+        }
+        throw new NotFoundHttpException('Страница не найдена');
     }
 }

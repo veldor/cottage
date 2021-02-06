@@ -155,6 +155,7 @@ $double = !empty($info['cottageInfo']->hasDifferentOwner);
         ?>
         <div class="col-lg-12 margened btn-group">
             <button class="btn btn-success" id="payedActivator">Подтвердить оплату</button>
+            <button class="btn btn-success" id="payFromDepositActivator">Оплатить с депозита</button>
             <button class="btn btn-danger" id="deleteBill">Закрыть счёт</button>
             <button class="btn btn-info" id="printInvoice">Распечатать счёт</button>
         </div>

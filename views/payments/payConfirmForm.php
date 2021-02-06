@@ -54,7 +54,7 @@ $summToPay = CashHandler::toRubles(CashHandler::toRubles($fullSumm) - CashHandle
 echo '
     <h2>К оплате: <b id="paySumm" class="text-info" data-full-summ="' . $fullSumm . '" data-summ="' . $summToPay . '" data-deposit="' . $fromDeposit . '" data-discount="' . $discount . '" data-payed-before="' . $payedBefore . '">' . CashHandler::toSmoothRubles($summToPay) . '</b></h2>';
 
-if(!empty($model->bankTransaction) && $fullSumm !== $model->bankTransaction->payment_summ){
+if (!empty($model->bankTransaction) && $fullSumm !== $model->bankTransaction->payment_summ) {
     echo '<h2>Не распределено: <b id="undistributedSummCopy">' . CashHandler::toRubles($model->bankTransaction->payment_summ) . '</b>' . CashHandler::RUB . '</h2>';
 }
 if ($fullSumm !== $summToPay) {
@@ -90,7 +90,14 @@ if (!empty($model->getCustomDate)) {
         ->label('Дата платежа');
 }
 
-if (empty($model->bankTransaction)) {
+if ($model->payFromDeposit) {
+    echo $form->field($model, 'rawSumm', ['template' =>
+        '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group">{input}<span class="input-group-addon">&#8381;</span></div>
+									{error}{hint}</div>'])
+        ->textInput(['autocomplete' => 'off', 'type' => 'number', 'readonly' => true, 'value' => str_replace(',', '.', CashHandler::toRubles($model->rawSumm))])
+        ->hint('В рублях')
+        ->label('Будет списано с депозита');
+} elseif (empty($model->bankTransaction)) {
     echo $form->field($model, 'rawSumm', ['template' =>
         '<div class="col-sm-5">{label}</div><div class="col-sm-4"><div class="input-group"><span id="roundSummGet" class="btn btn-success input-group-addon">Ровно</span>{input}<span class="input-group-addon">&#8381;</span></div>
 									{error}{hint}</div>'])

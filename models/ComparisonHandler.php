@@ -110,7 +110,7 @@ class ComparisonHandler extends Model
         }
         // обработаю транзакцию
         $transactionSumm = CashHandler::toRubles($transactionInfo->payment_summ);
-        $difference = $transactionSumm - $requiredAmount;
+        $difference = CashHandler::toRubles($transactionSumm) - CashHandler::toRubles($requiredAmount);
         if ($difference < 0) {
             throw new ExceptionWithStatus('Частичная оплата счёта тут не обрабатывается!');
         }

@@ -92,6 +92,9 @@ class Email extends Model
             }
             $mail->setHtmlBody($this->body);
         }
+        else{
+            $mail->setHtmlBody($this->body);
+        }
         if(!empty($this->embed)){
             $cid = $mail->embed($this->embed['url'],[
                 'fileName' => "QR код для оплаты",
