@@ -75,6 +75,8 @@ return [
 	'get/bills/<cottageNumber:[0-9]+>' => 'payments/get-bills',
 	'get/bills/<double:double>/<cottageNumber:[0-9]+>' => 'payments/get-bills',
 	'get-form/pay/<identificator:[0-9]+>' => 'payments/get-pay-confirm-form',
+	'get-form/pay-deposit/<identificator:[0-9]+>' => 'payments/get-deposit-pay-confirm-form',
+	'get-form/pay-deposit/<double:double>/<identificator:[0-9]+>' => 'payments/get-deposit-pay-confirm-form',
 	'get-form/pay/<identificator:[0-9]+>/<bankTransaction:[0-9]+>' => 'payments/get-pay-confirm-form',
 	'get-form/pay/<double:double>/<identificator:[0-9]+>' => 'payments/get-pay-confirm-form',
 	'pay/confirm/check/<identificator:[0-9]+>' => 'payments/validate-pay-confirm',

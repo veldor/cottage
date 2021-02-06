@@ -47,8 +47,9 @@ class DepositHandler extends Model {
      * @param $cottageInfo Table_cottages
      * @param $way 'in'|'out'
      * @param null|Table_transactions $transaction
+     * @param bool $noCalculateUsedDeposit
      */
-	public static function registerDeposit($billInfo, $cottageInfo, $way, $transaction = null): void
+	public static function registerDeposit($billInfo, $cottageInfo, $way, $transaction = null, $noCalculateUsedDeposit = false): void
     {
 	    if($transaction !== null){
             $depositIo = new Table_deposit_io();
@@ -56,10 +57,23 @@ class DepositHandler extends Model {
             $depositIo->transactionId = $transaction->id;
             $depositIo->billId = $billInfo->id;
             $depositIo->destination = $way;
-            $depositIo->summBefore = CashHandler::toRubles($cottageInfo->deposit) + CashHandler::toRubles($billInfo->depositUsed);
+            if($noCalculateUsedDeposit){
+                $depositIo->summBefore = CashHandler::toRubles($cottageInfo->deposit);
+            }
+            else{
+                $depositIo->summBefore = CashHandler::toRubles($cottageInfo->deposit) + CashHandler::toRubles($billInfo->depositUsed);
+
+            }
             if($way === 'out'){
                 $depositIo->summ = $billInfo->depositUsed;
-                $depositIo->summAfter = $cottageInfo->deposit;
+                if($noCalculateUsedDeposit){
+                    $depositIo->summAfter = CashHandler::toRubles($cottageInfo->deposit) - CashHandler::toRubles($billInfo->depositUsed);
+                    $cottageInfo->deposit = CashHandler::rublesMath(CashHandler::toRubles($cottageInfo->deposit) - CashHandler::toRubles($billInfo->depositUsed));
+
+                }
+                else{
+                    $depositIo->summAfter = $cottageInfo->deposit;
+                }
             }
             else{
                 $depositIo->summ = $billInfo->toDeposit;

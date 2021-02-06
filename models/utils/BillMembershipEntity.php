@@ -25,7 +25,7 @@ class BillMembershipEntity extends BillContentEntity
         $periodCost = MembershipHandler::getAmount(Cottage::getCottageByLiteral($this->cottageNumber), $this->date);
         $payedInBillCount = $this->getPayedInside();
         $payedOutBillCount = $this->getPayedOutside();
-        $leftToPay = CashHandler::toRubles(CashHandler::sumFromInt($this->sum) - $payedInBillCount - $payedOutBillCount);
+        $leftToPay = CashHandler::toRubles(CashHandler::toRubles($periodCost) - CashHandler::toRubles($payedInBillCount) - CashHandler::toRubles($payedOutBillCount));
         return "<tr><td>Членские" . ($this->isAdditional ? '(доп)' : '') . "</td><td>{$this->date}</td><td>{$periodCost}</td><td>" . CashHandler::sumFromInt($this->sum) . "</td><td>" . CashHandler::toRubles($payedInBillCount) . "</td><td>" . CashHandler::toRubles($payedOutBillCount) . "</td><td>$leftToPay</td></tr>";
     }
 
