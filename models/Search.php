@@ -268,7 +268,7 @@ class Search extends Model
                             $powerDetails[$p->month] = $p->summ;
                         }
                         // посчитаю детали
-                        $totalPowerSumm += CashHandler::toRubles($p->summ);
+                        $totalPowerSumm = CashHandler::toRubles($totalPowerSumm) + CashHandler::toRubles($p->summ);
                     }
                 }
                 if (!empty($memberships)) {
@@ -278,7 +278,7 @@ class Search extends Model
                         } else {
                             $membershipDetails[$p->quarter] = $p->summ;
                         }
-                        $totalMemSumm += CashHandler::toRubles($p->summ);
+                        $totalMemSumm = CashHandler::toRubles($totalMemSumm) + CashHandler::toRubles($p->summ);
                     }
                 }
                 if (!empty($targets)) {
@@ -340,9 +340,9 @@ class Search extends Model
             }
             $content = "<table class='table table-striped'><thead><th>Электроэнергия</th><th>Членские</th><th>Целевые</th><th>Разовые</th><th>Пени</th><th>С депозита</th><th>На депозит</th></thead><tbody>";
 
-            $content .= '<tr><td>' . CashHandler::toShortSmoothRubles($totalPowerSumm) . $powerDetailsValue . '</td><td>' . CashHandler::toShortSmoothRubles($totalMemSumm) . $membershipDetailsValue . '</td><td>' . CashHandler::toShortSmoothRubles($totalTargetSumm) . $targetDetailsValue . '</td><td>' . CashHandler::toShortSmoothRubles($totalSingleSumm) . '</td><td>' . CashHandler::toShortSmoothRubles($totalFinesSumm) . '</td><td>' . CashHandler::toShortSmoothRubles($fromDepositSumm) . '</td><td>' . CashHandler::toShortSmoothRubles($toDepositSumm) . '</td></tr></tbody></table>';
+            $content .= '<tr><td>' . CashHandler::toRubles($totalPowerSumm) . $powerDetailsValue . '</td><td>' . CashHandler::toRubles($totalMemSumm) . $membershipDetailsValue . '</td><td>' . CashHandler::toRubles($totalTargetSumm) . $targetDetailsValue . '</td><td>' . CashHandler::toRubles($totalSingleSumm) . '</td><td>' . CashHandler::toRubles($totalFinesSumm) . '</td><td>' . CashHandler::toRubles($fromDepositSumm) . '</td><td>' . CashHandler::toRubles($toDepositSumm) . '</td></tr></tbody></table>';
             $total = CashHandler::toRubles($totalSingleSumm + $totalPowerSumm + $totalTargetSumm + $totalFinesSumm + $totalMemSumm - $discountsSumm - $fromDepositSumm + $toDepositSumm, true);
-            return ['status' => 1, 'data' => $content, 'totalSumm' => $total, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
+                return ['status' => 1, 'data' => $content, 'totalSumm' => $total, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
         }
         return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
     }
@@ -620,8 +620,7 @@ class Search extends Model
             }
             $content[] = "<tr><td class='date-cell'>Итого</td><td class='bill-id-cell'></td><td class='cottage-number-cell'></td><td class='quarter-cell'></td><td class='mem-summ-cell'>$wholeMembership</td><td class='pow-values'></td><td class='pow-total'></td><td class='pow-summ'>$wholePower</td><td class='target-by-years-cell'></td><td class='target-total'>$wholeTarget</td><td></td><td>$wholeSingle</td><td></td><td>$wholeFines</td><td>$wholeDeposit</td><td>$wholeSumm</td></tr>";
             return ['status' => 1, 'data' => $content, 'totalSumm' => $fullSumm, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
-        } else {
-            return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
         }
+        return ['status' => 1, 'data' => "<h2 class='text-center'>Платежей за данный период не было</h2>", 'totalSumm' => 0, 'from' => TimeHandler::getDatetimeFromTimestamp($interval['start']), 'to' => TimeHandler::getDatetimeFromTimestamp($interval['finish'])];
     }
 }

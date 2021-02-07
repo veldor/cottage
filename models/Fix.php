@@ -11,11 +11,116 @@ namespace app\models;
 
 use app\models\database\Mail;
 use app\models\tables\Table_bill_fines;
+use app\models\tables\Table_payed_fines;
 use app\models\tables\Table_penalties;
 use yii\base\Model;
 
 class Fix extends Model
 {
+    public static function fixSmallDeposits(){
+        $wrongTransactionsCount = 0;
+        $wholeFixedDifference = 0;
+        // получу все транзакции
+        $allTransactions = Table_transactions::find()->all();
+        $transactonsCount = count($allTransactions);
+        foreach ($allTransactions as $singleTransaction){
+            $payedInTransaction = 0;
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_payed_power::find()->where(['transactionId' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                }
+            }
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_additional_payed_power::find()->where(['transactionId' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                }
+            }
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_payed_membership::find()->where(['transactionId' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                }
+            }
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_additional_payed_membership::find()->where(['transactionId' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    if($powerPay->cottageId != 127){
+                        $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                    }
+                }
+            }
+
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_payed_target::find()->where(['transactionId' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                }
+            }
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_additional_payed_target::find()->where(['transactionId' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                }
+            }
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_payed_single::find()->where(['transactionId' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                }
+            }
+            // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
+            $powerPayedInTransaction = Table_payed_fines::find()->where(['transaction_id' => $singleTransaction->id])->all();
+            if(!empty($powerPayedInTransaction)){
+                foreach ($powerPayedInTransaction as $powerPay){
+                    $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
+                }
+            }
+            if(CashHandler::toRubles($singleTransaction->transactionSumm) !== CashHandler::toRubles($payedInTransaction)){
+                if(Deposit_io::find()->where(['transactionId' => $singleTransaction->id, 'destination' => 'in'])->count() == 0){
+                    $payedInThisFromDeposit = Deposit_io::find()->where(['transactionId' => $singleTransaction->id, 'destination' => 'out'])->one();
+                    if($payedInThisFromDeposit !== null){
+                        $payedInTransaction = CashHandler::toRubles($payedInTransaction) - CashHandler::toRubles($payedInThisFromDeposit->summ);
+                    }
+                    if(CashHandler::toRubles($singleTransaction->transactionSumm) !== CashHandler::toRubles($payedInTransaction)){
+                        $difference = CashHandler::toRubles(CashHandler::toRubles($singleTransaction->transactionSumm) - CashHandler::toRubles($payedInTransaction), true);
+                        if($difference > 0){
+                            echo "{$singleTransaction->id} : $difference <br/>";
+                            $cottageInfo = Cottage::getCottageByLiteral($singleTransaction->cottageNumber);
+                            $wholeFixedDifference += $difference;
+                            // добавлю сумму к депозиту- это я косячнул :)
+                            $newDepositIo = new Deposit_io();
+                            $newDepositIo->destination = 'in';
+                            $newDepositIo->transactionId = $singleTransaction->id;
+                            $newDepositIo->summ = $difference;
+                            $newDepositIo->billId = $singleTransaction->billId;
+                            $newDepositIo->actionDate = time();
+                            $newDepositIo->summBefore = $cottageInfo->deposit;
+                            $cottageInfo->deposit = CashHandler::toRubles($cottageInfo->deposit + $difference);
+                            $newDepositIo->summAfter = $cottageInfo->deposit;
+                            $newDepositIo->cottageNumber = $cottageInfo->cottageNumber;
+                            $newDepositIo->save();
+                            $cottageInfo->save();
+                            $singleTransaction->gainedDeposit = $difference;
+                            $singleTransaction->save();
+                            $wrongTransactionsCount++;
+                        }
+                    }
+                }
+            }
+        }
+        echo "wrong transactions count is $wrongTransactionsCount of $transactonsCount, whole fixed " . CashHandler::toRubles($wholeFixedDifference);
+    }
+
+
 //
 //    public static function refreshPower(): array
 //    {
