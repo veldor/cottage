@@ -4,6 +4,7 @@ namespace app\controllers;
 
 use app\models\Cottage;
 use app\models\database\MailingSchedule;
+use app\models\Fix;
 use app\models\MailSettings;
 use app\models\migration\Migration;
 use app\models\Reminder;
@@ -98,9 +99,9 @@ class SiteController extends Controller
     /**
      *
      */
-    public function actionTest(): string
+    public function actionTest()
     {
-        return $this->render('test');
+        Fix::fixSmallDeposits();
     }
 
     /**
