@@ -279,8 +279,8 @@ class Pay extends Model
             } else {
                 $billTransaction->cottageNumber = $cottageInfo->cottageNumber;
             }
-            $billTransaction->payDate = $paymentTime;
-            $billTransaction->bankDate = $getTime;
+            $billTransaction->payDate = $getTime;
+            $billTransaction->bankDate = $paymentTime;
             $billTransaction->billId = $this->billIdentificator;
             $billTransaction->transactionDate = time();
             $billTransaction->transactionType = 'no-cash';

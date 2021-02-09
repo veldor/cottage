@@ -149,9 +149,9 @@ class TargetHandler extends Model
      * @param string $year
      * @return string
      */
-    public static function getAccrued(CottageInterface $cottage, string $year): string
+    public static function getAccrued(CottageInterface $cottage, string $year): float
     {
-        return Accruals_target::findOne(['year' => $year, 'cottage_number' => $cottage->getCottageNumber()])->fixed_part;
+        return CashHandler::toRubles(Accruals_target::findOne(['year' => $year, 'cottage_number' => $cottage->getCottageNumber()])->fixed_part);
     }
 
     /**

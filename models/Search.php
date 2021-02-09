@@ -20,10 +20,10 @@ use yii\base\Model;
 
 class Search extends Model
 {
-    public $startDate;
-    public $finishDate;
-    public $searchType;
-    public $searchTypeList = ['routine' => 'Обычный', 'summary' => 'Суммарный', 'report' => 'Отчёт'];
+    public string $startDate = '';
+    public string $finishDate = '';
+    public string $searchType = '';
+    public array $searchTypeList = ['routine' => 'Обычный', 'summary' => 'Суммарный', 'report' => 'Отчёт'];
 
     const SCENARIO_BILLS_SEARCH = 'bills-search';
 
@@ -43,9 +43,9 @@ class Search extends Model
         $targetMonth = null;
         // получу тариф по целевым за этот год
         $targetTariff = Table_tariffs_target::findOne(['year' => $year]);
-        if($targetTariff !== null){
-            $payUpTime = $targetTariff->payUpTime- 5184000;
-           $targetMonth = TimeHandler::getShortMonthFromTimestamp($payUpTime);
+        if ($targetTariff !== null) {
+            $payUpTime = $targetTariff->payUpTime - 5184000;
+            $targetMonth = TimeHandler::getShortMonthFromTimestamp($payUpTime);
         }
         $yearPower = 0;
         $yearMembership = 0;
@@ -67,11 +67,10 @@ class Search extends Model
             $monthAccruals = [];
             $monthPowerAccrual = 0;
             $monthMembershipAccrual = 0;
-            $montTargetAccrual = 0;
             // электроэнергия
             /** @var CottageInterface $cottage */
             foreach ($cottages as $cottage) {
-                if($cottage->getCottageNumber() === '0'){
+                if ($cottage->getCottageNumber() === '0') {
                     continue;
                 }
                 $cottageAccruals = [];
@@ -104,14 +103,14 @@ class Search extends Model
                 $cottageAccruals['membership'] = $membershipAccrual;
 
                 $targetAccrual = 0;
-                if(substr($targetMonth, 5) === substr($m, 5)){
+                if (substr($targetMonth, 5) === substr($m, 5)) {
                     // посчитаю начисления
                     $targetAccrual = TargetHandler::getAccrued($cottage, $year);
                     $yearTarget += $targetAccrual;
                 }
                 $cottageAccruals['target'] = $targetAccrual;
                 $monthAccruals[$cottage->getCottageNumber()] = $cottageAccruals;
-                $xml.= "<accrual><month>{$m}</month><cottage>{$cottage->getCottageNumber()}</cottage><power>{$totalPowerAccrual}</power><membership>$membershipAccrual</membership><target>$targetAccrual</target></accrual>";
+                $xml .= "<accrual><month>{$m}</month><cottage>{$cottage->getCottageNumber()}</cottage><power>{$totalPowerAccrual}</power><membership>$membershipAccrual</membership><target>$targetAccrual</target></accrual>";
             }
             $yearAccruals['months'][$month]['totalPower'] = $monthPowerAccrual;
             $yearAccruals['months'][$month]['totalMembership'] = $monthMembershipAccrual;
@@ -134,7 +133,7 @@ class Search extends Model
      * @param Table_transactions[]|Table_transactions_double[] $results
      * @return array
      */
-    private static function handleTransactions(array $results)
+    private static function handleTransactions(array $results): array
     {
         $totalSumm = 0;
         $text = '';
@@ -184,6 +183,10 @@ class Search extends Model
     }
 
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function doSearch(): array
     {
         $start = new DateTime('0:0:00' . $this->startDate);
@@ -261,6 +264,7 @@ class Search extends Model
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $result->id . '-a', 'destination' => 'out'])->all();
                 }
                 if (!empty($powers)) {
+                    /** @var Table_payed_power $p */
                     foreach ($powers as $p) {
                         if (!empty($powerDetails[$p->month])) {
                             $powerDetails[$p->month] += $p->summ;
@@ -272,6 +276,7 @@ class Search extends Model
                     }
                 }
                 if (!empty($memberships)) {
+                    /** @var Table_payed_membership $p */
                     foreach ($memberships as $p) {
                         if (!empty($membershipDetails[$p->quarter])) {
                             $membershipDetails[$p->quarter] += $p->summ;
@@ -282,6 +287,7 @@ class Search extends Model
                     }
                 }
                 if (!empty($targets)) {
+                    /** @var Table_payed_target $p */
                     foreach ($targets as $p) {
                         if (!empty($targetDetails[$p->year])) {
                             $targetDetails[$p->year] += $p->summ;
@@ -373,14 +379,12 @@ class Search extends Model
                 $fullSumm += CashHandler::toRubles($transaction->transactionSumm);
                 if ($transaction instanceof Table_transactions) {
                     $date = TimeHandler::getDateFromTimestamp($transaction->bankDate);
-
                     // получу оплаченные сущности
                     $powers = array_merge(Table_payed_power::find()->where(['transactionId' => $transaction->id])->all(), Table_additional_payed_power::find()->where(['transactionId' => $transaction->id])->all());
                     $memberships = array_merge(Table_payed_membership::find()->where(['transactionId' => $transaction->id])->all(), Table_additional_payed_membership::find()->where(['transactionId' => $transaction->id])->all());
                     $targets = array_merge(Table_payed_target::find()->where(['transactionId' => $transaction->id])->all(), Table_additional_payed_target::find()->where(['transactionId' => $transaction->id])->all());
                     $singles = Table_payed_single::find()->where(['transactionId' => $transaction->id])->all();
                     $fines = Table_payed_fines::find()->where(['transaction_id' => $transaction->id])->all();
-                    $discount = Table_discounts::find()->where(['transactionId' => $transaction->id])->one();
                     $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->one();
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'out'])->one();
                     if (!empty($memberships)) {
@@ -450,6 +454,7 @@ class Search extends Model
                     if (!empty($singles)) {
                         $singleSumm = 0;
                         $singleList = '';
+                        /** @var Table_payed_single $single */
                         foreach ($singles as $single) {
                             $singleList .= CashHandler::toRubles($single->summ) . '<br/>';
                             $singleSumm += $single->summ;
@@ -463,6 +468,7 @@ class Search extends Model
                     if (!empty($fines)) {
                         $finesSumm = 0;
                         $finesList = '';
+                        /** @var Table_payed_fines $fine */
                         foreach ($fines as $fine) {
                             // найду информацию о пени
                             $fineInfo = Table_penalties::findOne($fine->fine_id);
@@ -475,17 +481,14 @@ class Search extends Model
                         $finesSumm = '--';
                         $finesList = '--';
                     }
-                    if (!empty($discount)) {
-                        $discountSumm = CashHandler::toRubles($discount->summ);
-                    } else {
-                        $discountSumm = '--';
-                    }
+                    /** @var Table_deposit_io $fromDeposit */
                     if (!empty($fromDeposit)) {
                         $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
                         $wholeDeposit -= CashHandler::toRubles($fromDeposit->summ, true);
                     } else {
                         $fromDepositSumm = 0;
                     }
+                    /** @var Table_deposit_io $toDeposit */
                     if (!empty($toDeposit)) {
                         $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
                         $wholeDeposit += CashHandler::toRubles($toDeposit->summ, true);
@@ -502,12 +505,12 @@ class Search extends Model
                     $targets = Table_additional_payed_target::find()->where(['transactionId' => $transaction->id])->all();
                     $singles = Table_additional_payed_single::find()->where(['transactionId' => $transaction->id])->all();
                     $fines = Table_payed_fines::find()->where(['transaction_id' => $transaction->id])->all();
-                    $discount = Table_discounts::find()->where(['transactionId' => $transaction->id])->one();
                     $toDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'in'])->one();
                     $fromDeposit = Table_deposit_io::find()->where(['transactionId' => $transaction->id, 'destination' => 'out'])->one();
                     if (!empty($memberships)) {
                         $memSumm = 0;
                         $memList = '';
+                        /** @var Table_payed_membership $membership */
                         foreach ($memberships as $membership) {
                             if ($membership instanceof Table_payed_membership) {
                                 $memList .= $membership->quarter . ': <b>' . CashHandler::toRubles($membership->summ) . '</b><br/>';
@@ -526,6 +529,7 @@ class Search extends Model
                         $powCounterValue = '';
                         $powUsed = '';
                         $powSumm = 0;
+                        /** @var Table_payed_power $power */
                         foreach ($powers as $power) {
                             if ($power instanceof Table_payed_power) {
                                 // найду данные о показаниях
@@ -555,6 +559,7 @@ class Search extends Model
                     if (!empty($targets)) {
                         $tarSumm = 0;
                         $tarList = '';
+                        /** @var Table_payed_target $target */
                         foreach ($targets as $target) {
                             if ($target instanceof Table_payed_target) {
                                 $tarList .= $target->year . ': <b>' . CashHandler::toRubles($target->summ) . '</b><br/>';
@@ -572,6 +577,7 @@ class Search extends Model
                     if (!empty($singles)) {
                         $singleSumm = 0;
                         $singleList = '';
+                        /** @var Table_payed_single $single */
                         foreach ($singles as $single) {
                             $singleList .= CashHandler::toRubles($single->summ) . '<br/>';
                             $singleSumm += $single->summ;
@@ -585,6 +591,7 @@ class Search extends Model
                     if (!empty($fines)) {
                         $finesSumm = 0;
                         $finesList = '';
+                        /** @var Table_payed_fines $fine */
                         foreach ($fines as $fine) {
                             // найду информацию о пени
                             $fineInfo = Table_penalties::findOne($fine->fine_id);
@@ -597,17 +604,14 @@ class Search extends Model
                         $finesSumm = '--';
                         $finesList = '--';
                     }
-                    if (!empty($discount)) {
-                        $discountSumm = CashHandler::toRubles($discount->summ);
-                    } else {
-                        $discountSumm = '--';
-                    }
+                    /** @var Table_deposit_io $fromDeposit */
                     if (!empty($fromDeposit)) {
                         $fromDepositSumm = CashHandler::toRubles($fromDeposit->summ);
                         $wholeDeposit -= CashHandler::toRubles($fromDeposit->summ, true);
                     } else {
                         $fromDepositSumm = 0;
                     }
+                    /** @var Table_deposit_io $toDeposit */
                     if (!empty($toDeposit)) {
                         $toDepositSumm = CashHandler::toRubles($toDeposit->summ);
                         $wholeDeposit += CashHandler::toRubles($toDeposit->summ, true);
