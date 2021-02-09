@@ -369,7 +369,7 @@ class Search extends Model
         $wholeDeposit = 0;
         // найду транзакции за день по банковскому отчёту
         $transactions = Table_transactions::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->orderBy('bankDate')->all();
-        $trs = Table_transactions_double::find()->where(['>=', 'transactionDate', $interval['start']])->andWhere(['<=', 'transactionDate', $interval['finish']])->all();
+        $trs = Table_transactions_double::find()->where(['>=', 'bankDate', $interval['start']])->andWhere(['<=', 'bankDate', $interval['finish']])->all();
         $transactions = array_merge($transactions, $trs);
 
         if (!empty($transactions)) {

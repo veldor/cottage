@@ -23,12 +23,24 @@ class Fix extends Model
         // получу все транзакции
         $allTransactions = Table_transactions::find()->all();
         $transactonsCount = count($allTransactions);
+        /** @var Table_transactions $singleTransaction */
         foreach ($allTransactions as $singleTransaction){
+            // выставлю все движения по депозиту, связанные с транзакциями на то же число, что и саму транзакцию
+            $depositMoves = Table_deposit_io::findAll(['transactionId' => $singleTransaction->id]);
+            if(!empty($depositMoves)){
+                foreach($depositMoves as $item){
+                    $item->actionDate = $singleTransaction->bankDate;
+                    $item->save();
+                }
+            }
             $payedInTransaction = 0;
             // тут посчитаю сумму всего, что входит в транзакцию и сравню с общей суммой транзакции
             $powerPayedInTransaction = Table_payed_power::find()->where(['transactionId' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
+                /** @var Table_payed_power $powerPay */
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->paymentDate = $singleTransaction->bankDate;
+                    $powerPay->save();
                     $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                 }
             }
@@ -36,6 +48,8 @@ class Fix extends Model
             $powerPayedInTransaction = Table_additional_payed_power::find()->where(['transactionId' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->paymentDate = $singleTransaction->bankDate;
+                    $powerPay->save();
                     $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                 }
             }
@@ -43,6 +57,8 @@ class Fix extends Model
             $powerPayedInTransaction = Table_payed_membership::find()->where(['transactionId' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->paymentDate = $singleTransaction->bankDate;
+                    $powerPay->save();
                     $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                 }
             }
@@ -50,6 +66,8 @@ class Fix extends Model
             $powerPayedInTransaction = Table_additional_payed_membership::find()->where(['transactionId' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->paymentDate = $singleTransaction->bankDate;
+                    $powerPay->save();
                     if($powerPay->cottageId != 127){
                         $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                     }
@@ -60,6 +78,8 @@ class Fix extends Model
             $powerPayedInTransaction = Table_payed_target::find()->where(['transactionId' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->paymentDate = $singleTransaction->bankDate;
+                    $powerPay->save();
                     $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                 }
             }
@@ -67,6 +87,8 @@ class Fix extends Model
             $powerPayedInTransaction = Table_additional_payed_target::find()->where(['transactionId' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->paymentDate = $singleTransaction->bankDate;
+                    $powerPay->save();
                     $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                 }
             }
@@ -74,6 +96,8 @@ class Fix extends Model
             $powerPayedInTransaction = Table_payed_single::find()->where(['transactionId' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->paymentDate = $singleTransaction->bankDate;
+                    $powerPay->save();
                     $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                 }
             }
@@ -81,6 +105,8 @@ class Fix extends Model
             $powerPayedInTransaction = Table_payed_fines::find()->where(['transaction_id' => $singleTransaction->id])->all();
             if(!empty($powerPayedInTransaction)){
                 foreach ($powerPayedInTransaction as $powerPay){
+                    $powerPay->pay_date = $singleTransaction->bankDate;
+                    $powerPay->save();
                     $payedInTransaction = CashHandler::toRubles($payedInTransaction) + CashHandler::toRubles($powerPay->summ);
                 }
             }
@@ -102,7 +128,7 @@ class Fix extends Model
                             $newDepositIo->transactionId = $singleTransaction->id;
                             $newDepositIo->summ = $difference;
                             $newDepositIo->billId = $singleTransaction->billId;
-                            $newDepositIo->actionDate = time();
+                            $newDepositIo->actionDate = $singleTransaction->bankDate;
                             $newDepositIo->summBefore = $cottageInfo->deposit;
                             $cottageInfo->deposit = CashHandler::toRubles($cottageInfo->deposit + $difference);
                             $newDepositIo->summAfter = $cottageInfo->deposit;
