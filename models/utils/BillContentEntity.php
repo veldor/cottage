@@ -18,7 +18,7 @@ abstract class BillContentEntity
      * Начисления по периоду
      * @var int
      */
-    public int $totalAccrued;
+    public float $totalAccrued;
     public bool $isAdditional = false;
     public bool $isItemCorrected = false;
 

@@ -46,7 +46,8 @@ class MembershipHandler extends Model
         }
     }
 
-    public static function fillLastPayedQuarter(CottageInterface $cottage){
+    public static function fillLastPayedQuarter(CottageInterface $cottage)
+    {
         $cottage->membershipPayFor = self::getLastPayedQuarter($cottage);
         $cottage->save();
     }
@@ -110,15 +111,15 @@ class MembershipHandler extends Model
      */
     public static function getAmount($cottage, string $quarter): float
     {
-        $data = self::getCottageTariff($cottage, $quarter);
-        if ($data !== null) {
+        $accrual = Accruals_membership::findOne(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $quarter]);
+        if ($accrual !== null) {
             return Calculator::countFixedFloat(
-                $data->fixed,
-                $data->float,
-                $cottage->cottageSquare
+                $accrual->fixed_part,
+                $accrual->square_part,
+                $accrual->counted_square
             );
         }
-        return 0;
+        throw new ExceptionWithStatus('Не найдены начисления по участку');
     }
 
     public static function getFirstPayedQuarter(interfaces\CottageInterface $cottage)
@@ -262,8 +263,8 @@ class MembershipHandler extends Model
                         foreach ($pays as $pay) {
                             $payed += $pay->summ;
                         }
-                        if (CashHandler::toRubles($payed) === CashHandler::toRubles($accrued)){
-                            if($lastPayedQuarter === null){
+                        if (CashHandler::toRubles($payed) === CashHandler::toRubles($accrued)) {
+                            if ($lastPayedQuarter === null) {
                                 $lastPayedQuarter = $quarter->quarter;
                             }
                             return $lastPayedQuarter;
@@ -273,8 +274,7 @@ class MembershipHandler extends Model
                             $lastPayedQuarter = $quarter->quarter;
                         }
                     }
-                }
-                else{
+                } else {
                     return TimeHandler::getPrevQuarter($lastQuarter);
                 }
             }
@@ -286,7 +286,7 @@ class MembershipHandler extends Model
     {
         $pays = self::getPaysForPeriod(Cottage::getCottageByLiteral($cottage_number), $quarter);
         $payed = 0;
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
                 $payed += $pay->summ;
             }
@@ -389,7 +389,7 @@ class MembershipHandler extends Model
                         $payedYet = CashHandler::toRubles($payedYet + $pay->summ);
                     }
                 }
-                if($payedYet < $accrual->getAccrual()){
+                if ($payedYet < $accrual->getAccrual()) {
                     $result[] = new MembershipDebt(['partialPayed' => $payedYet, 'amount' => Calculator::countFixedFloat($accrual->fixed_part, $accrual->square_part, $accrual->counted_square), 'quarter' => $key, 'tariffFixed' => $accrual->fixed_part, 'tariffFloat' => $accrual->square_part, 'tariff' => $existentTariff]);
                 }
             }
@@ -442,8 +442,7 @@ class MembershipHandler extends Model
                 if ($summToPay > 0) {
                     $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][{$key}][value]' name='ComplexPayment[$type][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
                 }
-            }
-            else{
+            } else {
                 // Добавлю новое начисление
                 (new Accruals_membership(['quarter' => $key, 'cottage_number' => $cottage->getCottageNumber(), 'fixed_part' => $value['fixed'], 'square_part' => $value['float'], 'counted_square' => $cottage->cottageSquare]))->save();
                 $summToPay = Calculator::countFixedFloat($value['fixed'], $value['float'], $cottage->cottageSquare);
