@@ -84,24 +84,20 @@ class Email extends Model
             ->setTo([$this->address => $this->receiverName]);
         if (!empty($this->attachment)) {
             $mail->attach($this->attachment['url'], ['fileName' => $this->attachment['name']]);
-            $mail->setHtmlBody($this->body);
         }
         elseif (!empty($this->attachments)){
             foreach ($this->attachments as $attachment) {
                 $mail->attach($attachment['url'], ['fileName' => $attachment['name']]);
             }
-            $mail->setHtmlBody($this->body);
-        }
-        else{
-            $mail->setHtmlBody($this->body);
         }
         if(!empty($this->embed)){
             $cid = $mail->embed($this->embed['url'],[
-                'fileName' => "QR код для оплаты",
+                'fileName' => "QR.png",
                 'contentType' => 'image/png'
             ]);
-            $mail->setHtmlBody(GrammarHandler::attachEmbeddedImage($this->body, $cid));
+           $this->body = GrammarHandler::attachEmbeddedImage($this->body, $cid);
         }
+        $mail->setHtmlBody($this->body);
         // попробую отправить письмо, в случае ошибки- вызову исключение
         $mail->send();
     }
