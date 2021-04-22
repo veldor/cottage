@@ -137,12 +137,12 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                 <td>
                     <b class="text-info"><?= TimeHandler::getFullFromShortQuarter(MembershipHandler::getLastPayedQuarter($cottageInfo->globalInfo)) ?></b>
                     <?php
-                    if ($cottageInfo->globalInfo->partialPayedMembership) {
-                        // получу данные о неполном платеже
-                        $dom = new DOMHandler($cottageInfo->globalInfo->partialPayedMembership);
-                        /** @var DOMElement $info */
-                        $info = $dom->query('/partial')->item(0);
-                        echo '<p><b class="text-info">' . TimeHandler::getFullFromShortQuarter($info->getAttribute('date')) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($info->getAttribute('summ')) . '</b></p>';
+                    // get partial payed periods
+                    $partialPayedPeriods = MembershipHandler::checkPartialPayedQuarter($cottageInfo->globalInfo);
+                    if (!empty($partialPayedPeriods)) {
+                        foreach ($partialPayedPeriods as $key => $value) {
+                            echo '<p><b class="text-info">' . TimeHandler::getFullFromShortQuarter($key) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($value) . '</b></p>';
+                        }
                     }
                     ?>
                 </td>
@@ -347,7 +347,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     }
                     $totalDebt += $total;
                 }
-                $fullDuty = CashHandler::toRubles($cottageInfo->additionalCottageInfo['totalDebt']) +  + CashHandler::toRubles($cottageInfo->totalDebt) + CashHandler::toRubles($finesTotal);
+                $fullDuty = CashHandler::toRubles($cottageInfo->additionalCottageInfo['totalDebt']) + +CashHandler::toRubles($cottageInfo->totalDebt) + CashHandler::toRubles($finesTotal);
                 ?>
                 </tbody>
                 <tr class="info">
@@ -585,6 +585,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
 
     </div>
     <div class="text-center">
-        <a href="/additional-actions/<?=$cottageInfo->globalInfo->cottageNumber?>" class='btn btn-info'>Дополнительные действия</a>
+        <a href="/additional-actions/<?= $cottageInfo->globalInfo->cottageNumber ?>" class='btn btn-info'>Дополнительные
+            действия</a>
     </div>
 </div>

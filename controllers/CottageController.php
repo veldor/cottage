@@ -2,6 +2,7 @@
 
 namespace app\controllers;
 
+use app\fixix\TarriffFixic;
 use app\models\AddCottage;
 use app\models\AdditionalCottage;
 use app\models\Cottage;
@@ -158,6 +159,7 @@ class CottageController extends Controller {
      */
 	public function actionShow($cottageNumber): string
 	{
+        //============================
 		// Проверю тарифы за данный месяц. Если они не заполнены- решу проблему :)
 		if (Filling::checkTariffsFilling()) {
             FinesHandler::check($cottageNumber);

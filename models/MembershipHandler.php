@@ -105,7 +105,7 @@ class MembershipHandler extends Model
 
     /**
      * Получаю стоимость периода
-     * @param $cottage Table_cottages|Table_additional_cottages
+     * @param $cottage CottageInterface
      * @param string $quarter
      * @return float
      */
@@ -152,6 +152,10 @@ class MembershipHandler extends Model
         return Calculator::countFixedFloat($tariff->fixed, $tariff->float, $square);
     }
 
+    /**
+     * @param CottageInterface $cottage
+     * @return Accruals_membership[]
+     */
     public static function getCottageAccruals(CottageInterface $cottage): array
     {
         return Accruals_membership::findAll(['cottage_number' => $cottage->getCottageNumber()]);
@@ -950,14 +954,31 @@ class MembershipHandler extends Model
         $cottageInfo->partialPayedMembership = null;
     }
 
-    public static function checkPartialPayedQuarter($cottageInfo)
+    /**
+     * @param $cottageInfo CottageInterface
+     * @return null
+     * @throws ExceptionWithStatus
+     */
+    public static function checkPartialPayedQuarter(CottageInterface $cottageInfo)
     {
-        if ($cottageInfo->partialPayedMembership) {
-            $dom = new DOMHandler($cottageInfo->partialPayedMembership);
-            $root = $dom->query('/partial');
-            return DOMHandler::getElemAttributes($root->item(0));
+        $accruals = self::getCottageAccruals($cottageInfo);
+        $partial = [];
+        if(!empty($accruals)){
+            foreach ($accruals as $accrual) {
+                $payments = self::getPaysForPeriod($cottageInfo, $accrual->quarter);
+                $amount = self::getAmount($cottageInfo, $accrual->quarter);
+                $fullAmount = $amount;
+                if($payments != null){
+                    foreach ($payments as $payment) {
+                        $amount = CashHandler::toRubles($amount - $payment->summ);
+                    }
+                }
+                if($amount > 0 && $amount !== $fullAmount){
+                    $partial[$accrual->quarter] = $amount;
+                }
+            }
         }
-        return null;
+        return $partial ?? null;
     }
 
     /**

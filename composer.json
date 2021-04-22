@@ -26,10 +26,10 @@
     "nixsolutions/yandex-php-library": "dev-master",
     "unclead/yii2-multiple-input": "~2.0",
     "nirvana-msu/yii2-showloading": "1.0.*@dev",
-    "chillerlan/php-qrcode": "dev-master",
+    "chillerlan/php-qrcode": "dev-main",
     "ext-dom": "*",
     "ckeditor/ckeditor": "4.*",
-    "dompdf/dompdf": "^0.8.3",
+    "dompdf/dompdf": "^1.0.2",
     "bogdaan/viber-bot-php": "^0.0.12",
     "ext-json": "*",
     "mihaildev/yii2-ckeditor": "*",
@@ -46,10 +46,7 @@
     "roave/security-advisories": "dev-master",
     "yiisoft/yii2-debug": "~2.0.0",
     "yiisoft/yii2-gii": "~2.0.0",
-    "yiisoft/yii2-faker": "~2.0.0",
-    "codeception/base": "^2.2.3",
-    "codeception/verify": "~0.3.1",
-    "codeception/specify": "~0.4.3"
+    "yiisoft/yii2-faker": "~2.0.0"
   },
   "config": {
     "process-timeout": 1800,

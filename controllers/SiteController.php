@@ -2,7 +2,9 @@
 
 namespace app\controllers;
 
+use app\fixix\TarriffFixic;
 use app\models\Cottage;
+use app\models\database\Accruals_membership;
 use app\models\database\MailingSchedule;
 use app\models\Fix;
 use app\models\MailSettings;
@@ -57,10 +59,10 @@ class SiteController extends Controller
         ];
     }
 
+
     /**
-     * Displays homepage.
-     *
-     * @return string
+     * Отображение списка участков
+     * @return string|\yii\web\Response
      */
     public function actionIndex()
     {

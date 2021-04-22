@@ -173,13 +173,15 @@ class Cottage extends Model
     public static function getRegister($double = false): array
     {
         if ($double) {
-            return Table_additional_cottages::find()->where(['hasDifferentOwner' => 1])->orderBy('masterId')->all();
+            //todo убедиться, что тут корректно обрабатывается выборка
+            return Table_additional_cottages::find()->orderBy('masterId')->all();
         }
         return Table_cottages::find()->orderBy('cottageNumber')->all();
     }
 
     /**
-     * @return array
+     * <b>Получение списка зарегистрированных участков в виде массива, ключами которого являются адреса участков</b>
+     * @return CottageInterface[] <b>Основные участки массивом</b>
      */
     public static function getRegisteredList(): array
     {

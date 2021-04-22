@@ -329,6 +329,7 @@ class CottageDutyReport
             if ($pay->paymentDate < $payUp) {
                 $payed = CashHandler::toRubles($payed + $pay->summ);
                 $lastPayDate = $pay->paymentDate;
+                $lastPay = $pay;
             } elseif ($pay->paymentDate < $endPeriod) {
                 // платёж просрочен но оплачен в рамках периода
                 //Если есть дата последнего платежа, считаю разницу дней от неё, иначе- от срока оплаты платежа

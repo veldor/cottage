@@ -8,17 +8,17 @@ use yii\base\Model;
 
 class TariffsKeeper extends Model {
 
-	public $powerMonthsForFilling = [];
-	public $membershipQuartersForFilling = [];
-	public $targetMonth;
+	public ?array $powerMonthsForFilling = [];
+	public ?array $membershipQuartersForFilling = [];
+	public ?string $targetMonth;
 
-	public $lastPowerData;
-	public $lastMembershipData;
+	public ?Table_tariffs_power $lastPowerData;
+	public ?Table_tariffs_membership $lastMembershipData;
 
 
-	public $power;
-	public $membership;
-	public $target;
+	public ?Table_tariffs_power $power;
+	public ?Table_tariffs_membership $membership;
+	public ?Table_tariffs_target $target;
 
 	const SCENARIO_FILL = 'fill';
 

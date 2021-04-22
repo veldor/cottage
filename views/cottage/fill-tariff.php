@@ -8,11 +8,12 @@
  */
 
 use app\assets\CottageAsset;
+use yii\web\View;
 
 CottageAsset::register($this);
 
 $this->title = 'Не заполнены тарифы!';
 
-/* @var $this \yii\web\View */
+/* @var $this View */
 ?>
 <h1 id="tariff-no-filled">Необходимо заполнить тарифы за прошлый месяц</h1>
