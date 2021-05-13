@@ -31,6 +31,7 @@ $this->title = 'Центр управления';
         <?php try {
             echo CottagesShowWidget::widget(['cottages' => $existedCottages]);
         } catch (Exception $e) {
+            echo $e->getTraceAsString();
         } ?>
     </div>
 </div>

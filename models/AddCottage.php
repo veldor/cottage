@@ -3,6 +3,7 @@
 namespace app\models;
 
 
+use app\models\database\CottagesFastInfo;
 use app\validators\CashValidator;
 use app\validators\CheckCottageNoRegistred;
 use app\validators\CheckCottageRegistred;
@@ -201,6 +202,10 @@ class AddCottage extends Model
                         TargetHandler::recalculateTarget($key);
                     }
                 }
+                // создам строку с быстрыми данными
+                $fastData = new CottagesFastInfo();
+                $fastData->cottage_number = $this->cottageNumber;
+                $fastData->save();
                 $session->addFlash('success', "Успешно добавлен участок №{$data->cottageNumber}. <a href='/show-cottage/{$data->cottageNumber}' class='btn btn-info'>Просмотреть информацию по участку.</a> ");
                 $transaction->commit();
                 return true;

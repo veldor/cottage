@@ -40,14 +40,16 @@ class Balance extends Model
         if (empty($month)) {
             // найду предыдущий месяц, его значение запишу в финальное, и сделаю начальным для текущего.
             $oldMonth = Balance_table::find()->orderBy('month DESC')->one();
-            $oldMonth->finishCashBalance = $oldMonth->cash_summ;
-            $oldMonth->finishCashlessBalance = $oldMonth->cashless_summ;
-            $oldMonth->save();
-            $month = new Balance_table();
-            $month->month = TimeHandler::getCurrentShortMonth();
-            $month->startCashBalance = $month->cash_summ = $oldMonth->finishCashBalance;
-            $month->startCashlessBalance = $month->cashless_summ = $oldMonth->finishCashlessBalance;
-            $month->save();
+            if($oldMonth !== null){
+                $oldMonth->finishCashBalance = $oldMonth->cash_summ;
+                $oldMonth->finishCashlessBalance = $oldMonth->cashless_summ;
+                $oldMonth->save();
+                $month = new Balance_table();
+                $month->month = TimeHandler::getCurrentShortMonth();
+                $month->startCashBalance = $month->cash_summ = $oldMonth->finishCashBalance;
+                $month->startCashlessBalance = $month->cashless_summ = $oldMonth->finishCashlessBalance;
+                $month->save();
+            }
         }
         return $month;
     }

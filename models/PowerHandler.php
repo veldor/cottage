@@ -653,8 +653,8 @@ class PowerHandler extends Model
                 $newData->oldPowerData = $oldPowerData;
                 $newData->newPowerData = $this->newPowerData;
                 $newData->searchTimestamp = $searchTimestamp;
-                $newData->payed = 'no';
                 $newData->difference = $difference;
+                $newData->payed = $newData->difference === 0 ? 'yes' : 'no';
                 $newData->totalPay = $totalPay;
                 $newData->inLimitSumm = $inLimitSumm;
                 $newData->inLimitPay = $inLimitPay;
