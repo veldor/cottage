@@ -283,7 +283,7 @@ class MembershipHandler extends Model
                 }
             }
         }
-        return null;
+        return TimeHandler::getCurrentQuarter();
     }
 
     public static function getPeriodPaysAmount(string $cottage_number, string $quarter)

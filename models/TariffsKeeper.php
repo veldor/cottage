@@ -16,9 +16,9 @@ class TariffsKeeper extends Model {
 	public ?Table_tariffs_membership $lastMembershipData;
 
 
-	public ?Table_tariffs_power $power;
-	public ?Table_tariffs_membership $membership;
-	public ?Table_tariffs_target $target;
+	public $power;
+	public $membership;
+	public $target;
 
 	const SCENARIO_FILL = 'fill';
 

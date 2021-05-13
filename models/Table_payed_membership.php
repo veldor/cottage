@@ -9,6 +9,7 @@
 namespace app\models;
 
 
+use app\models\interfaces\CottageInterface;
 use yii\db\ActiveRecord;
 
 /**
@@ -20,6 +21,7 @@ use yii\db\ActiveRecord;
  * @property string $quarter [varchar(10)]
  * @property float $summ [float unsigned]
  * @property int $paymentDate [int(20) unsigned]
+ * @property int $transactionId [int(10) unsigned]
  */
 
 class Table_payed_membership extends ActiveRecord
@@ -27,5 +29,13 @@ class Table_payed_membership extends ActiveRecord
     public static function tableName() :string
     {
         return 'payed_membership';
+    }
+
+    public static function getPays(CottageInterface $cottage, string $period){
+        if($cottage->isMain()){
+            return self::findAll(['quarter' => $period, 'cottageId' => $cottage->getCottageNumber()]);
+        }
+        return Table_additional_payed_membership::findAll(['quarter' => $period, 'cottageId' => $cottage->getCottageNumber()]);
+
     }
 }

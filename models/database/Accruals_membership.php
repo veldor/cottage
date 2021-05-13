@@ -5,9 +5,12 @@ namespace app\models\database;
 
 
 use app\models\Calculator;
+use app\models\CashHandler;
 use app\models\Cottage;
+use app\models\GrammarHandler;
 use app\models\interfaces\CottageInterface;
 use app\models\Table_cottages;
+use app\models\Table_payed_membership;
 use Exception;
 use yii\db\ActiveRecord;
 
@@ -60,5 +63,20 @@ class Accruals_membership extends ActiveRecord
     public function getAccrual(): float
     {
         return Calculator::countFixedFloat($this->fixed_part, $this->square_part, $this->counted_square);
+    }
+
+    /**
+     * @return float
+     */
+    public function getPayed(): float
+    {
+        $pays = Table_payed_membership::getPays(Cottage::getCottageByLiteral($this->cottage_number), $this->quarter);
+        $result = 0;
+        if (!empty($pays)) {
+            foreach ($pays as $pay) {
+                $result = CashHandler::toRubles($result + $pay->summ);
+            }
+        }
+        return $result;
     }
 }

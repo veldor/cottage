@@ -17,10 +17,12 @@ class CheckTargetValidator extends Validator {
 	{
 		// разберу массив целевых взносов
 		$tariffs = TargetHandler::getCurrentRates();
-		if (count($tariffs) !== count($model->target)) {
-			$model->addError($attribute, 'Заполнены не все данные');
-		} elseif (empty($model->cottageSquare)) {
-			$model->addError($attribute, 'Не заполнена площадь участка');
-		}
+		if($tariffs !== null){
+            if (count($tariffs) !== count($model->target)) {
+                $model->addError($attribute, 'Заполнены не все данные');
+            } elseif (empty($model->cottageSquare)) {
+                $model->addError($attribute, 'Не заполнена площадь участка');
+            }
+        }
 	}
 }

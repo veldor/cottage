@@ -144,7 +144,10 @@ class CashHandler extends Model
 
     public static function countPartialPercent(float $plannedTotal, float $payedWhole)
     {
-        return round($payedWhole / $plannedTotal, 4) * 100;
+        if($plannedTotal > 0){
+            return round($payedWhole / $plannedTotal, 4) * 100;
+        }
+        return 0;
     }
 
     public static function floatToInt(string $float)

@@ -99,4 +99,10 @@ class Table_cottages extends ActiveRecord implements CottageInterface
     {
         return $this->haveAdditional;
     }
+
+    public function getSquare(): int
+    {
+        // верну площадь на данный момент
+        return $this->cottageSquare;
+    }
 }

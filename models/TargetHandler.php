@@ -17,6 +17,7 @@ use app\models\selections\TargetInfo;
 use app\validators\CashValidator;
 use DOMElement;
 use InvalidArgumentException;
+use yii\base\BaseObject;
 use yii\base\InvalidValueException;
 use yii\base\Model;
 
@@ -126,7 +127,7 @@ class TargetHandler extends Model
     private static function getYearDuty($cottage, string $year)
     {
         $duties = self::getDebt($cottage);
-        if(!empty($duties)){
+        if (!empty($duties)) {
             foreach ($duties as $duty) {
                 if ($duty->year == $year) {
                     return CashHandler::toRubles(CashHandler::toRubles($duty->amount) - CashHandler::toRubles($duty->partialPayed));
@@ -166,7 +167,7 @@ class TargetHandler extends Model
     /**
      * @return Table_tariffs_target
      */
-    public static function getFirstFilledYear(): Table_tariffs_target
+    public static function getFirstFilledYear(): ?Table_tariffs_target
     {
         return Table_tariffs_target::find()->orderBy('year')->one();
     }
@@ -250,33 +251,33 @@ class TargetHandler extends Model
         $answer = [];
         // получу список участков
         $cottages = Cottage::getRegister();
-        if(!empty($cottages)){
+        if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
-                if($cottage->getCottageNumber() === '0'){
+                if ($cottage->getCottageNumber() === '0') {
                     continue;
                 }
                 $info = new TargetInfo();
                 $info->cottageNumber = $cottage->getCottageNumber();
                 $accrual = Accruals_target::findOne(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year]);
-                if($accrual !== null){
+                if ($accrual !== null) {
                     $info->amount = $accrual->countAmount();
                     $info->payed = $accrual->countPayed();
                 }
-                if($info->amount != 0){
+                if ($info->amount != 0) {
                     $answer[] = $info;
                 }
-                if($cottage->haveAdditional()){
+                if ($cottage->haveAdditional()) {
                     $cottage = $cottage->getAdditional();
-                    if($cottage->isTarget){
+                    if ($cottage->isTarget) {
                         $info = new TargetInfo();
                         $info->cottageNumber = $cottage->getCottageNumber();
 
                         $accrual = Accruals_target::findOne(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year]);
-                        if($accrual !== null){
+                        if ($accrual !== null) {
                             $info->amount = $accrual->countAmount();
                             $info->payed = $accrual->countPayed();
                         }
-                        if($info->amount !== 0){
+                        if ($info->amount !== 0) {
                             $answer[] = $info;
                         }
                     }
@@ -295,7 +296,7 @@ class TargetHandler extends Model
     {
         $pays = self::getPaysForPeriod(Cottage::getCottageByLiteral($cottage_number), $year);
         $payed = 0;
-        if(!empty($pays)){
+        if (!empty($pays)) {
             foreach ($pays as $pay) {
                 $payed += $pay->summ;
             }
@@ -413,23 +414,25 @@ class TargetHandler extends Model
         $dutyDetails = '<targets>';
         // проконтролирую соответствие переданной информации тарифным ставкам
         $rates = self::getCurrentRates();
-        if (count($targetArray) !== count($rates)) {
-            throw new InvalidArgumentException('Заполнены не все данные!');
-        }
-        foreach ($targetArray as $key => $value) {
-            if ($value['payed-of'] !== 'full') {
-                $payed = 0;
-                $fixedTariff = $rates[$key]['fixed'];
-                $totalSumm = $fixedTariff;
-                $floatTariff = $rates[$key]['float'];
-                if ($floatTariff > 0) {
-                    $totalSumm = Calculator::countFixedFloat($fixedTariff, $floatTariff, $cottageInfo->cottageSquare);
+        if ($rates !== null) {
+            if (count($targetArray) !== count($rates)) {
+                throw new InvalidArgumentException('Заполнены не все данные!');
+            }
+            foreach ($targetArray as $key => $value) {
+                if ($value['payed-of'] !== 'full') {
+                    $payed = 0;
+                    $fixedTariff = $rates[$key]['fixed'];
+                    $totalSumm = $fixedTariff;
+                    $floatTariff = $rates[$key]['float'];
+                    if ($floatTariff > 0) {
+                        $totalSumm = Calculator::countFixedFloat($fixedTariff, $floatTariff, $cottageInfo->cottageSquare);
+                    }
+                    if ($value['payed-of'] === 'partial') {
+                        $payed = CashHandler::toRubles($value['payed-summ']);
+                    }
+                    $totalDuty += CashHandler::rublesMath($totalSumm - $payed);
+                    $dutyDetails .= "<target payed='{$payed}' year='{$key}' float='{$floatTariff}' fixed='{$fixedTariff}' square='{$cottageInfo->cottageSquare}' summ='{$totalSumm}' description='{$rates[$key]['description']}'/>";
                 }
-                if ($value['payed-of'] === 'partial') {
-                    $payed = CashHandler::toRubles($value['payed-summ']);
-                }
-                $totalDuty += CashHandler::rublesMath($totalSumm - $payed);
-                $dutyDetails .= "<target payed='{$payed}' year='{$key}' float='{$floatTariff}' fixed='{$fixedTariff}' square='{$cottageInfo->cottageSquare}' summ='{$totalSumm}' description='{$rates[$key]['description']}'/>";
             }
         }
         $dutyDetails .= '</targets>';
@@ -449,22 +452,24 @@ class TargetHandler extends Model
         }
 
         $firstFilledYear = self::getFirstFilledYear();
-        // внесу в таблицу данные по участку
-        $yearsList = TimeHandler::getYearsList($firstFilledYear->year, TimeHandler::getThisYear());
-        foreach ($yearsList as $item) {
-            $accrual = Accruals_target::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'year' => $item]);
-            if ($accrual !== null) {
-                $tariff = Table_tariffs_target::findOne(['year' => $item]);
-                if($tariff !== null){
-                    $answerItem = new TargetDebt();
-                    $answerItem->description = $tariff->description;
-                    $answerItem->year = $tariff->year;
-                    $answerItem->tariffFixed = CashHandler::toRubles($accrual->fixed_part);
-                    $answerItem->tariffFloat = CashHandler::toRubles($accrual->square_part);
-                    $answerItem->amount = Calculator::countFixedFloat($answerItem->tariffFixed, $answerItem->tariffFloat, $accrual->counted_square);
-                    $answerItem->partialPayed = self::getPartialPayed($cottageInfo, $item) + $accrual->payed_outside;
-                    if ($answerItem->partialPayed < $answerItem->amount) {
-                        $answer[$answerItem->year] = $answerItem;
+        if ($firstFilledYear !== null) {
+            // внесу в таблицу данные по участку
+            $yearsList = TimeHandler::getYearsList($firstFilledYear->year, TimeHandler::getThisYear());
+            foreach ($yearsList as $item) {
+                $accrual = Accruals_target::findOne(['cottage_number' => $cottageInfo->getCottageNumber(), 'year' => $item]);
+                if ($accrual !== null) {
+                    $tariff = Table_tariffs_target::findOne(['year' => $item]);
+                    if ($tariff !== null) {
+                        $answerItem = new TargetDebt();
+                        $answerItem->description = $tariff->description;
+                        $answerItem->year = $tariff->year;
+                        $answerItem->tariffFixed = CashHandler::toRubles($accrual->fixed_part);
+                        $answerItem->tariffFloat = CashHandler::toRubles($accrual->square_part);
+                        $answerItem->amount = Calculator::countFixedFloat($answerItem->tariffFixed, $answerItem->tariffFloat, $accrual->counted_square);
+                        $answerItem->partialPayed = self::getPartialPayed($cottageInfo, $item) + $accrual->payed_outside;
+                        if ($answerItem->partialPayed < $answerItem->amount) {
+                            $answer[$answerItem->year] = $answerItem;
+                        }
                     }
                 }
             }
@@ -712,28 +717,28 @@ class TargetHandler extends Model
             // теперь добавлю долг всем участкам без индивидуальных тарифов и всем дополнительным участкам без индивидуальных тарифов
             $cottages = Cottage::getRegister();
             foreach ($cottages as $cottage) {
-                    $dom = DOMHandler::getDom($cottage->targetPaysDuty);
-                    $target = $dom->createElement('target');
-                    $summ = Calculator::countFixedFloat($this->fixed, $this->float, $cottage->cottageSquare);
-                    $readyTarget = DOMHandler::setElemAttributes($target, ['year' => $this->year, 'payed' => 0, 'float' => $this->float, 'fixed' => $this->fixed, 'square' => $cottage->cottageSquare, 'summ' => $summ, 'description' => $this->description]);
-                    $dom->documentElement->appendChild($readyTarget);
-                    $cottage->targetPaysDuty = DOMHandler::saveXML($dom);
-                    $cottage->targetDebt += $summ;
-                    /** @var Table_cottages $cottage */
-                    $cottage->save();
+                // добавлю начисление
+                $accrual = new Accruals_target();
+                $accrual->cottage_number = $cottage->getCottageNumber();
+                $accrual->counted_square = $cottage->getSquare();
+                $accrual->year = $this->year;
+                $accrual->fixed_part = $this->fixed;
+                $accrual->square_part = $this->float;
+                $accrual->payed_outside = 0;
+                $accrual->save();
             }
             $additionalCottages = AdditionalCottage::getRegistred();
             foreach ($additionalCottages as $cottage) {
                 if ($cottage->isTarget) {
-                    $dom = DOMHandler::getDom($cottage->targetPaysDuty);
-                    $target = $dom->createElement('target');
-                    $summ = Calculator::countFixedFloat($this->fixed, $this->float, $cottage->cottageSquare);
-                    $readyTarget = DOMHandler::setElemAttributes($target, ['year' => $this->year, 'payed' => 0, 'float' => $this->float, 'fixed' => $this->fixed, 'square' => $cottage->cottageSquare, 'summ' => $summ, 'description' => $this->description]);
-                    $dom->documentElement->appendChild($readyTarget);
-                    $cottage->targetPaysDuty = DOMHandler::saveXML($dom);
-                    $cottage->targetDebt += $summ;
-                    /** @var Table_cottages $cottage */
-                    $cottage->save();
+                    // добавлю начисление
+                    $accrual = new Accruals_target();
+                    $accrual->cottage_number = $cottage->getCottageNumber();
+                    $accrual->counted_square = $cottage->getSquare();
+                    $accrual->year = $this->year;
+                    $accrual->fixed_part = $this->fixed;
+                    $accrual->square_part = $this->float;
+                    $accrual->payed_outside = 0;
+                    $accrual->save();
                 }
             }
             self::recalculateTarget($this->year);

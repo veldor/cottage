@@ -196,8 +196,10 @@ class AddCottage extends Model
                     }
                 }
                 $targets = TargetHandler::getCurrentRates();
-                foreach ($targets as $key => $value) {
-                    TargetHandler::recalculateTarget($key);
+                if($targets != null){
+                    foreach ($targets as $key => $value) {
+                        TargetHandler::recalculateTarget($key);
+                    }
                 }
                 $session->addFlash('success', "Успешно добавлен участок №{$data->cottageNumber}. <a href='/show-cottage/{$data->cottageNumber}' class='btn btn-info'>Просмотреть информацию по участку.</a> ");
                 $transaction->commit();
