@@ -968,9 +968,13 @@ class MembershipHandler extends Model
                 $payments = self::getPaysForPeriod($cottageInfo, $accrual->quarter);
                 $amount = self::getAmount($cottageInfo, $accrual->quarter);
                 $fullAmount = $amount;
-                if($payments != null){
+                if($payments !== null){
                     foreach ($payments as $payment) {
-                        $amount = CashHandler::toRubles($amount - $payment->summ);
+                        try{
+                            $amount = CashHandler::toRubles($amount - $payment->summ);
+                        }
+                        catch (Exception $e){
+                        }
                     }
                 }
                 if($amount > 0 && $amount !== $fullAmount){
