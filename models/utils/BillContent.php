@@ -120,7 +120,7 @@ class BillContent
                 $newItem = $this->handleTargetEntity($paymentItem);
                 $newItem->isAdditional = true;
                 $newItem->cottageNumber = $this->info->cottageNumber . '-a';
-                $newItem->totalAccrued = MembershipHandler::getAmount(Cottage::getCottageByLiteral($newItem->cottageNumber), $newItem->date);
+                $newItem->totalAccrued = TargetHandler::getAmount(Cottage::getCottageByLiteral($newItem->cottageNumber), $newItem->date);
                 $this->targetEntities[] = $newItem;
             }
         }
