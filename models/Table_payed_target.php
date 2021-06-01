@@ -46,4 +46,13 @@ class Table_payed_target extends ActiveRecord
         }
         return $result;
     }
+
+    public static function getPays(interfaces\CottageInterface $cottage, $item)
+    {
+        if($cottage->isMain()){
+            return self::findAll(['cottageId' => $cottage->getCottageNumber(), 'year' => $item]);
+        }
+        return Table_additional_payed_target::findAll(['cottageId' => $cottage->getCottageNumber(), 'year' => $item]);
+
+    }
 }

@@ -175,9 +175,7 @@ class TargetHandler extends Model
     public static function getPartialPayed(CottageInterface $cottage, $item)
     {
         $payed = 0;
-        if ($cottage->isMain()) {
-            $pays = Table_payed_target::find()->where(['year' => $item, 'cottageId' => $cottage->getCottageNumber()])->all();
-        }
+            $pays = Table_payed_target::getPays($cottage, $item);
         if (!empty($pays)) {
             foreach ($pays as $pay) {
                 $payed += CashHandler::toRubles($pay->summ);

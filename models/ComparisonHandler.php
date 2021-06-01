@@ -203,7 +203,7 @@ class ComparisonHandler extends Model
                     if ($leftToPay > 0) {
                         // зарегистрирую оплату
                         TargetHandler::insertSinglePayment(
-                            ($targetEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
+                            (!$isDouble && $targetEntity->isAdditional ? $additionalCottageInfo : $cottageInfo),
                             $billInfo,
                             $targetEntity->date,
                             $leftToPay,
