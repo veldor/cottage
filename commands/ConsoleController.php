@@ -31,6 +31,7 @@ class ConsoleController extends Controller
     {
 
         if (FileUtils::isUpdateInProgress()) {
+            echo "try later\n";
             return ExitCode::OK;
         }
         FileUtils::setUpdateInProgress();

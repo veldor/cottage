@@ -4,11 +4,20 @@
 namespace app\controllers;
 
 
+use app\models\database\Accruals_membership;
+use app\models\database\Accruals_target;
+use app\models\database\Cottage;
 use app\models\database\Mail;
 use app\models\ExceptionWithStatus;
 use app\models\Fix;
+use app\models\interfaces\CottageInterface;
 use app\models\PenaltiesHandler;
+use app\models\Table_payed_membership;
+use app\models\Table_payed_power;
+use app\models\Table_payed_target;
+use app\models\Table_power_months;
 use app\models\Utils;
+use app\priv\Info;
 use COM;
 use Exception;
 use Yii;
@@ -37,7 +46,8 @@ class UtilsController extends Controller
                             'delete-target',
                             'fill-membership-accruals',
                             'fill-target-accruals',
-                            'refresh-main-data'
+                            'refresh-main-data',
+                            'synchronize'
                         ],
                         'roles' => ['writer'],
                     ],
@@ -116,5 +126,14 @@ class UtilsController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
         Utils::startRefreshMainData();
         return ['status' => 1, 'header' => 'Успешно', 'data' => 'Данные обновлены'];
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    public function actionSynchronize($cottageNumber): array
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        return Utils::sendInfoToApi($cottageNumber);
     }
 }

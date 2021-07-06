@@ -175,5 +175,6 @@ return [
     'get-unsended-messages-count' => 'mail/get-unsended-messages-count',
     'search/accruals/<year:\d{4}>' => 'search/accruals',
     'bank-to-deposit' => 'payments/bank-to-deposit',
-    'target/more/<year:\d+?>' => 'tariffs/target-more'
+    'target/more/<year:\d+?>' => 'tariffs/target-more',
+    'utils/synchronize/<cottageNumber:\d+?>' => 'utils/synchronize'
 ];

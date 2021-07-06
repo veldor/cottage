@@ -6,13 +6,15 @@ namespace app\models;
 
 use app\models\database\Accruals_membership;
 use app\models\database\Accruals_target;
+use app\models\Cottage;
 use app\models\database\CottagesFastInfo;
 use app\models\database\CottageSquareChanges;
 use app\models\interfaces\CottageInterface;
-use app\models\selections\PowerDebt;
 use app\models\utils\DbTransaction;
+use app\priv\Info;
 use DOMElement;
 use Exception;
+use JsonException;
 use Yii;
 use yii\base\Model;
 
@@ -230,20 +232,129 @@ class Utils extends Model
     {
 
         $file = Yii::$app->basePath . '\\yii.bat';
-        if(is_file($file)){
+        if (is_file($file)) {
             $command = "$file console/refresh-main-data";
-            $outFilePath =  Yii::$app->basePath . '/logs/content_change.log';
+            $outFilePath = Yii::$app->basePath . '/logs/content_change.log';
             $outErrPath = Yii::$app->basePath . '/logs/content_change_err.log';
             $command .= ' > ' . $outFilePath . ' 2>' . $outErrPath . ' &"';
-            try{
+            try {
                 // попробую вызвать процесс асинхронно
                 $handle = new \COM('WScript.Shell');
                 $handle->Run($command, 0, false);
-            }
-            catch (Exception $e){
+            } catch (Exception $e) {
                 exec($command);
             }
         }
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public static function sendInfoToApi($cottageNumber): array
+    {
+        // сгуппирую всю БД в огромный JSON и отправлю на сервер :)
+        $cottage = database\Cottage::findOne($cottageNumber);
+        if ($cottage !== null) {
+            $cottageItem = [];
+            // передам всю-всю информацию об участке на сервер
+            // начисления
+            $powerAccruals = Table_power_months::findAll(['cottageNumber' => $cottage->cottageNumber]);
+            foreach ($powerAccruals as $powerAccrual) {
+                $accrualDetails = [];
+                foreach ($powerAccrual->attributes as $key => $attribute) {
+                    $accrualDetails[$key] = $attribute;
+                }
+                $cottageItem['powerAccruals'][] = $accrualDetails;
+            }
+            $membershipAccruals = Accruals_membership::findAll(['cottage_number' => $cottage->cottageNumber]);
+            foreach ($membershipAccruals as $membershipAccrual) {
+                $accrualDetails = [];
+                foreach ($membershipAccrual->attributes as $key => $attribute) {
+                    $accrualDetails[$key] = $attribute;
+                }
+                $cottageItem['membershipAccruals'][] = $accrualDetails;
+            }
+            $targetAccruals = Accruals_target::findAll(['cottage_number' => $cottage->cottageNumber]);
+            foreach ($targetAccruals as $targetAccrual) {
+                $accrualDetails = [];
+                foreach ($targetAccrual->attributes as $key => $attribute) {
+                    $accrualDetails[$key] = $attribute;
+                }
+                $cottageItem['targetAccruals'][] = $accrualDetails;
+            }
+            // теперь- оплаты
+            $powerPays = Table_payed_power::findAll(['cottageId' => $cottage->cottageNumber]);
+            if (!empty($powerPays)) {
+                foreach ($powerPays as $powerPay) {
+                    $details = [];
+                    foreach ($powerPay->attributes as $key => $attribute) {
+                        $details[$key] = $attribute;
+                    }
+                    $cottageItem['powerPays'][] = $details;
+                }
+            }
+            $membershipPays = Table_payed_membership::findAll(['cottageId' => $cottage->cottageNumber]);
+            if (!empty($membershipPays)) {
+                foreach ($membershipPays as $membershipPay) {
+                    $details = [];
+                    foreach ($membershipPay->attributes as $key => $attribute) {
+                        $details[$key] = $attribute;
+                    }
+                    $cottageItem['membershipPays'][] = $details;
+                }
+            }
+            $targetPays = Table_payed_target::findAll(['cottageId' => $cottage->cottageNumber]);
+            if (!empty($targetPays)) {
+                foreach ($targetPays as $targetPay) {
+                    $details = [];
+                    foreach ($targetPay->attributes as $key => $attribute) {
+                        $details[$key] = $attribute;
+                    }
+                    $cottageItem['targetPays'][] = $details;
+                }
+            }
+            // send bills
+            $bills = Table_payment_bills::findAll(['cottageNumber' => $cottage->cottageNumber]);
+            if (!empty($bills)) {
+                foreach ($bills as $bill) {
+                    $details = [];
+                    foreach ($bill->attributes as $key => $attribute) {
+                        $details[$key] = $attribute;
+                    }
+                    $cottageItem['bills'][] = $details;
+                }
+            }
+            // send transactions
+            $transactions = Table_transactions::findAll(['cottageNumber' => $cottage->cottageNumber]);
+            if (!empty($transactions)) {
+                foreach ($transactions as $transaction) {
+                    $details = [];
+                    foreach ($transaction->attributes as $key => $attribute) {
+                        $details[$key] = $attribute;
+                    }
+                    $cottageItem['transactions'][] = $details;
+                }
+            }
+            $cottageItem['apiKey'] = Info::API_KEY;
+            $cottageItem['cottageNumber'] = $cottage->cottageNumber;
+            // put data in file
+            $fileName = dirname(Yii::getAlias('@webroot') . './/') . '/output/' . $cottage->cottageNumber . ".json";
+            file_put_contents($fileName, json_encode($cottageItem, JSON_THROW_ON_ERROR));
+            // send data to server
+            $ch = curl_init("https://oblepiha.site/input");
+# Setup request to send json via POST.
+            $payload = json_encode($cottageItem, JSON_THROW_ON_ERROR);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+# Return response instead of printing.
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+# Send request.
+            $result = curl_exec($ch);
+            curl_close($ch);
+            return ['status' => 'success', 'result' => $result];
+# Print response.
+        }
+        return [];
     }
 
 

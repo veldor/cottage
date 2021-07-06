@@ -61,7 +61,7 @@ class Table_power_months extends ActiveRecord
 
     public static function getFirstUnpaid(CottageInterface $cottage)
     {
-        return self::find()->where(['cottageNumber' => $cottage->getCottageNumber(), 'payed' => 'no'])->orderBy('month')->one();
+        return self::find()->where(['cottageNumber' => $cottage->getCottageNumber(), 'payed' => 'no'])->andWhere(['<>', 'difference', 0])->orderBy('month')->one();
     }
 
     public static function getData(CottageInterface $cottageInfo, $date)

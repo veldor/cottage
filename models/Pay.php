@@ -406,7 +406,7 @@ class Pay extends Model
                                 $leftToPay = $sum;
                                 $sum = 0;
                             } else {
-                                $sum -= $leftToPay;
+                                $sum = CashHandler::toRubles($sum - $leftToPay);
                             }
                             // зарегистрирую платёж
                             PowerHandler::insertSinglePayment(
@@ -420,7 +420,7 @@ class Pay extends Model
                     }
                     if ($sum > 0) {
                         // проверю, должен остаться 0, если нет- вызову ошибку
-                        throw new InvalidArgumentException("Не сходится сумма платежа за электроэнергию");
+                        throw new InvalidArgumentException("Не сходится сумма платежа за электроэнергию $sum");
                     }
                 }
             }

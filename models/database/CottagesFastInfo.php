@@ -12,6 +12,7 @@ use app\models\MembershipHandler;
 use app\models\PowerHandler;
 use app\models\SingleHandler;
 use app\models\TargetHandler;
+use Exception;
 use yii\db\ActiveRecord;
 
 /**
@@ -150,6 +151,10 @@ class CottagesFastInfo extends ActiveRecord
         }
     }
 
+    /**
+     * @param CottageInterface $cottage
+     * @throws Exception
+     */
     public static function checkExpired(CottageInterface $cottage)
     {
         $existentItem = self::findOne(['cottage_number' => $cottage->getCottageNumber()]);

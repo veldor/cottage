@@ -89,7 +89,6 @@ class ComparisonHandler extends Model
     {
         // проверю, не является ли участок дополнительным
         $isDouble = Pay::isDoubleBill($this->billId);
-
         // найду платёж
         $billInfo = ComplexPayment::getBill($this->billId, $isDouble);
         $transactionInfo = TransactionsHandler::getTransaction($this->transactionId);
@@ -107,6 +106,9 @@ class ComparisonHandler extends Model
             if ($additionalCottageInfo->hasDifferentOwner) {
                 $additionalCottageInfo = null;
             }
+        }
+        else{
+            $additionalCottageInfo = $cottageInfo;
         }
         // обработаю транзакцию
         $transactionSumm = CashHandler::toRubles($transactionInfo->payment_summ);

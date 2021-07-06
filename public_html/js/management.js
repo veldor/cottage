@@ -3,7 +3,7 @@ function globalOptions() {
     // отправка бекапа
     const sendBackupBtn = $('button#sendBackupButton');
     sendBackupBtn.on('click.send', function () {
-       sendAjax('post', '/backup/send', simpleAnswerHandler)
+        sendAjax('post', '/backup/send', simpleAnswerHandler)
     });
 
     // сохранение настроек почты
@@ -21,9 +21,32 @@ function globalOptions() {
 
 }
 
+function sendRecursive(number) {
+    sendAjax('post',
+        '/utils/synchronize/' + number,
+        function (answer) {
+            console.log(answer)
+            if (number < 180) {
+                makeInformer('success', 'Успешно', 'Отправлены данные по участку ' + number + '!');
+                sendRecursive(++number)
+            }
+            else{
+                makeInformer('success', 'Успешно', 'Все данные отправлены!');
+            }
+        });
+}
+
+function handleLoadToApi() {
+    let btn = $('button#syncronizeToApi');
+    btn.on('click.sendRecursive', function () {
+        sendRecursive(1);
+    });
+}
+
 $(function () {
     "use strict";
     enableTabNavigation();
     globalOptions();
     handleAjaxActivators();
+    handleLoadToApi();
 });

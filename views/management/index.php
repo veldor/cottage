@@ -33,6 +33,8 @@ $this->title = 'Всякие разные настройки';
                             class="text-info">Заполнить данные по членским взносам</span></button>
                 <button class="btn btn-default activator" data-action="/utils/fill-target-accruals"><span
                             class="text-info">Заполнить данные по целевым взносам</span></button>
+                <button class="btn btn-default" id="syncronizeToApi"><span
+                            class="text-info">Синхронизация данных с облаком</span></button>
             </div>
         </div>
     </div>
