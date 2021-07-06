@@ -264,7 +264,6 @@ class Cottage extends Model
             foreach ($duty as $value) {
                 $tariff = Table_tariffs_target::findOne(['year' => $value->year]);
                 if ($tariff !== null && $tariff->payUpTime < $time) {
-                    echo 'has expired target';
                     return true;
                 }
             }
@@ -272,13 +271,11 @@ class Cottage extends Model
         // получу данные о первом неоплаченном месяце
         $firstUnpaidMonth = Table_power_months::getFirstUnpaid($cottage);
         if ($firstUnpaidMonth !== null && TimeHandler::getPayUpMonth($firstUnpaidMonth->month) < $time) {
-            echo 'has expired power ' . $firstUnpaidMonth->month . ' ' . $cottage->getCottageNumber() . "\n";
             return true;
         }
 
         // если не оплачен текущий квартал
         if (MembershipHandler::getLastPayedQuarter($cottage) < TimeHandler::getPrevQuarter(TimeHandler::getCurrentQuarter())) {
-            echo 'has expired current quarter';
             return true;
         }
 
