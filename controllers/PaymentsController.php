@@ -213,11 +213,11 @@ class PaymentsController extends Controller
         return $this->renderPartial('bank-invoice', ['info' => $info]);
     }
 
-    public function actionSendBankInvoice($identificator): array
+    public function actionSendBankInvoice($identificator, $double = false): array
     {
         // поставлю в очередь отправки
         Yii::$app->response->format = Response::FORMAT_JSON;
-        return MailingSchedule::addBankInvoiceSending($identificator);
+        return MailingSchedule::addBankInvoiceSending($identificator, $double);
     }
 
     public function actionSendInvoice($identificator)

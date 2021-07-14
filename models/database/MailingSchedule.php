@@ -70,41 +70,43 @@ class MailingSchedule extends ActiveRecord
      * @param $identificator
      * @return array
      */
-    public static function addBankInvoiceSending($identificator): array
+    public static function addBankInvoiceSending($identificator, $double = false): array
     {
         // получу информацию о счёте
-        $billInfo = BillsHandler::getBill($identificator);
-        $cottageInfo = \app\models\Cottage::getCottageByLiteral($billInfo->cottageNumber);
-        // получу почтовые ящики для данного участка
-        $mails = Mail::getCottageMails($cottageInfo);
-        if (!empty($mails)) {
-            $inQueue = [];
-            foreach ($mails as $mail) {
-                $schedule = new self(['mailId' => $mail->id, 'billId' => $identificator]);
-                $schedule->save();
-                $result = ['schedule' => $schedule, 'mail' => $mail];
-                $inQueue[] = $result;
-            }
-            if (!empty($inQueue)) {
-                /** @var MailingSchedule $item */
-                foreach ($inQueue as $item) {
-                    // попытаюсь отправить все сообщения
-                    try {
-                        $mail = \app\models\Mailing::compileBillMail(
-                            $item['schedule'],
-                            $cottageInfo,
-                            MailSettings::getInstance(),
-                            $item['mail']
-                        );
-                        $mail->send();
-                        $mail->sendToReserve();
-                        $item['schedule']->delete();
-                    } catch (Exception $e) {
-                        return ['status' => 1, 'message' => 'Отправка не удалась, сообщения добавлены в очередь отправки. Отправьте их вручную.'];
+        $billInfo = BillsHandler::getBill($identificator, $double);
+        $cottageInfo = \app\models\Cottage::getCottage($billInfo->cottageNumber, $double);
+        if ($cottageInfo !== null) {
+            // получу почтовые ящики для данного участка
+            $mails = Mail::getCottageMails($cottageInfo);
+            if (!empty($mails)) {
+                $inQueue = [];
+                foreach ($mails as $mail) {
+                    $schedule = new self(['mailId' => $mail->id, 'billId' => $identificator . ($double ? "-a" : '')]);
+                    $schedule->save();
+                    $result = ['schedule' => $schedule, 'mail' => $mail];
+                    $inQueue[] = $result;
+                }
+                if (!empty($inQueue)) {
+                    /** @var MailingSchedule $item */
+                    foreach ($inQueue as $item) {
+                        // попытаюсь отправить все сообщения
+                        try {
+                            $mail = \app\models\Mailing::compileBillMail(
+                                $item['schedule'],
+                                $cottageInfo,
+                                MailSettings::getInstance(),
+                                $item['mail']
+                            );
+                            $mail->send();
+                            $mail->sendToReserve();
+                            $item['schedule']->delete();
+                        } catch (Exception $e) {
+                            return ['status' => 1, 'message' => 'Отправка не удалась, сообщения добавлены в очередь отправки. Отправьте их вручную.'];
+                        }
                     }
                 }
+                return ['status' => 1, 'message' => 'Сообщения отправлены'];
             }
-            return ['status' => 1, 'message' => 'Сообщения отправлены'];
         }
         return ['status' => 2, 'message' => 'Не найдено адресов электронной почты'];
     }
@@ -176,7 +178,7 @@ class MailingSchedule extends ActiveRecord
                 $schedule->save();
                 $result = ['schedule' => $schedule, 'mail' => $mail];
                 $inQueue[] = $result;
-                if(!empty($inQueue)){
+                if (!empty($inQueue)) {
                     foreach ($inQueue as $item) {
                         // попытаюсь отправить все сообщения
                         try {

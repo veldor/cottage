@@ -203,7 +203,7 @@ class Mailing
     {
         $billInfo = BillsHandler::getBill($waitingMail->billId);
         $payDetails = Filling::getPaymentDetails($billInfo);
-        $info = ComplexPayment::getBankInvoice($waitingMail->billId);
+        $info = ComplexPayment::getBankInvoice($billInfo->id, $billInfo instanceof Table_payment_bills_double);
         $text = Yii::$app->controller->renderPartial('/site/mail', ['billInfo' => $payDetails]);
         $text = GrammarHandler::insertPersonalAppeal($text, $cottageInfo->cottageOwnerPersonals);
         $info['bankInfo']->saveQr();

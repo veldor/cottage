@@ -73,8 +73,11 @@ class Mail extends ActiveRecord
 
     public function validateDoubleCottageMail($attribute): void
     {
-        if ($this->$attribute && (!\app\models\Cottage::getCottageByLiteral($this->cottage))->haveAdditional) {
-            $this->addError($attribute, 'У участка нет дополнительного.');
+        $cottageInfo = \app\models\Cottage::getCottage($this->cottage, false);
+        if($cottageInfo !== null){
+            if ($this->$attribute && !$cottageInfo->haveAdditional) {
+                $this->addError($attribute, 'У участка нет дополнительного.');
+            }
         }
     }
 

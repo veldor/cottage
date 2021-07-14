@@ -5,6 +5,7 @@ namespace app\models\handlers;
 
 
 use app\models\Cottage;
+use app\models\database\Bill;
 use app\models\DOMHandler;
 use app\models\PowerHandler;
 use app\models\Table_additional_cottages;
@@ -28,12 +29,12 @@ class BillsHandler extends Model
     {
         $containedBills = [];
         // получу платежи по данному участку
-        if(Cottage::isMain($cottage)){
+        if (Cottage::isMain($cottage)) {
             $bills = Table_payment_bills::findAll(['cottageNumber' => $cottage->cottageNumber]);
-            if(!empty($bills)){
+            if (!empty($bills)) {
                 foreach ($bills as $bill) {
                     // проверю, не входит ли в счет данный месяц
-                    if(self::billHaveMonth($bill, $lastFilled->month)){
+                    if (self::billHaveMonth($bill, $lastFilled->month)) {
                         $containedBills[] = $bill;
                     }
                 }
@@ -51,7 +52,7 @@ class BillsHandler extends Model
         $result = [];
         $xml = new DOMHandler($bill->bill_content);
         $months = $xml->query('/payment/power/month');
-        if($months->length > 0){
+        if ($months->length > 0) {
             /** @var DOMElement $month */
             foreach ($months as $month) {
                 $result[] = $month->getAttribute('date');
@@ -69,7 +70,7 @@ class BillsHandler extends Model
     {
 
         $months = self::getMonths($bill);
-        if(!empty($months)){
+        if (!empty($months)) {
             return in_array($month, $months, true);
         }
         return false;
@@ -79,8 +80,11 @@ class BillsHandler extends Model
      * @param $identificator
      * @return Table_payment_bills
      */
-    public static function getBill($identificator): Table_payment_bills
+    public static function getBill($identificator, $double = false): Table_payment_bills
     {
+        if ($double || strpos($identificator, 'a')) {
+            return Table_payment_bills_double::findOne((int)$identificator);
+        }
         return Table_payment_bills::findOne($identificator);
     }
 }

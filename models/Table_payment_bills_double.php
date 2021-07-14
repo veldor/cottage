@@ -8,8 +8,6 @@
 
 namespace app\models;
 
-use yii\db\ActiveRecord;
-
 /**
  * Class Table_payment_bills_double
  * @package app\models
