@@ -9,16 +9,17 @@
 namespace app\controllers;
 
 use app\models\CashHandler;
+use app\models\ExceptionWithStatus;
 use app\models\MembershipHandler;
 use app\models\PowerHandler;
 use app\models\Table_tariffs_power;
 use app\models\TargetHandler;
 use app\models\TariffsKeeper;
-use app\models\TimeHandler;
+use Exception;
 use Yii;
+use yii\filters\AccessControl;
 use yii\helpers\Url;
 use yii\web\Controller;
-use yii\filters\AccessControl;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 use yii\widgets\ActiveForm;
@@ -61,6 +62,10 @@ class TariffsController extends Controller
         ];
     }
 
+    /**
+     * @return string|Response
+     * @throws Exception
+     */
     public function actionIndex()
     {
         $session = Yii::$app->session;
@@ -83,6 +88,12 @@ class TariffsController extends Controller
         return $this->render('fillTariffs', ['lastTariffs' => $tariffsKeeper]);
     }
 
+    /**
+     * @param $type
+     * @param $period
+     * @return false|string
+     * @throws Exception
+     */
     public function actionFill($type, $period)
     {
         if ($type === 'membership') {
@@ -120,7 +131,10 @@ class TariffsController extends Controller
         return false;
     }
 
-    public function actionCheck($type, $from)
+    /**
+     * @throws NotFoundHttpException
+     */
+    public function actionCheck($type, $from): array
     {
         // тут пока только проверка заполенности тарифов на членские взносы с даты, переданной в параметре по сей день
         if (Yii::$app->request->isAjax && Yii::$app->request->isGet) {
@@ -162,7 +176,7 @@ class TariffsController extends Controller
      * @param $type
      * @param $period
      * @return array
-     * @throws NotFoundHttpException
+     * @throws NotFoundHttpException|ExceptionWithStatus
      */
     public function actionChange($type, $period): array
     {
@@ -190,7 +204,8 @@ class TariffsController extends Controller
         throw new NotFoundHttpException();
     }
 
-    public function actionTargetMore($year){
+    public function actionTargetMore($year): array
+    {
         Yii::$app->response->format = Response::FORMAT_JSON;
         // получу данные по тарифу
         $accruals = TargetHandler::getYearStatistics($year);

@@ -3,7 +3,6 @@
 
 use app\models\CashHandler;
 use app\models\small_classes\TransactionComparison;
-use app\models\TimeHandler;
 use app\models\utils\BillContent;
 use yii\web\View;
 
@@ -22,7 +21,7 @@ $billContentText = $billContentInfo->getTextContent();
 $leftToPay = $billContentInfo->getRequiredSum();
 
 
-echo "<h4 class='text-center'>Осталось оплатить по счёту: <b class='text-success'>{$leftToPay}</b></h4>";
+echo "<h4 class='text-center'>Осталось оплатить по счёту: <b class='text-success'>$leftToPay</b></h4>";
 
 ?>
 <div class="row">

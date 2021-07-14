@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUndefinedClassInspection */
 
 
 namespace app\models;
@@ -6,12 +6,12 @@ namespace app\models;
 
 use app\models\database\Accruals_membership;
 use app\models\database\Accruals_target;
-use app\models\Cottage;
 use app\models\database\CottagesFastInfo;
 use app\models\database\CottageSquareChanges;
 use app\models\interfaces\CottageInterface;
 use app\models\utils\DbTransaction;
 use app\priv\Info;
+use COM;
 use DOMElement;
 use Exception;
 use JsonException;
@@ -21,7 +21,7 @@ use yii\base\Model;
 class Utils extends Model
 {
 
-    public static function makeAddressesList()
+    public static function makeAddressesList(): void
     {
         $xml = '<?xml version="1.0" encoding="utf-8"?><cottages>';
         // получу все участки
@@ -60,7 +60,7 @@ class Utils extends Model
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     public static function fillMembershipAccruals(): void
     {
@@ -70,18 +70,20 @@ class Utils extends Model
         $cottages = array_merge($cottages, $additionalCottages);
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
-                // если в таблице уже есть информация по этому участку- пропускаю
-                if (Accruals_membership::find()->where(['cottage_number' => $cottage->getCottageNumber()])->count() > 0) {
-                    continue;
-                }
                 $firstFilledQuarter = MembershipHandler::getFirstFilledQuarter($cottage);
                 // внесу в таблицу данные по участку
                 $quartersList = TimeHandler::getQuarterList(['start' => $firstFilledQuarter, 'finish' => Table_tariffs_membership::find()->orderBy('quarter DESC')->one()->quarter]);
                 foreach ($quartersList as $key => $item) {
+                    // если в таблице уже есть информация по этому участку- пропускаю
+                    if (Accruals_membership::find()->where(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $key])->count()) {
+                        continue;
+                    }
                     // получу данные по этому месяцу, с учётом того, что у участка может быть индивидуальный тариф
-                    $tariff = PersonalTariff::getMembershipRate($cottage, $key);
-                    $square = CottageSquareChanges::getQuarterSquare($cottage, $key);
-                    (new Accruals_membership(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $key, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square]))->save();
+                    $tariff = Table_tariffs_membership::findOne(['quarter' => $key]);
+                    if ($tariff !== null) {
+                        $square = CottageSquareChanges::getQuarterSquare($cottage, $key);
+                        (new Accruals_membership(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $key, 'fixed_part' => $tariff->fixed_part, 'square_part' => $tariff->changed_part, 'counted_square' => $square]))->save();
+                    }
                 }
             }
         }
@@ -126,8 +128,9 @@ class Utils extends Model
 
     /**
      * @throws ExceptionWithStatus
+     * @throws Exception
      */
-    public static function fillTargetAccruals()
+    public static function fillTargetAccruals(): void
     {
         $transaction = new DbTransaction();
         $cottages = Cottage::getRegister();
@@ -135,43 +138,48 @@ class Utils extends Model
         $cottages = array_merge($cottages, $additionalCottages);
         if (!empty($cottages)) {
             foreach ($cottages as $cottage) {
-                // если в таблице уже есть информация по этому участку- пропускаю
-                if (Accruals_target::find()->where(['cottage_number' => $cottage->getCottageNumber()])->count() > 0) {
+                if(empty($cottage->isTarget) || $cottage->isTarget === 0){
                     continue;
                 }
                 $firstFilledYear = TargetHandler::getFirstFilledYear();
-                // внесу в таблицу данные по участку
-                $yearsList = TimeHandler::getYearsList($firstFilledYear->year, TimeHandler::getThisYear());
-                foreach ($yearsList as $year) {
-                    $duty = 0;
-                    // получу данные по этому месяцу, с учётом того, что у участка может быть индивидуальный тариф
-                    $tariff = PersonalTariff::getTargetRate($cottage, $year);
-                    $square = CottageSquareChanges::getQuarterSquare($cottage, $year . '-3');
-
-                    // посчитаю оплату вне системы
-                    // получу данные о текущем состоянии оплаты целевых платежей
-                    if ($cottage->targetPaysDuty !== null) {
-                        $targetDom = new DOMHandler($cottage->targetPaysDuty);
-                        $yearDuty = $targetDom->query('/targets/target[@year="' . $year . '"]');
-                        if ($yearDuty->length === 1) {
-                            $item = $yearDuty->item(0);
-                            $summ = $item->getAttribute('summ');
-                            $payed = CashHandler::toRubles($item->getAttribute('payed'));
-                            $payedInside = TargetHandler::getPartialPayed($cottage, $year);
-                            (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($payed - $payedInside)]))->save();
-
-                        } else {
-                            // долга нет. Значит, ищем оплаты, и если сумма оплат меньше, чем начислено- то остальное оплачено раньше
-                            $payed = TargetHandler::getPartialPayed($cottage, $year);
-                            $accrued = Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $square);
-                            (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($accrued - $payed)]))->save();
+                if ($firstFilledYear !== null) {
+                    // внесу в таблицу данные по участку
+                    $yearsList = TimeHandler::getYearsList($firstFilledYear->year, TimeHandler::getThisYear());
+                    foreach ($yearsList as $year) {
+                        if (Accruals_target::find()->where(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year])->count()) {
+                            continue;
                         }
-                    } else {
-                        $payed = TargetHandler::getPartialPayed($cottage, $year);
-                        $accrued = Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $square);
-                        (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($accrued - $payed)]))->save();
-                    }
+                        // получу данные по этому месяцу, с учётом того, что у участка может быть индивидуальный тариф
+                        $tariff = Table_tariffs_target::findOne(['year' => $year]);
+                        if ($tariff !== null) {
+                            $square = CottageSquareChanges::getQuarterSquare($cottage, $year . '-3');
+                            // посчитаю оплату вне системы
+                            // получу данные о текущем состоянии оплаты целевых платежей
+                            if ($cottage->targetPaysDuty !== null) {
+                                $targetDom = new DOMHandler($cottage->targetPaysDuty);
+                                $yearDuty = $targetDom->query('/targets/target[@year="' . $year . '"]');
+                                if ($yearDuty->length === 1) {
+                                    $item = $yearDuty->item(0);
+                                    /** @var DOMElement $item */
+                                    if ($item !== null) {
+                                        $payed = CashHandler::toRubles($item->getAttribute('payed'));
+                                        $payedInside = TargetHandler::getPartialPayed($cottage, $year);
+                                        (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($payed - $payedInside)]))->save();
 
+                                    }
+                                } else {
+                                    // долга нет. Значит, ищем оплаты, и если сумма оплат меньше, чем начислено- то остальное оплачено раньше
+                                    $payed = TargetHandler::getPartialPayed($cottage, $year);
+                                    $accrued = Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $square);
+                                    (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($accrued - $payed)]))->save();
+                                }
+                            } else {
+                                $payed = TargetHandler::getPartialPayed($cottage, $year);
+                                $accrued = Calculator::countFixedFloat($tariff['fixed'], $tariff['float'], $square);
+                                (new Accruals_target(['cottage_number' => $cottage->getCottageNumber(), 'year' => $year, 'fixed_part' => $tariff['fixed'], 'square_part' => $tariff['float'], 'counted_square' => $square, 'payed_outside' => CashHandler::toRubles($accrued - $payed)]))->save();
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -180,8 +188,9 @@ class Utils extends Model
 
     /**
      * @param $cottages CottageInterface[]
+     * @throws Exception
      */
-    public static function checkDebtFilling($cottages): void
+    public static function checkDebtFilling(array $cottages): void
     {
         if (!CottagesFastInfo::find()->count()) {
             // заодно обновлю информацию об оплате электроэнергии
@@ -210,11 +219,11 @@ class Utils extends Model
 
     /**
      * @param CottageInterface[] $cottages
+     * @throws Exception
      */
-    public static function reFillFastInfo($cottages): void
+    public static function reFillFastInfo(array $cottages): void
     {
         // заполню начальные данные
-        /** @var CottageInterface $cottage */
         foreach ($cottages as $cottage) {
             // получу данные о долгах по электоэнергии
             CottagesFastInfo::recalculatePowerDebt($cottage);
@@ -228,7 +237,10 @@ class Utils extends Model
         }
     }
 
-    public static function startRefreshMainData()
+    /**
+     *
+     */
+    public static function startRefreshMainData(): void
     {
 
         $file = Yii::$app->basePath . '\\yii.bat';
@@ -239,7 +251,8 @@ class Utils extends Model
             $command .= ' > ' . $outFilePath . ' 2>' . $outErrPath . ' &"';
             try {
                 // попробую вызвать процесс асинхронно
-                $handle = new \COM('WScript.Shell');
+                $handle = new COM('WScript.Shell');
+                /** @noinspection PhpUndefinedMethodInspection */
                 $handle->Run($command, 0, false);
             } catch (Exception $e) {
                 exec($command);

@@ -59,7 +59,7 @@ if (!empty($membershipDuty)) {
     foreach ($membershipDuty as $item) {
         $summToPay = CashHandler::toRubles(CashHandler::toRubles($item->amount) - CashHandler::toRubles($item->partialPayed));
         if ($summToPay > 0) {
-            echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[membership][{$item->quarter}][value]' name='ComplexPayment[membership][{$item->quarter}][pay]'/></td><td>{$item->quarter}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$item->quarter}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+            echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[membership][$item->quarter][value]' name='ComplexPayment[membership][{$item->quarter}][pay]'/></td><td>{$item->quarter}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[membership][{$item->quarter}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
         }
     }
     echo '</table>';
@@ -87,7 +87,7 @@ if (!empty($targetDuty)) {
     foreach ($targetDuty as $item) {
         $summToPay = $item->amount - $item->partialPayed;
         if ($summToPay > 0) {
-            echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[target][{$item->year}][value]' name='ComplexPayment[target][{$item->year}][pay]'/></td><td>{$item->year}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[target][{$item->year}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+            echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[target][$item->year][value]' name='ComplexPayment[target][{$item->year}][pay]'/></td><td>{$item->year}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[target][{$item->year}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
         }
     }
     echo '</table>';
@@ -106,7 +106,7 @@ if (!empty($singleDuty)) {
     foreach ($singleDuty as $item) {
         $summToPay = $item->amount - $item->partialPayed;
         if ($summToPay > 0) {
-            echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[single][{$item->time}][value]' name='ComplexPayment[single][{$item->time}][pay]'/></td><td>{$item->description}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[single][{$item->time}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+            echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[single][$item->time][value]' name='ComplexPayment[single][{$item->time}][pay]'/></td><td>{$item->description}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[single][{$item->time}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
         }
     }
     echo '</table>';
@@ -152,7 +152,7 @@ if (!empty($matrix->cottageInfo->haveAdditional)) {
         foreach ($additionalMembershipDuty as $item) {
             $summToPay = $item->amount - $item->partialPayed;
             if ($summToPay > 0) {
-                echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[additionalMembership][{$item->quarter}][value]' name='ComplexPayment[additionalMembership][{$item->quarter}][pay]'/></td><td>{$item->quarter}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[additionalMembership][{$item->quarter}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+                echo "<tr><td><input type='checkbox' class='pay-activator' data-for='ComplexPayment[additionalMembership][$item->quarter][value]' name='ComplexPayment[additionalMembership][{$item->quarter}][pay]'/></td><td>{$item->quarter}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[additionalMembership][{$item->quarter}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
             }
         }
         echo '</table>';
@@ -222,7 +222,7 @@ if ($matrix->double) {
                     $daySumm = $fine->summ / $dayDifference;
                 }
                 $summ = CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));
-                $fineText .= "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][{$fine->id}]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td><td>$dayDifference</td><td>" . CashHandler::toSmoothRubles($daySumm) . '</td></tr>';
+                $fineText .= "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][$fine->id]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td><td>$dayDifference</td><td>" . CashHandler::toSmoothRubles($daySumm) . '</td></tr>';
                 $totalDutySumm += $summ;
             }
         }
@@ -245,7 +245,7 @@ if ($matrix->double) {
                     }
                     $daySumm = $fine->summ / $dayDifference;
                     $summ = CashHandler::rublesMath(CashHandler::toRubles($fine->summ) - CashHandler::toRubles($fine->payed_summ));
-                    $fineText .= "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][{$fine->id}]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td><td>$dayDifference</td><td>" . CashHandler::toSmoothRubles($daySumm) . '</td></tr>';
+                    $fineText .= "<tr><td><input type='checkbox' data-summ='$summ' name='ComplexPayment[fines][$fine->id]' class='form-control fines-item'/></td><td>" . FinesHandler::$types[$fine->pay_type] . "</td><td>{$fine->period}</td><td>" . CashHandler::toSmoothRubles($summ) . "</td><td>$dayDifference</td><td>" . CashHandler::toSmoothRubles($daySumm) . '</td></tr>';
                     $totalDutySumm += $summ;
                 }
             }

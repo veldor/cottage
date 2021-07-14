@@ -172,7 +172,7 @@ class FinesHandler extends Model
                 if (!empty($quarterList)) {
                     foreach ($quarterList as $key => $value) {
                         $payUp = self::getPayUp('quarter', $key);
-                        $tariff = MembershipHandler::getCottageTariff($cottage, $key);
+                        $tariff = MembershipHandler::getCottageTariff($key);
                         $totalPay = Calculator::countFixedFloat($tariff->fixed, $tariff->float, $cottage->cottageSquare);
                         // поищу оплаты по кварталу
                         $pays = Table_payed_membership::findAll(['cottageId' => $cottage->cottageNumber, 'quarter' => $key]);

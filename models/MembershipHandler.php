@@ -16,7 +16,6 @@ use app\models\selections\FixedFloatTariff;
 use app\models\selections\MembershipDebt;
 use DOMElement;
 use Exception;
-use phpDocumentor\Reflection\Types\Self_;
 use yii\base\InvalidArgumentException;
 use yii\base\InvalidValueException;
 use yii\base\Model;
@@ -28,12 +27,12 @@ use yii\base\Model;
 class MembershipHandler extends Model
 {
 
-    public $membership;
+    public array $membership;
 
 
-    const SCENARIO_NEW_RECORD = 'new_record';
+    public const SCENARIO_NEW_RECORD = 'new_record';
 
-    public static function changePayTime(int $id, $timestamp)
+    public static function changePayTime(int $id, $timestamp): void
     {
         // найду все платежи данного счёта
         $pays = Table_payed_membership::find()->where(['billId' => $id])->all();
@@ -46,7 +45,7 @@ class MembershipHandler extends Model
         }
     }
 
-    public static function fillLastPayedQuarter(CottageInterface $cottage)
+    public static function fillLastPayedQuarter(CottageInterface $cottage): void
     {
         $cottage->membershipPayFor = self::getLastPayedQuarter($cottage);
         $cottage->save();
@@ -61,10 +60,11 @@ class MembershipHandler extends Model
     {
         // попробую найти оплаченные кварталы. Если они есть, то первый квартал будет первым из них,
         // иначе первый квартал- следующий, после последнего оплаченного по данным учаска
-        if ($cottage->isMain())
+        if ($cottage->isMain()) {
             $firstPayed = Table_payed_membership::find()->where(['cottageId' => $cottage->cottageNumber])->orderBy('quarter')->limit(1)->all();
-        else
+        } else {
             $firstPayed = Table_additional_payed_membership::find()->where(['cottageId' => $cottage->getBaseCottageNumber()])->orderBy('quarter')->limit(1)->all();
+        }
         if (empty($firstPayed)) {
             return TimeHandler::getNextQuarter($cottage->membershipPayFor);
         }
@@ -73,11 +73,10 @@ class MembershipHandler extends Model
 
     /**
      * Верну раскладку по тарифу
-     * @param $cottage
      * @param $quarter
      * @return FixedFloatTariff
      */
-    public static function getCottageTariff($cottage, $quarter): FixedFloatTariff
+    public static function getCottageTariff($quarter): FixedFloatTariff
     {
         $fixed = 0;
         $float = 0;
@@ -95,7 +94,7 @@ class MembershipHandler extends Model
      * @param string $period
      * @return Table_additional_payed_membership[]|Table_payed_membership[]
      */
-    public static function getPaysForPeriod($cottage, string $period): array
+    public static function getPaysForPeriod(CottageInterface $cottage, string $period): array
     {
         if (Cottage::isMain($cottage)) {
             return Table_payed_membership::findAll(['cottageId' => $cottage->getBaseCottageNumber(), 'quarter' => $period]);
@@ -108,8 +107,9 @@ class MembershipHandler extends Model
      * @param $cottage CottageInterface
      * @param string $quarter
      * @return float
+     * @throws ExceptionWithStatus
      */
-    public static function getAmount($cottage, string $quarter): float
+    public static function getAmount(CottageInterface $cottage, string $quarter): float
     {
         $accrual = Accruals_membership::findOne(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $quarter]);
         if ($accrual !== null) {
@@ -130,7 +130,7 @@ class MembershipHandler extends Model
         return Table_additional_payed_membership::find()->where(['cottageId' => $cottage->getBaseCottageNumber()])->orderBy('quarter')->one();
     }
 
-    public static function getPaysBefore(string $quarter, interfaces\CottageInterface $cottage, int $periodEnd)
+    public static function getPaysBefore(string $quarter, interfaces\CottageInterface $cottage, int $periodEnd): array
     {
         if ($cottage->isMain()) {
             return Table_payed_membership::find()->where(['quarter' => $quarter, 'cottageId' => $cottage->getBaseCottageNumber()])->andWhere(['<=', 'paymentDate', $periodEnd])->all();
@@ -147,7 +147,7 @@ class MembershipHandler extends Model
     public static function getAccrued(interfaces\CottageInterface $cottage, string $month): float
     {
         // так, нужно получить общую стоимость членских взносов за месяц
-        $tariff = self::getCottageTariff($cottage, TimeHandler::getQuarterFromTimestamp(TimeHandler::getMonthTimestamp($month)));
+        $tariff = self::getCottageTariff(TimeHandler::getQuarterFromTimestamp(TimeHandler::getMonthTimestamp($month)));
         $square = CottageSquareChanges::getQuarterSquare($cottage, TimeHandler::getQuarterFromTimestamp(TimeHandler::getMonthTimestamp($month)));
         return Calculator::countFixedFloat($tariff->fixed, $tariff->float, $square);
     }
@@ -158,10 +158,10 @@ class MembershipHandler extends Model
      */
     public static function getCottageAccruals(CottageInterface $cottage): array
     {
-        return Accruals_membership::findAll(['cottage_number' => $cottage->getCottageNumber()]);
+        return Accruals_membership::find()->where(['cottage_number' => $cottage->getCottageNumber()])->orderBy('quarter')->all();
     }
 
-    public static function getYearPayments(string $year)
+    public static function getYearPayments(string $year): array
     {
         $accrual = [];
         $pays = [];
@@ -181,7 +181,7 @@ class MembershipHandler extends Model
                     );
                 }
             }
-            if ($quarterCounter == 1) {
+            if ($quarterCounter === 1) {
                 $accrual[] = ["$year-01", CashHandler::toRubles($totalAccrued)];
                 $accrual[] = ["$year-02", 0];
                 $accrual[] = ["$year-03", 0];
@@ -212,7 +212,7 @@ class MembershipHandler extends Model
                     $totalPayed += CashHandler::toRubles($item->summ);
                 }
             }
-            if ($quarterCounter == 1) {
+            if ($quarterCounter === 1) {
                 $pays[] = ["$year-01", CashHandler::toRubles($totalPayed)];
                 $pays[] = ["$year-02", 0];
                 $pays[] = ["$year-03", 0];
@@ -244,7 +244,7 @@ class MembershipHandler extends Model
      * Получение последнего квартала, за который была произведена оплата взносов
      * @param $cottageInfo CottageInterface
      */
-    public static function getLastPayedQuarter($cottageInfo)
+    public static function getLastPayedQuarter(CottageInterface $cottageInfo)
     {
         // получу все начисления, считая с конца
         $accruals = Accruals_membership::find()->where(['cottage_number' => $cottageInfo->getCottageNumber()])->orderBy('quarter')->all();
@@ -273,10 +273,8 @@ class MembershipHandler extends Model
                             }
                             return $lastPayedQuarter;
                         }
-                    } else {
-                        if ($lastPayedQuarter === null) {
-                            $lastPayedQuarter = $quarter->quarter;
-                        }
+                    } else if ($lastPayedQuarter === null) {
+                        $lastPayedQuarter = $quarter->quarter;
                     }
                 } else {
                     return TimeHandler::getPrevQuarter($lastQuarter);
@@ -286,7 +284,7 @@ class MembershipHandler extends Model
         return TimeHandler::getCurrentQuarter();
     }
 
-    public static function getPeriodPaysAmount(string $cottage_number, string $quarter)
+    public static function getPeriodPaysAmount(string $cottage_number, string $quarter): float
     {
         $pays = self::getPaysForPeriod(Cottage::getCottageByLiteral($cottage_number), $quarter);
         $payed = 0;
@@ -303,7 +301,7 @@ class MembershipHandler extends Model
      * @param $cottageInfo CottageInterface
      * @return float
      */
-    public static function getDebtAmount($cottageInfo)
+    public static function getDebtAmount(CottageInterface $cottageInfo)
     {
         $cottageDebt = self::getDebt($cottageInfo);
         $debt = 0;
@@ -323,46 +321,11 @@ class MembershipHandler extends Model
         ];
     }
 
-    public static function getCottageStatus($cottageInfo)
-    {
-        $isMain = Cottage::isMain($cottageInfo);
-        // верну общую сумму неоплаченных членских взносов
-        $summ = 0;
-        // Сделаю выборку тарифов
-        $start = TimeHandler::getQuarterTimestamp($cottageInfo->membershipPayFor);
-        $now = TimeHandler::getQuarterTimestamp(TimeHandler::getCurrentQuarter());
-        if ($start === $now || $start > $now) {
-            return 0;
-        }
-        $tariffs = Table_tariffs_membership::find()
-            ->where(['and', "search_timestamp>$start", "search_timestamp<=$now"])
-            ->all();
-        if (!empty($tariffs)) {
-            foreach ($tariffs as $item) {
-                $summ += $item->fixed_part;
-                $summ += $cottageInfo->cottageSquare * ($item->changed_part / 100);
-                // вычту сумму частично оплаченного квартала, если она есть
-                if ($isMain) {
-                    $payed = Table_payed_membership::find()->where(['cottageId' => $cottageInfo->cottageNumber, 'quarter' => $item->quarter])->all();
-                } else {
-                    $payed = Table_additional_payed_membership::find()->where(['cottageId' => $cottageInfo->masterId, 'quarter' => $item->quarter])->all();
-                }
-                if (!empty($payed)) {
-                    foreach ($payed as $payedItem) {
-                        $summ -= $payedItem->summ;
-                    }
-                }
-            }
-            return CashHandler::rublesRound($summ);
-        }
-        return false;
-    }
-
     /**
      * @param $cottage CottageInterface
      * @return MembershipDebt[]
      */
-    public static function getDebt($cottage): array
+    public static function getDebt(CottageInterface $cottage): array
     {
         $result = [];
         // проверка, является ли участок основным
@@ -407,7 +370,7 @@ class MembershipHandler extends Model
      * @param $additional boolean
      * @return array
      */
-    public static function getFutureQuarters($quartersNumber, $cottageNumber, $additional): array
+    public static function getFutureQuarters($quartersNumber, $cottageNumber, bool $additional): array
     {
         if ($additional) {
             $cottage = AdditionalCottage::getCottage($cottageNumber);
@@ -427,7 +390,6 @@ class MembershipHandler extends Model
         foreach ($tariffs as $key => $value) {
             $accrual = Accruals_membership::findOne(['cottage_number' => $cottage->getCottageNumber(), 'quarter' => $key]);
             if ($accrual !== null) {
-                $existentTariff = Table_tariffs_membership::findOne(['quarter' => $key]);
                 // получу значение начисления по кварталу
                 $payedYet = 0;
                 // если квартал частично оплачен- вычту сумму частичной оплаты из цены
@@ -444,13 +406,13 @@ class MembershipHandler extends Model
                 $toPay = Calculator::countFixedFloat($accrual->fixed_part, $accrual->square_part, $accrual->counted_square);
                 $summToPay = $toPay - $payedYet;
                 if ($summToPay > 0) {
-                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][{$key}][value]' name='ComplexPayment[$type][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+                    $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][$key][value]' name='ComplexPayment[$type][$key][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][$key][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
                 }
             } else {
                 // Добавлю новое начисление
                 (new Accruals_membership(['quarter' => $key, 'cottage_number' => $cottage->getCottageNumber(), 'fixed_part' => $value['fixed'], 'square_part' => $value['float'], 'counted_square' => $cottage->cottageSquare]))->save();
                 $summToPay = Calculator::countFixedFloat($value['fixed'], $value['float'], $cottage->cottageSquare);
-                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][{$key}][value]' name='ComplexPayment[$type][{$key}][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][{$key}][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
+                $content .= "<tr><td><input type='checkbox' class='pay-activator form-control' data-for='ComplexPayment[$type][$key][value]' name='ComplexPayment[$type][$key][pay]'/></td><td>{$key}</td><td><b class='text-danger'>" . CashHandler::toSmoothRubles($summToPay) . "</b></td><td><input type='number' class='form-control bill-pay' step='0.01'  name='ComplexPayment[$type][$key][value]' value='" . CashHandler::toJsRubles($summToPay) . "' disabled/></td></tr>";
             }
         }
         $content .= '</table>';
@@ -462,7 +424,7 @@ class MembershipHandler extends Model
      * @param bool $skipCheckWholeness
      * @return array
      */
-    public static function getTariffs($period, $skipCheckWholeness = false): array
+    public static function getTariffs($period, bool $skipCheckWholeness = false): array
     {
         $query = Table_tariffs_membership::find();
         if (is_string($period)) {
@@ -518,7 +480,7 @@ class MembershipHandler extends Model
      * @return array
      * @throws ExceptionWithStatus
      */
-    public static function createPayment($cottageInfo, $membershipPeriods, $additional = false): array
+    public static function createPayment($cottageInfo, $membershipPeriods, bool $additional = false): array
     {
         $answer = '';
         $summ = 0;
@@ -543,15 +505,15 @@ class MembershipHandler extends Model
                     throw new ExceptionWithStatus('Сумма оплаты ' . $toPay . ' за членские взносы за ' . $key . ' больше максимальной- ' . $totalSumm);
                 }
                 $summ += $totalSumm;
-                $answer .= "<quarter date='{$key}' summ='{$totalSumm}' square='{$accrual->counted_square}' float-cost='{$cost['float']}' float='{$accrual->square_part}' fixed='{$accrual->fixed_part}' prepayed='$payedSumm'/>";
+                $answer .= "<quarter date='$key' summ='$totalSumm' square='$accrual->counted_square' float-cost='{$cost['float']}' float='$accrual->square_part' fixed='$accrual->fixed_part' prepayed='$payedSumm'/>";
             }
         }
         if ($additional) {
             $answer = /** @lang xml */
-                "<additional_membership cost='{$summ}'>" . $answer . '</additional_membership>';
+                "<additional_membership cost='$summ'>" . $answer . '</additional_membership>';
         } else {
             $answer = /** @lang xml */
-                "<membership cost='{$summ}'>" . $answer . '</membership>';
+                "<membership cost='$summ'>" . $answer . '</membership>';
         }
         return ['text' => $answer, 'summ' => CashHandler::rublesRound($summ)];
     }
@@ -562,8 +524,9 @@ class MembershipHandler extends Model
      * @param $payments
      * @param $transaction Table_transactions
      * @param bool $additional
+     * @throws Exception
      */
-    public static function registerPayment($cottageInfo, $billInfo, $payments, $transaction, $additional = false)
+    public static function registerPayment($cottageInfo, $billInfo, $payments, Table_transactions $transaction, bool $additional = false): void
     {
         // зарегистрирую платежи
         foreach ($payments['values'] as $payment) {
@@ -578,8 +541,9 @@ class MembershipHandler extends Model
      * @param $billInfo
      * @param $transaction Table_transactions
      * @param bool $additional
+     * @throws Exception
      */
-    public static function insertPayment($payment, $cottageInfo, $billInfo, $transaction, $additional = false)
+    public static function insertPayment($payment, $cottageInfo, $billInfo, Table_transactions $transaction, bool $additional = false): void
     {
         $partialPayed = self::checkPartialPayedQuarter($cottageInfo);
         $summ = CashHandler::toRubles($payment['summ']);
@@ -611,8 +575,9 @@ class MembershipHandler extends Model
      * @param $date
      * @param $summ
      * @param $transaction Table_transactions|Table_transactions_double
+     * @throws Exception
      */
-    public static function insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ)
+    public static function insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ): void
     {
         if (Cottage::isMain($cottageInfo)) {
             $write = new Table_payed_membership();
@@ -631,7 +596,7 @@ class MembershipHandler extends Model
         CottagesFastInfo::checkExpired($cottageInfo);
     }
 
-    public static function recalculateMembership($period)
+    public static function recalculateMembership($period): void
     {
         $quarter = TimeHandler::isQuarter($period);
         try {
@@ -703,16 +668,15 @@ class MembershipHandler extends Model
     }
 
     /**
-     * @param bool $period
-     * @param bool $skipIntegrityErrors
+     * @param string|null $period
      * @return Table_tariffs_membership
      */
-    public static function getRowTariff($period = false, $skipIntegrityErrors = false): Table_tariffs_membership
+    public static function getRowTariff(?string $period = null): Table_tariffs_membership
     {
         if (!empty($period)) {
             $quarter = TimeHandler::isQuarter($period);
             $data = Table_tariffs_membership::findOne(['quarter' => $quarter['full']]);
-            if (!empty($data)) {
+            if ($data !== null) {
                 return $data;
             }
             throw new InvalidArgumentException('Тарифа на данный квартал не существует!');
@@ -724,7 +688,7 @@ class MembershipHandler extends Model
         throw new InvalidValueException('Тарифы  не обнаружены');
     }
 
-    public static function validateFillTariff($from)
+    public static function validateFillTariff($from): array
     {
         $thisQuarter = TimeHandler::getCurrentQuarter();
         $start = TimeHandler::isQuarter($from)['full'];
@@ -762,6 +726,10 @@ class MembershipHandler extends Model
         return ['quarters' => $quarters, 'lastTariffData' => $lastTariffData];
     }
 
+    /**
+     * @return bool
+     * @throws Exception
+     */
     public function save(): bool
     {
         foreach ($this->membership as $key => $value) {
@@ -771,6 +739,12 @@ class MembershipHandler extends Model
     }
 
 
+    /**
+     * @param $quarter
+     * @param $fixed
+     * @param $float
+     * @throws Exception
+     */
     private static function createTariff($quarter, $fixed, $float): void
     {
         $quarter = TimeHandler::isQuarter($quarter);
@@ -791,193 +765,28 @@ class MembershipHandler extends Model
     }
 
     /**
-     * @param $bill Table_payment_bills|Table_payment_bills_double
-     * @param $paymentSumm double
-     * @param $cottageInfo Table_cottages|Table_additional_cottages
-     * @param $transaction Table_transactions|Table_transactions_double
-     */
-    public static function handlePartialPayment($bill, $paymentSumm, $cottageInfo, $transaction)
-    {
-        // проверка, оплачивается основной или дополнительный участок
-        $main = Cottage::isMain($cottageInfo);
-        $payedQuarters = null;
-        $partialPayedQuarter = null;
-        $dom = new DOMHandler($bill->bill_content);
-        // получу данные о полном счёте за членские взносы
-        if ($main) {
-            $membershipQuarters = $dom->query('//membership/quarter');
-        } else {
-            $membershipQuarters = $dom->query('//additional_membership/quarter');
-        }
-        // если ранее производилась оплата по данному счёту- посчитаю сумму оплаты
-        if ($main) {
-            $payedBefore = Table_payed_membership::find()->where(['billId' => $bill->id])->all();
-        } else {
-            $payedBefore = Table_additional_payed_membership::find()->where(['billId' => $bill->id])->all();
-        }
-        $payedSumm = 0;
-        if (!empty($payedBefore)) {
-            foreach ($payedBefore as $item) {
-                $payedSumm += CashHandler::toRubles($item->summ);
-            }
-        }
-        /** @var DOMElement $quarter */
-        foreach ($membershipQuarters as $quarter) {
-            // получу сумму платежа
-            $summ = DOMHandler::getFloatAttribute($quarter, 'summ');
-            // отсекаю кварталы, полностью оплаченные в прошлый раз
-            if ($summ <= $payedSumm) {
-                $payedSumm -= $summ;
-                continue;
-            }
-            $summWithPrepay = $summ - $payedSumm;
-            if (CashHandler::toRubles($summWithPrepay) <= CashHandler::toRubles($paymentSumm)) {
-                // денег хватает на полую оплату периода. Добавляю его в список полностью оплаченных и вычитаю из общей суммы стоимость месяца
-                $payedQuarters[] = ['date' => $quarter->getAttribute('date'), 'summ' => $summWithPrepay];
-                $paymentSumm -= $summWithPrepay;
-                $payedSumm = 0;
-            } elseif ($paymentSumm > 0) {
-                // денег не хватает на полую оплату месяца, но ещё есть остаток- помечаю месяц как частично оплаченный
-                $partialPayedQuarter = ['date' => $quarter->getAttribute('date'), 'summ' => $paymentSumm];
-                break;
-            }
-        }
-        // если есть полностью оплаченные кварталы
-
-        if (!empty($payedQuarters)) {
-            // зарегистрирую каждый квартал как оплаченный
-            foreach ($payedQuarters as $payedQuarter) {
-                $date = $payedQuarter['date'];
-                $summ = $payedQuarter['summ'];
-                self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
-                // отмечу месяц последним оплаченным для участка
-                $cottageInfo->membershipPayFor = $date;
-                $cottageInfo->partialPayedMembership = null;
-            }
-        }
-        if (!empty($partialPayedQuarter)) {
-            $date = $partialPayedQuarter['date'];
-            $summ = $partialPayedQuarter['summ'];
-            // переменная для хранения финального значения суммы оплаты за квартал
-            $summForSave = $summ;
-            // проверю существование частично оплаченного периода у данного участка
-            $savedPartial = self::checkPartialPayedQuarter($cottageInfo);
-            if ($savedPartial) {
-                $prevPayment = CashHandler::toRubles($savedPartial['summ']);
-                // получу полную стоимость данного месяца
-                /** @var DOMElement $monthInfo */
-                $monthInfo = $dom->query('//quarter[@date="' . $date . '"]')->item(0);
-                $fullPaySumm = CashHandler::toRubles($monthInfo->getAttribute('summ'));
-                if ($prevPayment + $summ === $fullPaySumm) {
-                    // отмечу месяц как полностью оплаченный
-                    self::insertSinglePayment($cottageInfo, $bill, $transaction, $date, $summ);
-                    $cottageInfo->membershipPayFor = $date;
-                    $cottageInfo->partialPayedMembership = null;
-                    return;
-                } else {
-                    $summForSave += $prevPayment;
-                }
-            }
-            // отмечу квартал как оплаченный частично
-            $cottageInfo->partialPayedMembership = "<partial date='$date' summ='$summForSave'/>";
-            // зарегистрирую платёж в таблице оплаты членских взносов
-            if ($main) {
-                $table = new Table_payed_membership();
-                $table->cottageId = $cottageInfo->cottageNumber;
-            } else {
-                $table = new Table_additional_payed_membership();
-                $table->cottageId = $cottageInfo->masterId;
-            }
-            $table->billId = $bill->id;
-            $table->quarter = $date;
-            $table->summ = $summ;
-            $table->paymentDate = $transaction->bankDate;
-            $table->transactionId = $transaction->id;
-            $table->save();
-        }
-    }
-
-
-    /**
-     * @param $billDom DOMHandler
-     * @param $cottageInfo
-     * @param $billId
-     * @param $paymentTime
-     */
-    public static function finishPartialPayment($billDom, $cottageInfo, $billId, $paymentTime)
-    {
-        $main = Cottage::isMain($cottageInfo);
-        $payedMonths = null;
-        $partialPayedMonth = null;
-        // добавлю оплаченную сумму в xml
-        if ($main) {
-            $membershipContainer = $billDom->query('//membership')->item(0);
-        } else {
-            $membershipContainer = $billDom->query('//additional_membership')->item(0);
-        }
-        // проверю, не оплачивалась ли часть платежа ранее
-        /** @var DOMElement $membershipContainer */
-        $payedBefore = CashHandler::toRubles(0 . $membershipContainer->getAttribute('payed'));
-        // получу данные о полном счёте за электричество
-        if ($main) {
-            $membershipQuarters = $billDom->query('//membership/quarter');
-        } else {
-            $membershipQuarters = $billDom->query('//additional_membership/quarter');
-        }
-
-        /** @var DOMElement $quarter */
-        foreach ($membershipQuarters as $quarter) {
-            $prepayed = 0;
-            // получу сумму платежа
-            $summ = DOMHandler::getFloatAttribute($quarter, 'summ');
-            if ($summ <= $payedBefore) {
-                $payedBefore -= $summ;
-                continue;
-            } elseif ($payedBefore > 0) {
-                $prepayed = $payedBefore;
-                $payedBefore = 0;
-            }
-            if ($prepayed > 0) {
-                // часть квартала оплачена заранее
-                $date = $quarter->getAttribute('date');
-                self::insertSinglePayment($cottageInfo, $billId, $date, $summ - $prepayed, $paymentTime);
-                // отмечу квартал последним оплаченным для участка
-                $cottageInfo->membershipPayFor = $date;
-            } else {
-                // отмечу месяц как оплаченный полностью
-                $date = $quarter->getAttribute('date');
-                self::insertSinglePayment($cottageInfo, $billId, $date, $summ, $paymentTime);
-                // отмечу месяц последним оплаченным для участка
-                $cottageInfo->membershipPayFor = $date;
-            }
-        }
-        $cottageInfo->partialPayedMembership = null;
-    }
-
-    /**
      * @param $cottageInfo CottageInterface
      * @return null
      * @throws ExceptionWithStatus
      */
-    public static function checkPartialPayedQuarter(CottageInterface $cottageInfo)
+    public static function checkPartialPayedQuarter(CottageInterface $cottageInfo): ?array
     {
         $accruals = self::getCottageAccruals($cottageInfo);
         $partial = [];
-        if(!empty($accruals)){
+        if (!empty($accruals)) {
             foreach ($accruals as $accrual) {
                 $payments = self::getPaysForPeriod($cottageInfo, $accrual->quarter);
                 $amount = self::getAmount($cottageInfo, $accrual->quarter);
                 $fullAmount = $amount;
-                if($payments !== null){
+                if ($payments !== null) {
                     foreach ($payments as $payment) {
-                        try{
+                        try {
                             $amount = CashHandler::toRubles($amount - $payment->summ);
-                        }
-                        catch (Exception $e){
+                        } catch (Exception $e) {
                         }
                     }
                 }
-                if($amount > 0 && $amount !== $fullAmount){
+                if ($amount > 0 && $amount !== $fullAmount) {
                     $partial[$accrual->quarter] = $amount;
                 }
             }
@@ -990,7 +799,7 @@ class MembershipHandler extends Model
      * @param $cottageInfo Table_cottages|Table_additional_cottages
      * @return bool
      */
-    public static function noTimeForPay($billInfo, $cottageInfo)
+    public static function noTimeForPay($billInfo, $cottageInfo): bool
     {
         $paysDom = new DOMHandler($billInfo->bill_content);
         $membershipPayments = $paysDom->query("//membership/quarter");

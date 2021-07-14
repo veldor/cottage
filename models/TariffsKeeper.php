@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use Exception;
 use yii\base\InvalidArgumentException;
 use yii\base\InvalidValueException;
 use yii\base\Model;
@@ -17,10 +18,10 @@ class TariffsKeeper extends Model {
 
 
 	public $power;
-	public $membership;
+	public array $membership;
 	public $target;
 
-	const SCENARIO_FILL = 'fill';
+	public const SCENARIO_FILL = 'fill';
 
 	public function scenarios():array
 	{
@@ -30,7 +31,11 @@ class TariffsKeeper extends Model {
 	}
 
 
-	public function save(): bool
+    /**
+     * @return bool
+     * @throws Exception
+     */
+    public function save(): bool
 	{
 		if (!empty($this->power)) {
 			foreach ($this->power as $key => $item) {
