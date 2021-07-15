@@ -33,7 +33,7 @@ class CashHandler extends Model
         }
         $match = null;
         if(preg_match($re, $summ, $match)){
-            $summ = round((double) "$match[1],$match[2]", 2);
+            $summ = round((double) "$match[1].$match[2]", 2);
             return $summ;
         }
         throw new InvalidArgumentException($summ . ' - Данное значение не является верным числом');
