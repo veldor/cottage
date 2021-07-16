@@ -181,7 +181,7 @@ class ComparisonHandler extends Model
             if (!empty($billContentInfo->membershipEntities)) {
                 foreach ($billContentInfo->membershipEntities as $membershipEntity) {
                     // проверю, оплачивалась ли раньше часть суммы.
-                    $leftToPay = CashHandler::sumFromInt($membershipEntity->sum) - $membershipEntity->getPayedOutside() - $membershipEntity->getPayedInside();
+                    $leftToPay = $membershipEntity->getLeftToPay();
                     if ($leftToPay > 0) {
                         // зарегистрирую оплату
                         MembershipHandler::insertSinglePayment(

@@ -141,7 +141,7 @@ $registrationNumber = $cottageInfo->globalInfo->cottageRegistrationInformation ?
                     $partialPayedPeriods = MembershipHandler::checkPartialPayedQuarter($cottageInfo->globalInfo);
                     if (!empty($partialPayedPeriods)) {
                         foreach ($partialPayedPeriods as $key => $value) {
-                            echo '<p><b class="text-info">' . TimeHandler::getFullFromShortQuarter($key) . '</b>: оплачено частично, <b class="text-success">' . CashHandler::toSmoothRubles($value) . '</b></p>';
+                            echo '<p><b class="text-info">' . TimeHandler::getFullFromShortQuarter($key) . '</b>: оплачено частично, долг: <b class="text-success">' . CashHandler::toSmoothRubles($value) . '</b></p>';
                         }
                     }
                     ?>

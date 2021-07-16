@@ -72,6 +72,6 @@ class BillMembershipEntity extends BillContentEntity
 
     public function getLeftToPay():float
     {
-        return $this->totalAccrued - CashHandler::sumFromInt($this->getPayedOutside() + $this->getPayedInside());
+        return CashHandler::toRubles($this->totalAccrued - ($this->getPayedOutside() + $this->getPayedInside()));
     }
 }
