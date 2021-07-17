@@ -42,9 +42,9 @@ class ComparisonHandler extends Model
                 // создам платёжную транзакцию
                 $payTransaction = new Table_transactions([
                     'cottageNumber' => $cottage->getCottageNumber(),
-                    'bankDate' => time(),
-                    'payDate' => time(),
-                    'transactionDate' => time(),
+                    'bankDate' => $bankTransaction->real_pay_date,
+                    'payDate' => $bankTransaction->pay_date,
+                    'transactionDate' => $bankTransaction->pay_date,
                     'transactionSumm' => CashHandler::toRubles($bankTransaction->payment_summ),
                     'gainedDeposit' => CashHandler::toRubles($bankTransaction->payment_summ),
                     'transactionType' => 'cash',

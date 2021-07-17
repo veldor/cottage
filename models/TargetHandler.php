@@ -152,7 +152,11 @@ class TargetHandler extends Model
      */
     public static function getAccrued(CottageInterface $cottage, string $year): float
     {
-        return CashHandler::toRubles(Accruals_target::findOne(['year' => $year, 'cottage_number' => $cottage->getCottageNumber()])->fixed_part);
+        $target = Accruals_target::findOne(['year' => $year, 'cottage_number' => $cottage->getCottageNumber()]);
+        if ($target !== null) {
+            return CashHandler::toRubles($target->getAccrual());
+        }
+        return 0;
     }
 
     /**
@@ -175,7 +179,7 @@ class TargetHandler extends Model
     public static function getPartialPayed(CottageInterface $cottage, $item)
     {
         $payed = 0;
-            $pays = Table_payed_target::getPays($cottage, $item);
+        $pays = Table_payed_target::getPays($cottage, $item);
         if (!empty($pays)) {
             foreach ($pays as $pay) {
                 $payed += CashHandler::toRubles($pay->summ);

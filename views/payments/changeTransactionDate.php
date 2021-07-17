@@ -16,12 +16,12 @@ echo "<div class='row'>";
 
 echo $form->field($data, 'id', ['template' => '{input}'])->hiddenInput()->label(false);
 echo $form->field($data, 'double', ['template' => '{input}'])->hiddenInput()->label(false);
-echo $form->field($data, 'payDate', ['template' =>
+echo $form->field($data, 'bankDate', ['template' =>
     '<div class="col-lg-5">{label}</div><div class="col-lg-7">{input}{error}{hint}</div>'])
     ->textInput(['type' => 'date', 'value' => TimeHandler::dateInputDateFromTimestamp($data->payDate)])
     ->label('Дата оплаты');
 
-echo $form->field($data, 'bankDate', ['template' =>
+echo $form->field($data, 'payDate', ['template' =>
     '<div class="col-lg-5">{label}</div><div class="col-lg-7">{input}{error}{hint}</div>'])
     ->textInput(['type' => 'date', 'value' => TimeHandler::dateInputDateFromTimestamp($data->bankDate)])
     ->label('Дата поступления на счёт');
